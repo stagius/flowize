@@ -1,0 +1,5 @@
+{
+  "name": "Flowize",
+  "description": "A parallel development workflow interface managing the lifecycle from raw tasks to merged PRs using Git worktrees.",
+  "requestFramePermissions": []
+}
