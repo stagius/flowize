@@ -513,7 +513,81 @@ export const pushWorktreeBranch = async (slot: WorktreeSlot, branchName: string,
     branch: branchName
   });
 
-  await runBridgeCommand(settings, `git push -u origin "${branchName}"`, {
+  const syncWithRemoteBranch = async (): Promise<void> => {
+    await runBridgeCommand(settings, `git fetch origin "${branchName}"`, {
+      worktreePath: slot.path,
+      branch: branchName
+    });
+
+    const remoteExistsPayload = await runBridgeCommand(
+      settings,
+      `git show-ref --verify --quiet "refs/remotes/origin/${branchName}" && echo yes || echo no`,
+      {
+        worktreePath: slot.path,
+        branch: branchName
+      }
+    ) as { stdout?: string } | null;
+
+    const remoteExists = String(remoteExistsPayload?.stdout ?? '').trim().toLowerCase() === 'yes';
+    if (!remoteExists) {
+      return;
+    }
+
+    try {
+      await runBridgeCommand(settings, `git rebase "origin/${branchName}"`, {
+        worktreePath: slot.path,
+        branch: branchName
+      });
+    } catch (error) {
+      try {
+        await runBridgeCommand(settings, 'git rebase --abort', {
+          worktreePath: slot.path,
+          branch: branchName
+        });
+      } catch {
+        // Ignore abort failure; keep original rebase error context.
+      }
+
+      const message = getErrorMessage(error);
+      throw new Error(
+        `Remote branch '${branchName}' has newer commits and auto-rebase failed. ` +
+        `Resolve conflicts in the worktree and retry push. Details: ${message}`
+      );
+    }
+  };
+
+  await syncWithRemoteBranch();
+
+  try {
+    await runBridgeCommand(settings, `git push -u origin "${branchName}"`, {
+      worktreePath: slot.path,
+      branch: branchName
+    });
+  } catch (error) {
+    const message = getErrorMessage(error);
+    const needsSyncRetry = /fetch first|non-fast-forward|failed to push some refs/i.test(message);
+    if (!needsSyncRetry) {
+      throw error;
+    }
+
+    await syncWithRemoteBranch();
+    await runBridgeCommand(settings, `git push -u origin "${branchName}"`, {
+      worktreePath: slot.path,
+      branch: branchName
+    });
+  }
+};
+
+export const forcePushWorktreeBranchWithLease = async (slot: WorktreeSlot, branchName: string, settings?: AppSettings): Promise<void> => {
+  if (!branchName) {
+    throw new Error('Branch name is required to push worktree changes.');
+  }
+
+  if (!settings?.antiGravityAgentEndpoint) {
+    throw new Error('No local bridge endpoint configured. Worktree branch push requires Agent Bridge Endpoint.');
+  }
+
+  await runBridgeCommand(settings, `git push --force-with-lease -u origin "${branchName}"`, {
     worktreePath: slot.path,
     branch: branchName
   });

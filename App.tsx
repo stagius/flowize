@@ -10,7 +10,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { AlertDialog, AlertDialogState, ConfirmDialog, ConfirmDialogState, DialogTone } from './components/ui/Dialogs';
 import { ToastItem, ToastStack, ToastTone } from './components/ui/ToastStack';
 import { createGithubIssue, fetchGithubIssues, createBranch, getBSHA, commitFile, createPullRequest, mergePullRequest, fetchMergedPRs, fetchOpenPRs, fetchCommitStatus, fetchAuthenticatedUser, fetchPullRequestDetails } from './services/githubService';
-import { createWorktree, pruneWorktree, pushWorktreeBranch } from './services/gitService';
+import { createWorktree, pruneWorktree, pushWorktreeBranch, forcePushWorktreeBranchWithLease } from './services/gitService';
 import { ChevronRight, GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github } from 'lucide-react';
 
 type BridgeHealthState = {
@@ -611,7 +611,27 @@ export default function App() {
             showToast(`Branch ${task.branchName} pushed. Continue review in Step 4.`, 'success');
         } catch (e: any) {
             console.error("Failed to push to GitHub", e);
-            showAlertDialog('Push Failed', `Failed to push branch: ${e.message}`, 'error');
+            const message = e instanceof Error ? e.message : String(e);
+
+            if (isPushDivergedError(message)) {
+                showAlertDialog(
+                    'Push Conflict Detected',
+                    `Remote branch ${task.branchName} has diverged and safe push failed. You can force push with lease to update this task branch while still protecting against unexpected remote changes.\n\nDetails: ${message}`,
+                    'warning',
+                    {
+                        label: 'Force Push (--with-lease)',
+                        tone: 'warning',
+                        run: async () => {
+                            await forcePushWorktreeBranchWithLease(slot, task.branchName as string, settings);
+                            setCurrentStep(4);
+                            showToast(`Force pushed ${task.branchName}. Continue review in Step 4.`, 'warning');
+                        }
+                    }
+                );
+                return;
+            }
+
+            showAlertDialog('Push Failed', `Failed to push branch: ${message}`, 'error');
         }
     };
 
@@ -743,6 +763,10 @@ export default function App() {
     const shortSha = (sha?: string): string => {
         if (!sha) return 'unknown';
         return sha.slice(0, 7);
+    };
+
+    const isPushDivergedError = (message: string): boolean => {
+        return /fetch first|non-fast-forward|failed to push some refs|auto-rebase failed/i.test(message);
     };
 
     const handleResolveMergeConflict = async (taskId: string) => {
