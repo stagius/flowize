@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppSettings } from '../types';
-import { X, Save, Github, FolderOpen, GitBranch, Terminal, Key, ShieldCheck, AlertTriangle, Cpu, Lock, Loader2, CheckCircle2, XCircle, Search } from 'lucide-react';
+import { X, Save, Github, FolderOpen, GitBranch, Terminal, Key, ShieldCheck, AlertTriangle, Cpu, Lock, Loader2, CheckCircle2, XCircle, Search, Copy, RefreshCw } from 'lucide-react';
 import { fetchAuthenticatedUser, fetchUserRepositories, fetchRepositoryBranches, GithubAuthenticatedUser, GithubRepository, GithubBranch } from '../services/githubService';
 
 const SPECFLOW_SKILL_RELATIVE_PATH = '.opencode/skills/specflow-worktree-automation/SKILL.md';
@@ -28,6 +28,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   const [loadingGithubData, setLoadingGithubData] = useState(false);
   const [githubAuthState, setGithubAuthState] = useState<{ status: 'idle' | 'connecting' | 'error'; message: string }>({ status: 'idle', message: '' });
   const [bridgeTest, setBridgeTest] = useState<{ status: 'idle' | 'testing' | 'ok' | 'error'; message: string }>({ status: 'idle', message: '' });
+  const [bridgeRecovery, setBridgeRecovery] = useState<{ status: 'idle' | 'ok' | 'error'; message: string }>({ status: 'idle', message: '' });
   const [bridgeHealth, setBridgeHealth] = useState<{ status: 'checking' | 'healthy' | 'unhealthy'; message: string }>({
     status: 'checking',
     message: 'Checking bridge health...'
@@ -47,6 +48,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
       setIsBranchMenuOpen(false);
       setGithubAuthState({ status: 'idle', message: '' });
       setBridgeTest({ status: 'idle', message: '' });
+      setBridgeRecovery({ status: 'idle', message: '' });
       setBridgeHealth({ status: 'checking', message: 'Checking bridge health...' });
     }
   }, [isOpen, currentSettings]);
@@ -491,9 +493,11 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
     const endpoint = formData.antiGravityAgentEndpoint?.trim();
     if (!endpoint) {
       setBridgeTest({ status: 'error', message: 'Set Agent Bridge Endpoint first.' });
+      setBridgeRecovery({ status: 'idle', message: '' });
       return;
     }
 
+    setBridgeRecovery({ status: 'idle', message: '' });
     setBridgeTest({ status: 'testing', message: 'Testing bridge connectivity...' });
     const candidates = getBridgeCandidates(endpoint);
     let lastNetworkError = '';
@@ -534,6 +538,25 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
       message: `Bridge unreachable. Tried: ${candidates.join(', ')}. Last error: ${lastNetworkError || 'Failed to fetch'}. App origin: ${typeof window !== 'undefined' ? window.location.origin : 'unknown'}`
     });
   };
+
+  const handleCopyBridgeStartCommand = async () => {
+    const manualCommand = 'npm run bridge:start';
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(manualCommand);
+        setBridgeRecovery({ status: 'ok', message: `Copied \`${manualCommand}\` to clipboard.` });
+        return;
+      } catch {
+        // fall through
+      }
+    }
+
+    setBridgeRecovery({ status: 'error', message: `Clipboard unavailable. Run \`${manualCommand}\` in a terminal.` });
+  };
+
+  const bridgeHealthFailedToFetch = bridgeHealth.status === 'unhealthy'
+    && bridgeHealth.message.toLowerCase().includes('failed to fetch');
+  const shouldShowBridgeRecovery = bridgeTest.status === 'error' || bridgeHealthFailedToFetch;
 
   const checkBridgeHealth = async (endpoint: string) => {
     const candidates = getBridgeCandidates(endpoint)
@@ -1022,6 +1045,43 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                     }`}>
                     {bridgeTest.status === 'ok' ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : bridgeTest.status === 'testing' ? <Loader2 className="w-4 h-4 mt-0.5 animate-spin" /> : <XCircle className="w-4 h-4 mt-0.5" />}
                     <span>{bridgeTest.message}</span>
+                  </div>
+                )}
+                {shouldShowBridgeRecovery && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-amber-300/90">
+                      Browser security cannot start a terminal directly. Auto-start only works when a bridge endpoint is already reachable.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCopyBridgeStartCommand}
+                        className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 text-xs font-medium transition-colors whitespace-nowrap"
+                      >
+                        <span className="inline-flex items-center gap-1.5"><Copy className="w-3 h-3" /> Copy Start Command</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleTestBridge}
+                        disabled={bridgeTest.status === 'testing'}
+                        className="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 rounded-lg border border-indigo-500/30 text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        {bridgeTest.status === 'testing' ? (
+                          <span className="inline-flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Re-testing...</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Re-test Bridge</span>
+                        )}
+                      </button>
+                    </div>
+                    {bridgeRecovery.status !== 'idle' && (
+                      <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${bridgeRecovery.status === 'ok'
+                        ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-300'
+                        : 'bg-red-500/5 border-red-500/20 text-red-300'
+                        }`}>
+                        {bridgeRecovery.status === 'ok' ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : <XCircle className="w-4 h-4 mt-0.5" />}
+                        <span>{bridgeRecovery.message}</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
