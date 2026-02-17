@@ -1,18 +1,25 @@
 import React, { useState } from 'react';
-import { TaskItem, TaskStatus } from '../types';
+import { AppSettings, TaskItem, TaskStatus } from '../types';
 import { GitMerge, CheckCircle, ExternalLink, PlayCircle, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 
 interface Props {
   tasks: TaskItem[];
   onMerge: (taskId: string) => Promise<void>;
   onFetchMerged: () => Promise<void>;
+  settings?: AppSettings;
 }
 
-export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onFetchMerged }) => {
+export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onFetchMerged, settings }) => {
   const readyToMerge = tasks.filter(t => t.status === TaskStatus.PR_CREATED);
   const mergedHistory = tasks.filter(t => t.status === TaskStatus.PR_MERGED);
   const [mergingId, setMergingId] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(false);
+
+  const buildPrUrl = (task: TaskItem): string | null => {
+    if (task.issueUrl) return task.issueUrl;
+    if (!task.prNumber || !settings?.repoOwner || !settings?.repoName) return null;
+    return `https://github.com/${settings.repoOwner}/${settings.repoName}/pull/${task.prNumber}`;
+  };
 
   const handleMergeClick = async (taskId: string) => {
       setMergingId(taskId);
@@ -48,12 +55,25 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onFetchMerged }) 
                 readyToMerge.map(task => (
                     <div key={task.id} className="border border-green-500/20 bg-green-500/5 rounded-xl p-5 flex flex-col justify-between h-48 hover:bg-green-500/10 transition-colors relative overflow-hidden group">
                          <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-green-500/20 to-transparent rounded-bl-full -mr-8 -mt-8 opacity-50"></div>
-                         <div>
-                             <div className="flex justify-between items-start mb-2">
-                                 <span className="text-xs font-mono text-green-300/80">PR #{task.prNumber}</span>
-                                 <div className={`flex items-center gap-1 text-[10px] border px-1.5 py-0.5 rounded shadow-sm ${
-                                     task.vercelStatus === 'success' 
-                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                             <div>
+                              <div className="flex justify-between items-start mb-2">
+                                  <span className="text-xs font-mono text-green-300/80">
+                                      {buildPrUrl(task) ? (
+                                        <a
+                                          href={buildPrUrl(task) as string}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="hover:text-green-200 hover:underline inline-flex items-center gap-1"
+                                        >
+                                          PR #{task.prNumber} <ExternalLink className="w-3 h-3" />
+                                        </a>
+                                      ) : (
+                                        <span>PR #{task.prNumber}</span>
+                                      )}
+                                  </span>
+                                  <div className={`flex items-center gap-1 text-[10px] border px-1.5 py-0.5 rounded shadow-sm ${
+                                      task.vercelStatus === 'success' 
+                                         ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                                         : task.vercelStatus === 'failed'
                                         ? 'bg-red-500/10 border-red-500/20 text-red-400'
                                         : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
@@ -127,13 +147,15 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onFetchMerged }) 
                               </td>
                           </tr>
                       ) : (
-                          mergedHistory.slice().reverse().map(task => (
+                          mergedHistory.slice().reverse().map(task => {
+                              const prUrl = buildPrUrl(task);
+                              return (
                               <tr key={task.id} className="hover:bg-slate-800/30 transition-colors">
                                   <td className="px-6 py-3 font-medium text-slate-200">{task.title}</td>
                                   <td className="px-6 py-3 font-mono text-slate-500">
-                                      {task.issueUrl ? (
+                                      {prUrl ? (
                                         <a 
-                                            href={task.issueUrl} 
+                                            href={prUrl}
                                             target="_blank" 
                                             rel="noopener noreferrer"
                                             className="hover:text-blue-400 hover:underline flex items-center gap-1 transition-colors"
@@ -153,8 +175,9 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onFetchMerged }) 
                                       </span>
                                   </td>
                               </tr>
-                          ))
-                      )}
+                          );
+                          })
+                       )}
                   </tbody>
               </table>
           </div>

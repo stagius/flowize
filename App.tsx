@@ -811,7 +811,7 @@ export default function App() {
                 settings={settings}
             />;
             case 4: return <Step5_Review tasks={tasks} onApprovePR={handleApprovePR} onRequestChanges={handleRequestChanges} onCheckStatus={handleCheckCIStatus} />;
-            case 5: return <Step6_Merge tasks={tasks} onMerge={handleMerge} onFetchMerged={handleFetchMerged} />;
+            case 5: return <Step6_Merge tasks={tasks} onMerge={handleMerge} onFetchMerged={handleFetchMerged} settings={settings} />;
             default: return <div>Unknown Step</div>;
         }
     };
