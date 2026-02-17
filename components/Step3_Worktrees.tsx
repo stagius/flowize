@@ -40,6 +40,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
     const [cleaningSlot, setCleaningSlot] = useState<number | null>(null);
     const [openingAgentWorkspaceSlot, setOpeningAgentWorkspaceSlot] = useState<number | null>(null);
     const [openingFullAgentSlot, setOpeningFullAgentSlot] = useState<number | null>(null);
+    const [copiedCmdTaskId, setCopiedCmdTaskId] = useState<string | null>(null);
 
     // Terminal State
     const [activeTerminalSlotId, setActiveTerminalSlotId] = useState<number | null>(null);
@@ -143,6 +144,65 @@ export const Step3_Worktrees: React.FC<Props> = ({
         setCleaningSlot(null);
     };
 
+    const handleQuickAssignToSlot = (slotId: number) => {
+        const nextTask = backlog[0];
+        if (!nextTask) {
+            return;
+        }
+        onAssignToSlot(nextTask.id, slotId);
+    };
+
+    const toShellPath = (value: string): string => {
+        if (/^[a-zA-Z]:[\\/]/.test(value)) {
+            return value.replace(/\//g, '\\');
+        }
+        return value;
+    };
+
+    const joinPath = (base: string, suffix: string): string => {
+        if (base.endsWith('/')) return `${base}${suffix}`;
+        return `${base}/${suffix}`;
+    };
+
+    const buildAgentCommandForTask = (task: TaskItem, slot: WorktreeSlot): string => {
+        const template = settings?.antiGravityAgentCommand?.trim();
+        if (!template || !task.issueNumber || !task.branchName) return '';
+
+        const subdir = settings?.antiGravityAgentSubdir?.trim() || '.antigravity';
+        const agentWorkspace = joinPath(slot.path, subdir.replace(/^[\\/]+/, ''));
+        const issueDescriptionFile = joinPath(agentWorkspace, 'issue-description.md');
+        const skillFile = joinPath(agentWorkspace, 'SKILL.md');
+        const agentName = settings?.antiGravityAgentName?.trim() || '';
+
+        return template
+            .replace(/\{issueNumber\}/g, String(task.issueNumber))
+            .replace(/\{branch\}/g, task.branchName)
+            .replace(/\{title\}/g, task.title)
+            .replace(/\{worktreePath\}/g, toShellPath(slot.path))
+            .replace(/\{agentWorkspace\}/g, toShellPath(agentWorkspace))
+            .replace(/\{agentName\}/g, agentName)
+            .replace(/\{agentFlag\}/g, agentName ? `--agent "${agentName}"` : '')
+            .replace(/\{issueDescriptionFile\}/g, toShellPath(issueDescriptionFile))
+            .replace(/\{briefFile\}/g, toShellPath(issueDescriptionFile))
+            .replace(/\{skillFile\}/g, toShellPath(skillFile));
+    };
+
+    const copyAgentCommandForTask = async (task: TaskItem, slot: WorktreeSlot): Promise<boolean> => {
+        const command = buildAgentCommandForTask(task, slot);
+        if (!command) return false;
+
+        try {
+            await navigator.clipboard.writeText(command);
+            setCopiedCmdTaskId(task.id);
+            setTimeout(() => {
+                setCopiedCmdTaskId((current) => current === task.id ? null : current);
+            }, 1500);
+            return true;
+        } catch {
+            return false;
+        }
+    };
+
     const handleOpenAgentWorkspaceCmd = async (slot: WorktreeSlot, task?: TaskItem) => {
         setOpeningAgentWorkspaceSlot(slot.id);
         const workspaceSubdir = settings?.antiGravityAgentSubdir?.trim() || '.antigravity';
@@ -150,12 +210,14 @@ export const Step3_Worktrees: React.FC<Props> = ({
         const startupCommand = agentName ? `opencode --agent "${agentName}"` : 'opencode';
 
         try {
+            if (task) {
+                await copyAgentCommandForTask(task, slot);
+            }
             await openWorktreeCmdWindow(settings, slot, {
                 subdir: workspaceSubdir,
                 title: `Flowize AG-${slot.id}`,
                 startupCommand,
-                ensureDirectory: true,
-                task
+                ensureDirectory: true
             });
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
@@ -166,13 +228,12 @@ export const Step3_Worktrees: React.FC<Props> = ({
         }
     };
 
-    const handleOpenFullAgentIde = async (slot: WorktreeSlot, task?: TaskItem) => {
+    const handleOpenFullAgentIde = async (slot: WorktreeSlot) => {
         setOpeningFullAgentSlot(slot.id);
 
         try {
             await openWorktreeCmdWindow(settings, slot, {
                 title: `Flowize AG-FULL-${slot.id}`,
-                task,
                 launchAntigravity: true,
                 closeAfterStartup: true
             });
@@ -636,6 +697,18 @@ ${diffContent}
                                     <div className="flex flex-col items-center justify-center h-full text-slate-600 gap-2 py-8 md:py-0">
                                         <FolderGit2 className="w-8 h-8 opacity-20" />
                                         <span className="text-sm">Available for development</span>
+                                        {backlog.length > 0 ? (
+                                            <button
+                                                onClick={() => handleQuickAssignToSlot(slot.id)}
+                                                className="mt-2 flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-lg shadow-indigo-900/20"
+                                                title={`Assign next issue (${backlog[0].title})`}
+                                            >
+                                                <GitBranch className="w-3 h-3" />
+                                                Assign Next Issue
+                                            </button>
+                                        ) : (
+                                            <span className="text-[11px] text-slate-700">No backlog issue to assign</span>
+                                        )}
                                     </div>
                                 ) : isInitializing ? (
                                     <div className="flex flex-col items-center justify-center h-full gap-4 text-slate-500 py-8">
@@ -673,7 +746,15 @@ ${diffContent}
                                                         </button>
 
                                                         <button
-                                                            onClick={() => handleOpenFullAgentIde(slot, assignedTask)}
+                                                            onClick={() => copyAgentCommandForTask(assignedTask, slot)}
+                                                            className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 px-2 py-1.5 rounded-lg text-xs transition-colors"
+                                                            title="Copy agent command"
+                                                        >
+                                                            {copiedCmdTaskId === assignedTask.id ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3" />}
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => handleOpenFullAgentIde(slot)}
                                                             disabled={openingFullAgentSlot === slot.id}
                                                             className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-lg shadow-indigo-900/20"
                                                             title="Open full Anti-Gravity IDE"
