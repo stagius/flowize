@@ -507,6 +507,30 @@ export default function App() {
         }
     };
 
+    const refreshIssueBacklogAfterCleanup = async () => {
+        if (!hasGithubToken) {
+            return;
+        }
+
+        const remoteIssues = await fetchGithubIssues(settings);
+        const issuesOnly = remoteIssues.filter((issue: any) => !issue.pull_request);
+        const openIssueNumbers = new Set<number>(
+            issuesOnly
+                .map((issue: any) => Number(issue.number))
+                .filter((issueNumber: number) => Number.isFinite(issueNumber))
+        );
+
+        setTasks(prev => prev.filter(task => {
+            if (task.status !== TaskStatus.ISSUE_CREATED) {
+                return true;
+            }
+            if (!task.issueNumber) {
+                return true;
+            }
+            return openIssueNumbers.has(task.issueNumber);
+        }));
+    };
+
     const handleCleanupSlot = async (slotId: number) => {
         const slot = slots.find(s => s.id === slotId);
         if (!slot) return;
@@ -547,6 +571,12 @@ export default function App() {
                     agentRunState: 'idle'
                 } : t
             ));
+        }
+
+        try {
+            await refreshIssueBacklogAfterCleanup();
+        } catch (error) {
+            console.warn('Issue backlog refresh after cleanup failed', error);
         }
 
         if (cleanupError) {
