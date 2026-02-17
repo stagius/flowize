@@ -18,3 +18,17 @@ View your app in AI Studio: https://ai.studio/apps/drive/1OzW1QGy296Io8ucHRlX8fY
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Local Worktree Bridge (required for real filesystem git worktrees)
+
+The UI runs in the browser and cannot execute shell/git commands directly. Start the local bridge:
+
+1. `npm run bridge:start`
+2. In app settings, set `Agent Bridge Endpoint` to `http://127.0.0.1:4141/run`
+
+Optional environment variables:
+
+- `BRIDGE_PORT` (default: `4141`)
+- `BRIDGE_HOST` (default: `0.0.0.0`)
+- `BRIDGE_ALLOWED_ORIGIN` (default: `*`, or comma-separated origins like `http://localhost:3000,http://127.0.0.1:3000`)
+- `BRIDGE_WORKDIR` (default: current directory)

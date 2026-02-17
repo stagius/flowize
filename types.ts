@@ -23,6 +23,9 @@ export interface TaskItem {
   issueNumber?: number;
   issueUrl?: string;
   implementationDetails?: string; // Mock code or summary
+  agentLogs?: string;
+  agentLastCommand?: string;
+  agentRunState?: 'idle' | 'running' | 'succeeded' | 'failed' | 'cancelled';
   vercelStatus?: 'pending' | 'success' | 'failed';
   createdAt: number;
 }
@@ -40,6 +43,11 @@ export interface AppSettings {
   worktreeRoot: string;
   maxWorktrees: number;
   githubToken?: string;
+  antiGravityAgentCommand?: string;
+  antiGravityAgentName?: string;
+  antiGravityAgentEndpoint?: string;
+  antiGravityAgentSubdir?: string;
+  antiGravitySkillFile?: string;
 }
 
 export type StepId = 1 | 2 | 3 | 4 | 5;

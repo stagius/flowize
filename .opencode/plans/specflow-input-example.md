@@ -1,0 +1,5 @@
+- P0 bug: provider cannot submit a bid when commission is zero
+- P1 feature: add autosave draft in customer task creation wizard
+- P2 task: improve admin filters for moderation queue
+- high bug: email notification preference is ignored on task approved event
+- feature: show ETA range in provider offer card on mobile

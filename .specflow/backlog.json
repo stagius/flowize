@@ -1,0 +1,57 @@
+{
+  "createdAt": "2026-02-16T22:35:53.007Z",
+  "sourceFile": "Z:\\flowize\\.opencode\\plans\\specflow-input-example.md",
+  "repo": "stagius/flowize",
+  "items": [
+    {
+      "id": "item-1",
+      "raw": "P0 bug: provider cannot submit a bid when commission is zero",
+      "formattedTitle": "P0 bug: provider cannot submit a bid when commission is zero",
+      "formattedDescription": "Type: bug. Priority: P0. Topic: Payments.",
+      "topic": "Payments",
+      "type": "bug",
+      "priority": "P0",
+      "priorityScore": 110
+    },
+    {
+      "id": "item-2",
+      "raw": "P1 feature: add autosave draft in customer task creation wizard",
+      "formattedTitle": "P1 feature: add autosave draft in customer task creation wizard",
+      "formattedDescription": "Type: feature. Priority: P1. Topic: Tasks Marketplace.",
+      "topic": "Tasks Marketplace",
+      "type": "feature",
+      "priority": "P1",
+      "priorityScore": 80
+    },
+    {
+      "id": "item-3",
+      "raw": "P2 task: improve admin filters for moderation queue",
+      "formattedTitle": "P2 task: improve admin filters for moderation queue",
+      "formattedDescription": "Type: task. Priority: P2. Topic: Tasks Marketplace.",
+      "topic": "Tasks Marketplace",
+      "type": "task",
+      "priority": "P2",
+      "priorityScore": 50
+    },
+    {
+      "id": "item-4",
+      "raw": "high bug: email notification preference is ignored on task approved event",
+      "formattedTitle": "High bug: email notification preference is ignored on task approved event",
+      "formattedDescription": "Type: bug. Priority: P1. Topic: Notifications.",
+      "topic": "Notifications",
+      "type": "bug",
+      "priority": "P1",
+      "priorityScore": 85
+    },
+    {
+      "id": "item-5",
+      "raw": "feature: show ETA range in provider offer card on mobile",
+      "formattedTitle": "Feature: show ETA range in provider offer card on mobile",
+      "formattedDescription": "Type: feature. Priority: P2. Topic: Tasks Marketplace.",
+      "topic": "Tasks Marketplace",
+      "type": "feature",
+      "priority": "P2",
+      "priorityScore": 55
+    }
+  ]
+}
