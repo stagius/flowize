@@ -25,3 +25,6 @@ dist-ssr
 
 # Flowize local bridge artifacts
 .flowize-startup.cmd
+
+# Ignore generated feature worktree content
+src/features/*

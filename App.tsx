@@ -582,10 +582,7 @@ export default function App() {
 
         if (slot && task && task.branchName) {
             try {
-                // 1. Push and cleanup through local bridge
-                await pruneWorktree(slot, task.branchName, settings);
-
-                // 2. Real GitHub API Push
+                // Push implementation content to the feature branch.
                 if (settings.githubToken) {
                     const baseSha = await getBSHA(settings, settings.defaultBranch);
                     await createBranch(settings, task.branchName, baseSha);
@@ -597,8 +594,6 @@ export default function App() {
                         `feat: implement ${task.title} (#${task.issueNumber})`
                     );
                 }
-
-                setSlots(prev => prev.map(s => s.taskId === taskId ? { ...s, taskId: null } : s));
             } catch (e: any) {
                 console.error("Failed to push to GitHub", e);
                 showAlertDialog('Push Failed', `Failed to push branch: ${e.message}`, 'error');
@@ -608,6 +603,7 @@ export default function App() {
 
     const handleApprovePR = async (taskId: string) => {
         const task = tasks.find(t => t.id === taskId);
+        const slot = slots.find(s => s.taskId === taskId);
         if (!task || !task.branchName) return;
 
         if (!settings.githubToken) {
@@ -636,6 +632,20 @@ export default function App() {
                     vercelStatus: 'pending'
                 } : t
             ));
+
+            if (slot) {
+                try {
+                    await pruneWorktree(slot, task.branchName, settings);
+                    setSlots(prev => prev.map(s => s.taskId === taskId ? { ...s, taskId: null } : s));
+                } catch (e: any) {
+                    console.error('Worktree cleanup after PR approval failed', e);
+                    showAlertDialog(
+                        'PR Created, Cleanup Failed',
+                        `PR #${prNumber} was created, but worktree cleanup failed: ${e.message}`,
+                        'warning'
+                    );
+                }
+            }
 
         } catch (e: any) {
             console.error("PR Creation Failed", e);
