@@ -577,6 +577,25 @@ export default function App() {
         ));
     };
 
+    const pushTaskImplementationToGithub = async (task: TaskItem): Promise<void> => {
+        if (!task.branchName) {
+            throw new Error('Task branch is missing.');
+        }
+        if (!hasGithubToken) {
+            throw new Error('GitHub Token not configured. Add one in Settings to push branch changes.');
+        }
+
+        const baseSha = await getBSHA(settings, settings.defaultBranch);
+        await createBranch(settings, task.branchName, baseSha);
+        await commitFile(
+            settings,
+            task.branchName,
+            `src/features/${task.group.toLowerCase()}/${task.id}.tsx`,
+            task.implementationDetails || '// No code',
+            `feat: implement ${task.title} (#${task.issueNumber})`
+        );
+    };
+
     const handleFinishImplementation = async (taskId: string) => {
         const task = tasks.find(t => t.id === taskId);
         const slot = slots.find(s => s.taskId === taskId);
@@ -584,17 +603,7 @@ export default function App() {
         if (slot && task && task.branchName) {
             try {
                 // Push implementation content to the feature branch.
-                if (settings.githubToken) {
-                    const baseSha = await getBSHA(settings, settings.defaultBranch);
-                    await createBranch(settings, task.branchName, baseSha);
-                    await commitFile(
-                        settings,
-                        task.branchName,
-                        `src/features/${task.group.toLowerCase()}/${task.id}.tsx`,
-                        task.implementationDetails || '// No code',
-                        `feat: implement ${task.title} (#${task.issueNumber})`
-                    );
-                }
+                await pushTaskImplementationToGithub(task);
             } catch (e: any) {
                 console.error("Failed to push to GitHub", e);
                 showAlertDialog('Push Failed', `Failed to push branch: ${e.message}`, 'error');
@@ -607,12 +616,14 @@ export default function App() {
         const slot = slots.find(s => s.taskId === taskId);
         if (!task || !task.branchName) return;
 
-        if (!settings.githubToken) {
+        if (!hasGithubToken) {
             showAlertDialog('GitHub Token Required', 'Cannot create a pull request without a GitHub token. Add one in Settings.', 'warning');
             return;
         }
 
         try {
+            await pushTaskImplementationToGithub(task);
+
             const pr = await createPullRequest(
                 settings,
                 task.branchName,
