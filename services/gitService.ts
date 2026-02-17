@@ -328,65 +328,10 @@ const buildWorktreeStartupCommand = async (
   task: TaskItem,
   slot: WorktreeSlot
 ): Promise<string | undefined> => {
-  const commandTemplate = settings.antiGravityAgentCommand?.trim();
-  if (!commandTemplate || !task.issueNumber || !task.branchName) {
-    return undefined;
-  }
-
-  const subdir = settings.antiGravityAgentSubdir?.trim() || DEFAULT_AGENT_SUBDIR;
-  const agentWorkspace = joinPath(slot.path, subdir);
-  const issueDescriptionFile = joinPath(agentWorkspace, 'issue-description.md');
-  const configuredSkillFile = settings.antiGravitySkillFile?.trim() || DEFAULT_SKILL_FILE;
-  const sourceSkillFile = resolvePathForWorktree(slot.path, configuredSkillFile);
-  const skillFile = joinPath(agentWorkspace, 'SKILL.md');
-
-  const issueDescriptionB64 = encodeBase64(buildIssueDescription(task));
-  const fallbackSkillB64 = encodeBase64([
-    '# Flowize Agent Skill Fallback',
-    '',
-    '- Read issue-description.md and implement only requested scope.',
-    '- Keep changes minimal and consistent with existing code style.',
-    '- Return clear implementation output and verification notes.'
-  ].join('\n'));
-
-  const ensureWorkspaceCommand =
-    `node -e "const fs=require('fs');const path=require('path');` +
-    `const dir=process.argv[1];const issueFile=process.argv[2];const issueB64=process.argv[3]||'';` +
-    `const srcSkill=process.argv[4]||'';const dstSkill=process.argv[5]||'';const fallbackB64=process.argv[6]||'';` +
-    `const issueContent=Buffer.from(issueB64,'base64').toString('utf8');` +
-    `const fallbackSkill=Buffer.from(fallbackB64,'base64').toString('utf8');` +
-    `if(!fs.existsSync(dir))fs.mkdirSync(dir,{recursive:true});` +
-    `fs.writeFileSync(issueFile,issueContent,'utf8');` +
-    `let skillContent='';` +
-    `try{if(srcSkill&&fs.existsSync(srcSkill)&&fs.statSync(srcSkill).isFile()){skillContent=fs.readFileSync(srcSkill,'utf8');}}catch{}` +
-    `if(!skillContent.trim())skillContent=fallbackSkill;` +
-    `if(dstSkill){fs.writeFileSync(dstSkill,skillContent,'utf8');}` +
-    `" "${agentWorkspace}" "${issueDescriptionFile}" "${issueDescriptionB64}" "${sourceSkillFile}" "${skillFile}" "${fallbackSkillB64}"`;
-
-  await runBridgeCommand(settings, ensureWorkspaceCommand, {
-    worktreePath: slot.path,
-    branch: task.branchName,
-    issueNumber: task.issueNumber,
-    issueDescriptionFile
-  });
-
-  const shellWorktreePath = toShellPath(slot.path);
-  const shellAgentWorkspace = toShellPath(agentWorkspace);
-  const shellIssueDescriptionFile = toShellPath(issueDescriptionFile);
-  const shellSkillFile = toShellPath(skillFile);
-
-  return ensureWindowsDriveSwitch(ensurePrintLogsFlag(fillTemplate(commandTemplate, {
-    issueNumber: String(task.issueNumber),
-    branch: task.branchName,
-    title: task.title,
-    worktreePath: shellWorktreePath,
-    agentWorkspace: shellAgentWorkspace,
-    agentName: settings.antiGravityAgentName?.trim() || '',
-    agentFlag: settings.antiGravityAgentName?.trim() ? `--agent "${settings.antiGravityAgentName?.trim()}"` : '',
-    issueDescriptionFile: shellIssueDescriptionFile,
-    briefFile: shellIssueDescriptionFile,
-    skillFile: shellSkillFile
-  })), shellWorktreePath);
+  void task;
+  void slot;
+  const agentName = settings.antiGravityAgentName?.trim().replace(/"/g, '');
+  return agentName ? `opencode --agent "${agentName}"` : 'opencode';
 };
 
 export const createWorktree = async (settings: AppSettings, task: TaskItem, slot: WorktreeSlot): Promise<void> => {

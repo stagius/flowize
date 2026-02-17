@@ -45,7 +45,7 @@ const cleanupExpiredJobs = () => {
   }
 };
 
-const openWindowsCmd = async (worktreePath, title = 'Flowize Worktree', startupCommand = 'git status', closeAfterStartup = false) => {
+const openWindowsCmd = async (worktreePath, title = 'Flowize Worktree', startupCommand = 'git status') => {
   if (process.platform !== 'win32') {
     return { success: false, error: 'open-windows-cmd is only supported on Windows' };
   }
@@ -91,7 +91,7 @@ const openWindowsCmd = async (worktreePath, title = 'Flowize Worktree', startupC
     escapedPath,
     'cmd.exe',
     '/d',
-    closeAfterStartup ? '/c' : '/k',
+    '/k',
     `call ${startupScriptName}`
   ], {
     cwd: escapedPath,
@@ -363,10 +363,9 @@ const server = createServer(async (req, res) => {
       const worktreePath = typeof body.worktreePath === 'string' ? body.worktreePath.trim() : '';
       const title = typeof body.title === 'string' ? body.title.trim() : 'Flowize Worktree';
       const startupCommand = typeof body.startupCommand === 'string' ? body.startupCommand.trim() : 'git status';
-      const closeAfterStartup = body.closeAfterStartup === true;
 
       try {
-        const result = await openWindowsCmd(worktreePath, title, startupCommand, closeAfterStartup);
+        const result = await openWindowsCmd(worktreePath, title, startupCommand);
         writeJson(res, result.success ? 200 : 400, result, origin);
       } catch (error) {
         writeJson(res, 500, {

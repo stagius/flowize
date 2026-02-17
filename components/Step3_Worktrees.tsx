@@ -124,21 +124,11 @@ export const Step3_Worktrees: React.FC<Props> = ({
 
     const handleMarkFlowSuccess = (task: TaskItem) => {
         const now = new Date().toISOString();
-        const nonStreamingFailure = 'Sub-agent failed for issue';
-        const nonStreamingDetail = 'No new output for 5:00. The command appears non-streaming or waiting for interactive input. Cancellation requested automatically.';
-
-        const sanitizedImplementation = (task.implementationDetails || '')
-            .replace(nonStreamingDetail, '')
-            .trim();
-        const sanitizedLogs = (task.agentLogs || '')
-            .replace(nonStreamingDetail, '')
-            .trim();
-
-        const implementation = sanitizedImplementation.length > 0 && !sanitizedImplementation.includes(nonStreamingFailure)
-            ? sanitizedImplementation
+        const implementation = task.implementationDetails?.trim().length
+            ? task.implementationDetails
             : `// Flow manually marked successful at ${now}`;
-        const logs = sanitizedLogs.length > 0 && !sanitizedLogs.includes(nonStreamingFailure)
-            ? sanitizedLogs
+        const logs = task.agentLogs?.trim().length
+            ? task.agentLogs
             : `Manually marked as success from worktree slot at ${now}.`;
         const command = task.agentLastCommand?.trim().length
             ? task.agentLastCommand
@@ -156,7 +146,8 @@ export const Step3_Worktrees: React.FC<Props> = ({
     const handleOpenAgentWorkspaceCmd = async (slot: WorktreeSlot, task?: TaskItem) => {
         setOpeningAgentWorkspaceSlot(slot.id);
         const workspaceSubdir = settings?.antiGravityAgentSubdir?.trim() || '.antigravity';
-        const startupCommand = 'antigravity --new-window .';
+        const agentName = settings?.antiGravityAgentName?.trim();
+        const startupCommand = agentName ? `opencode --agent "${agentName}"` : 'opencode';
 
         try {
             await openWorktreeCmdWindow(settings, slot, {
@@ -164,8 +155,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                 title: `Flowize AG-${slot.id}`,
                 startupCommand,
                 ensureDirectory: true,
-                task,
-                closeAfterStartup: true
+                task
             });
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
@@ -178,13 +168,12 @@ export const Step3_Worktrees: React.FC<Props> = ({
 
     const handleOpenFullAgentIde = async (slot: WorktreeSlot, task?: TaskItem) => {
         setOpeningFullAgentSlot(slot.id);
-        const startupCommand = 'antigravity --new-window .';
 
         try {
             await openWorktreeCmdWindow(settings, slot, {
                 title: `Flowize AG-FULL-${slot.id}`,
-                startupCommand,
                 task,
+                launchAntigravity: true,
                 closeAfterStartup: true
             });
         } catch (error) {
@@ -677,7 +666,7 @@ ${diffContent}
                                                             onClick={() => handleOpenAgentWorkspaceCmd(slot, assignedTask)}
                                                             disabled={openingAgentWorkspaceSlot === slot.id}
                                                             className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-lg shadow-indigo-900/20"
-                                                            title="Open Anti-Gravity IDE in workspace"
+                                                            title="Open interactive terminal in AG workspace"
                                                         >
                                                             {openingAgentWorkspaceSlot === slot.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Terminal className="w-3 h-3" />}
                                                             cmd
