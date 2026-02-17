@@ -9,7 +9,7 @@ import { Step6_Merge } from './components/Step6_Merge';
 import { SettingsModal } from './components/SettingsModal';
 import { AlertDialog, AlertDialogState, ConfirmDialog, ConfirmDialogState, DialogTone } from './components/ui/Dialogs';
 import { ToastItem, ToastStack, ToastTone } from './components/ui/ToastStack';
-import { createGithubIssue, fetchGithubIssues, createBranch, getBSHA, commitFile, createPullRequest, mergePullRequest, fetchMergedPRs, fetchOpenPRs, fetchCommitStatus, fetchAuthenticatedUser } from './services/githubService';
+import { createGithubIssue, fetchGithubIssues, createBranch, getBSHA, commitFile, createPullRequest, mergePullRequest, fetchMergedPRs, fetchOpenPRs, fetchCommitStatus, fetchAuthenticatedUser, fetchPullRequestDetails } from './services/githubService';
 import { createWorktree, pruneWorktree } from './services/gitService';
 import { ChevronRight, GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github } from 'lucide-react';
 
@@ -630,7 +630,8 @@ export default function App() {
                     status: TaskStatus.PR_CREATED,
                     prNumber,
                     issueUrl: prUrl || t.issueUrl,
-                    vercelStatus: 'pending'
+                    vercelStatus: 'pending',
+                    mergeConflict: false
                 } : t
             ));
 
@@ -715,6 +716,87 @@ export default function App() {
         }
     };
 
+    const isMergeConflictError = (message: string): boolean => {
+        const normalized = message.toLowerCase();
+        return normalized.includes('not mergeable') || normalized.includes('merge conflict') || normalized.includes('conflict between base and head');
+    };
+
+    const shortSha = (sha?: string): string => {
+        if (!sha) return 'unknown';
+        return sha.slice(0, 7);
+    };
+
+    const handleResolveMergeConflict = async (taskId: string) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task || !task.branchName) {
+            throw new Error('Task or branch is missing. Re-sync PRs and retry.');
+        }
+
+        const availableSlots = slots.filter(s => !s.taskId).sort((a, b) => a.id - b.id);
+        if (availableSlots.length === 0) {
+            throw new Error('No free worktree slot available. Cleanup a slot in Step 3 and retry.');
+        }
+
+        setTasks(prev => prev.map(t =>
+            t.id === taskId
+                ? {
+                    ...t,
+                    status: TaskStatus.WORKTREE_INITIALIZING,
+                    mergeConflict: true,
+                    reviewFeedback: `Resolve merge conflicts for PR #${t.prNumber || '?'}, then push updates and send for review again.`,
+                    agentRunState: 'idle'
+                }
+                : t
+        ));
+
+        const attempted: string[] = [];
+
+        for (const slot of availableSlots) {
+            const assignedSlot: WorktreeSlot = { ...slot, taskId };
+            setSlots(prev => prev.map(s => s.id === assignedSlot.id ? assignedSlot : s));
+
+            try {
+                await createWorktree(settings, task, assignedSlot);
+
+                setTasks(prev => prev.map(t =>
+                    t.id === taskId
+                        ? {
+                            ...t,
+                            status: TaskStatus.WORKTREE_ACTIVE,
+                            mergeConflict: false
+                        }
+                        : t
+                ));
+
+                try {
+                    await handleFetchMerged();
+                } catch {
+                    // Non-blocking refresh; task is already moved to active worktree.
+                }
+
+                setCurrentStep(3);
+                showToast(`Conflict workspace ready in Worktree ${assignedSlot.id}.`, 'warning');
+                return;
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                attempted.push(`WT-${assignedSlot.id}: ${message}`);
+                setSlots(prev => prev.map(s => s.id === assignedSlot.id ? { ...s, taskId: null } : s));
+            }
+        }
+
+        setTasks(prev => prev.map(t =>
+            t.id === taskId
+                ? {
+                    ...t,
+                    status: TaskStatus.PR_CREATED,
+                    mergeConflict: true
+                }
+                : t
+        ));
+
+        throw new Error(`Failed to prepare conflict workspace. Attempts: ${attempted.join(' | ')}`);
+    };
+
     const handleMerge = async (taskId: string) => {
         const task = tasks.find(t => t.id === taskId);
         if (!task) return;
@@ -724,13 +806,47 @@ export default function App() {
                 await mergePullRequest(settings, task.prNumber, `Merge pull request #${task.prNumber} from ${task.branchName}`);
             } catch (e: any) {
                 console.error("Merge Failed", e);
+                const message = e instanceof Error ? e.message : String(e);
+
+                if (isMergeConflictError(message)) {
+                    setTasks(prev => prev.map(t =>
+                        t.id === taskId ? { ...t, mergeConflict: true } : t
+                    ));
+
+                    let conflictContext = '';
+                    try {
+                        const prDetails = await fetchPullRequestDetails(settings, task.prNumber);
+                        const baseRef = `${prDetails.base.ref}@${shortSha(prDetails.base.sha)}`;
+                        const headRef = `${prDetails.head.ref}@${shortSha(prDetails.head.sha)}`;
+                        const mergeableState = prDetails.mergeable_state || 'unknown';
+                        const mergeableFlag = prDetails.mergeable === null ? 'pending' : String(prDetails.mergeable);
+                        conflictContext = `\n\nConflict context:\n- Base: ${baseRef}\n- Head: ${headRef}\n- mergeable_state: ${mergeableState}\n- mergeable: ${mergeableFlag}\n\nTip: this usually means both branches changed overlapping lines. Open the conflict worktree, pull latest ${settings.defaultBranch}, resolve markers, commit, and push.`;
+                    } catch {
+                        conflictContext = `\n\nTip: this usually means both branches changed overlapping lines. Open the conflict worktree, pull latest ${settings.defaultBranch}, resolve markers, commit, and push.`;
+                    }
+
+                    showAlertDialog(
+                        'Merge Conflict Detected',
+                        `PR #${task.prNumber} has conflicts with ${settings.defaultBranch}. Launch a conflict worktree to fix and push updates, then re-run review and merge.\n\nDetails: ${message}${conflictContext}`,
+                        'warning',
+                        {
+                            label: 'Resolve in Worktree',
+                            tone: 'warning',
+                            run: async () => {
+                                await handleResolveMergeConflict(taskId);
+                            }
+                        }
+                    );
+                    return;
+                }
+
                 showAlertDialog('Merge Failed', `Failed to merge PR: ${e.message}`, 'error');
                 return;
             }
         }
 
         setTasks(prev => prev.map(t =>
-            t.id === taskId ? { ...t, status: TaskStatus.PR_MERGED } : t
+            t.id === taskId ? { ...t, status: TaskStatus.PR_MERGED, mergeConflict: false } : t
         ));
     };
 
@@ -760,12 +876,28 @@ export default function App() {
                             return;
                         }
 
-                        // Update existing task
-                        if (newTasks[idx].status !== status) {
+                        const existingTask = newTasks[idx];
+                        const localWorktreeStatus = new Set<TaskStatus>([
+                            TaskStatus.WORKTREE_INITIALIZING,
+                            TaskStatus.WORKTREE_ACTIVE,
+                            TaskStatus.IMPLEMENTED
+                        ]);
+                        const keepLocalStatus = status === TaskStatus.PR_CREATED && (localWorktreeStatus.has(existingTask.status) || Boolean(existingTask.mergeConflict));
+                        const nextStatus = keepLocalStatus ? existingTask.status : status;
+                        const nextMergeConflict = status === TaskStatus.PR_MERGED ? false : existingTask.mergeConflict;
+
+                        if (
+                            existingTask.status !== nextStatus ||
+                            existingTask.issueUrl !== pr.html_url ||
+                            existingTask.branchName !== pr.head?.ref ||
+                            existingTask.mergeConflict !== nextMergeConflict
+                        ) {
                             newTasks[idx] = {
-                                ...newTasks[idx],
-                                status,
-                                issueUrl: pr.html_url
+                                ...existingTask,
+                                status: nextStatus,
+                                issueUrl: pr.html_url,
+                                branchName: existingTask.branchName || pr.head?.ref,
+                                mergeConflict: nextMergeConflict
                             };
                         }
                     } else {
@@ -783,7 +915,8 @@ export default function App() {
                                 issueUrl: pr.html_url,
                                 branchName: pr.head.ref,
                                 createdAt: new Date(pr.created_at).getTime(),
-                                vercelStatus: 'pending' // Default for new open PRs
+                                vercelStatus: 'pending', // Default for new open PRs
+                                mergeConflict: false
                             });
                         }
                     }
@@ -820,7 +953,7 @@ export default function App() {
                 settings={settings}
             />;
             case 4: return <Step5_Review tasks={tasks} onApprovePR={handleApprovePR} onRequestChanges={handleRequestChanges} onCheckStatus={handleCheckCIStatus} />;
-            case 5: return <Step6_Merge tasks={tasks} onMerge={handleMerge} onFetchMerged={handleFetchMerged} settings={settings} />;
+            case 5: return <Step6_Merge tasks={tasks} onMerge={handleMerge} onResolveConflict={handleResolveMergeConflict} onFetchMerged={handleFetchMerged} settings={settings} />;
             default: return <div>Unknown Step</div>;
         }
     };

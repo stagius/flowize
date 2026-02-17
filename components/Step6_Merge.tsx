@@ -5,14 +5,16 @@ import { GitMerge, CheckCircle, ExternalLink, PlayCircle, Loader2, RefreshCw, Al
 interface Props {
   tasks: TaskItem[];
   onMerge: (taskId: string) => Promise<void>;
+  onResolveConflict: (taskId: string) => Promise<void>;
   onFetchMerged: () => Promise<void>;
   settings?: AppSettings;
 }
 
-export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onFetchMerged, settings }) => {
+export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict, onFetchMerged, settings }) => {
   const readyToMerge = tasks.filter(t => t.status === TaskStatus.PR_CREATED);
   const mergedHistory = tasks.filter(t => t.status === TaskStatus.PR_MERGED);
   const [mergingId, setMergingId] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(false);
 
   const buildPrUrl = (task: TaskItem): string | null => {
@@ -23,8 +25,20 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onFetchMerged, se
 
   const handleMergeClick = async (taskId: string) => {
       setMergingId(taskId);
-      await onMerge(taskId);
-      setMergingId(null);
+      try {
+        await onMerge(taskId);
+      } finally {
+        setMergingId(null);
+      }
+  };
+
+  const handleResolveClick = async (taskId: string) => {
+      setResolvingId(taskId);
+      try {
+        await onResolveConflict(taskId);
+      } finally {
+        setResolvingId(null);
+      }
   };
 
   const handleFetch = async () => {
@@ -88,29 +102,40 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onFetchMerged, se
                                      {task.vercelStatus === 'success' ? 'Deployed' : task.vercelStatus === 'failed' ? 'Failed' : 'Building'}
                                  </div>
                              </div>
-                             <h4 className="font-bold text-slate-100 mb-1 line-clamp-2">{task.title}</h4>
-                             <p className="text-xs text-slate-400 line-clamp-2 mb-3">{task.description}</p>
-                         </div>
-                         <button 
-                             onClick={() => handleMergeClick(task.id)}
-                             disabled={mergingId === task.id}
-                             className={`w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
-                                 mergingId === task.id
-                                 ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                                 : 'bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-900/30'
-                             }`}
-                         >
-                             {mergingId === task.id ? (
-                                 <>
-                                   <Loader2 className="w-4 h-4 animate-spin" /> Merging...
-                                 </>
-                             ) : (
-                                 <>
-                                   {task.vercelStatus !== 'success' && <AlertTriangle className="w-3.5 h-3.5 text-yellow-300" />}
-                                   Merge Pull Request
-                                 </>
-                             )}
-                         </button>
+                              <h4 className="font-bold text-slate-100 mb-1 line-clamp-2">{task.title}</h4>
+                              <p className="text-xs text-slate-400 line-clamp-2 mb-3">{task.description}</p>
+                              {task.mergeConflict && (
+                                <div className="mb-3 inline-flex items-center gap-1 rounded-md border border-orange-500/30 bg-orange-500/10 px-2 py-1 text-[10px] font-semibold text-orange-200">
+                                  <AlertTriangle className="w-3 h-3" /> Merge conflict detected
+                                </div>
+                              )}
+                          </div>
+                          <button 
+                              onClick={() => task.mergeConflict ? handleResolveClick(task.id) : handleMergeClick(task.id)}
+                              disabled={mergingId === task.id || resolvingId === task.id}
+                              className={`w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                                  mergingId === task.id || resolvingId === task.id
+                                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                  : task.mergeConflict
+                                    ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-900/30'
+                                    : 'bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-900/30'
+                              }`}
+                          >
+                              {mergingId === task.id || resolvingId === task.id ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin" /> {resolvingId === task.id ? 'Opening Worktree...' : 'Merging...'}
+                                  </>
+                              ) : (
+                                  <>
+                                    {task.mergeConflict ? (
+                                      <AlertTriangle className="w-3.5 h-3.5 text-orange-200" />
+                                    ) : (
+                                      task.vercelStatus !== 'success' && <AlertTriangle className="w-3.5 h-3.5 text-yellow-300" />
+                                    )}
+                                    {task.mergeConflict ? 'Resolve Conflict in Worktree' : 'Merge Pull Request'}
+                                  </>
+                              )}
+                          </button>
                     </div>
                 ))
             )}

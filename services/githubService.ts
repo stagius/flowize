@@ -22,6 +22,23 @@ export interface GithubBranch {
     name: string;
 }
 
+export interface GithubPullRequestDetails {
+    number: number;
+    html_url: string;
+    title: string;
+    state: 'open' | 'closed';
+    mergeable: boolean | null;
+    mergeable_state?: string;
+    head: {
+        ref: string;
+        sha: string;
+    };
+    base: {
+        ref: string;
+        sha: string;
+    };
+}
+
 const getGithubToken = (settings: AppSettings): string => {
     const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
     return settings.githubToken || env?.VITE_GITHUB_TOKEN || env?.GITHUB_TOKEN || '';
@@ -402,6 +419,22 @@ export const fetchOpenPRs = async (settings: AppSettings): Promise<any[]> => {
 
     if (!response.ok) {
         await handleGithubError(response, 'Fetch Open PRs');
+    }
+
+    return response.json();
+};
+
+export const fetchPullRequestDetails = async (settings: AppSettings, prNumber: number): Promise<GithubPullRequestDetails> => {
+    const token = getGithubToken(settings);
+    if (!token) throw new Error('GitHub Token not configured');
+
+    const response = await fetch(`https://api.github.com/repos/${settings.repoOwner}/${settings.repoName}/pulls/${prNumber}`, {
+        method: 'GET',
+        headers: getHeaders(token)
+    });
+
+    if (!response.ok) {
+        await handleGithubError(response, `Fetch Pull Request (${prNumber})`);
     }
 
     return response.json();
