@@ -6,6 +6,7 @@ export enum TaskStatus {
   WORKTREE_INITIALIZING = 'WORKTREE_INITIALIZING', // Creating folder and git setup
   WORKTREE_ACTIVE = 'WORKTREE_ACTIVE', // Assigned to a slot
   IMPLEMENTED = 'IMPLEMENTED', // Code written
+  PUSHED = 'PUSHED', // Branch pushed, awaiting PR creation
   PR_CREATED = 'PR_CREATED', // Pushed and PR open
   PR_MERGED = 'PR_MERGED', // Done
 }

@@ -607,6 +607,9 @@ export default function App() {
 
         try {
             await pushWorktreeBranch(slot, task.branchName, settings);
+            setTasks(prev => prev.map(t =>
+                t.id === taskId ? { ...t, status: TaskStatus.PUSHED } : t
+            ));
             setCurrentStep(4);
             showToast(`Branch ${task.branchName} pushed. Continue review in Step 4.`, 'success');
         } catch (e: any) {
@@ -623,6 +626,9 @@ export default function App() {
                         tone: 'warning',
                         run: async () => {
                             await forcePushWorktreeBranchWithLease(slot, task.branchName as string, settings);
+                            setTasks(prev => prev.map(t =>
+                                t.id === taskId ? { ...t, status: TaskStatus.PUSHED } : t
+                            ));
                             setCurrentStep(4);
                             showToast(`Force pushed ${task.branchName}. Continue review in Step 4.`, 'warning');
                         }

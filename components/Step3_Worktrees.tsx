@@ -329,6 +329,13 @@ export const Step3_Worktrees: React.FC<Props> = ({
                     label: 'Implemented',
                     animate: false
                 };
+            case TaskStatus.PUSHED:
+                return {
+                    theme: 'cyan',
+                    icon: CloudUpload,
+                    label: 'Pushed',
+                    animate: false
+                };
             default:
                 return {
                     theme: 'slate',
@@ -584,6 +591,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
 
                     const gitStatus = !assignedTask ? null :
                         assignedTask.status === TaskStatus.IMPLEMENTED ? { label: 'STAGED', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' } :
+                            assignedTask.status === TaskStatus.PUSHED ? { label: 'PUSHED', color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' } :
                             assignedTask.status === TaskStatus.WORKTREE_ACTIVE ? { label: 'DIRTY', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' } :
                                 { label: 'CLEAN', color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20' };
 
@@ -754,7 +762,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                                 <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50"></div>
                                             </div>
                                             <div className="pt-8 pb-2 px-3 h-full overflow-y-auto font-mono text-xs text-slate-300">
-                                                {assignedTask.status === TaskStatus.IMPLEMENTED ? (
+                                                {assignedTask.status === TaskStatus.IMPLEMENTED || assignedTask.status === TaskStatus.PUSHED ? (
                                                     <pre className="whitespace-pre-wrap"><code className="language-typescript">{assignedTask.implementationDetails}</code></pre>
                                                 ) : loadingTask === assignedTask.id ? (
                                                     <div className="h-full flex flex-col items-center justify-center gap-3">

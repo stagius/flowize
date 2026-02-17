@@ -10,7 +10,7 @@ interface Props {
 }
 
 export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestChanges, onCheckStatus }) => {
-  const pendingReview = tasks.filter(t => t.status === TaskStatus.IMPLEMENTED);
+  const pendingReview = tasks.filter(t => t.status === TaskStatus.IMPLEMENTED || t.status === TaskStatus.PUSHED);
   const activePRs = tasks.filter(t => t.status === TaskStatus.PR_CREATED || t.status === TaskStatus.PR_MERGED);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [requestingId, setRequestingId] = useState<string | null>(null);
