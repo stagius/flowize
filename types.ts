@@ -27,6 +27,7 @@ export interface TaskItem {
   agentLastCommand?: string;
   agentRunState?: 'idle' | 'running' | 'succeeded' | 'failed' | 'cancelled';
   vercelStatus?: 'pending' | 'success' | 'failed';
+  reviewFeedback?: string;
   createdAt: number;
 }
 

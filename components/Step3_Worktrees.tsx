@@ -682,6 +682,11 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                             <div className="min-w-0 pr-2">
                                                 <h3 className="font-bold text-slate-100 truncate">{assignedTask.title}</h3>
                                                 <p className="text-xs text-slate-500 truncate">{assignedTask.description}</p>
+                                                {assignedTask.reviewFeedback && (
+                                                    <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-200">
+                                                        Requested changes: {assignedTask.reviewFeedback}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="flex gap-2 flex-shrink-0 flex-row">
 

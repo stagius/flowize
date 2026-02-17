@@ -571,7 +571,8 @@ export default function App() {
                 implementationDetails: implementation,
                 agentLogs: logs,
                 agentLastCommand: command,
-                agentRunState: runState || (success ? 'succeeded' : 'failed')
+                agentRunState: runState || (success ? 'succeeded' : 'failed'),
+                reviewFeedback: success ? undefined : t.reviewFeedback
             } : t
         ));
     };
@@ -651,6 +652,22 @@ export default function App() {
             console.error("PR Creation Failed", e);
             showAlertDialog('Pull Request Creation Failed', `Failed to create PR: ${e.message}`, 'error');
         }
+    };
+
+    const handleRequestChanges = (taskId: string, feedback: string) => {
+        const cleanFeedback = feedback.trim();
+        setTasks(prev => prev.map(t =>
+            t.id === taskId
+                ? {
+                    ...t,
+                    status: TaskStatus.WORKTREE_ACTIVE,
+                    agentRunState: 'idle',
+                    reviewFeedback: cleanFeedback || undefined
+                }
+                : t
+        ));
+
+        showToast(cleanFeedback ? 'Changes requested with feedback.' : 'Changes requested. Task moved back to active worktree.', 'warning');
     };
 
     const handleCheckCIStatus = async () => {
@@ -793,7 +810,7 @@ export default function App() {
                 onCleanup={handleCleanupSlot}
                 settings={settings}
             />;
-            case 4: return <Step5_Review tasks={tasks} onApprovePR={handleApprovePR} onCheckStatus={handleCheckCIStatus} />;
+            case 4: return <Step5_Review tasks={tasks} onApprovePR={handleApprovePR} onRequestChanges={handleRequestChanges} onCheckStatus={handleCheckCIStatus} />;
             case 5: return <Step6_Merge tasks={tasks} onMerge={handleMerge} onFetchMerged={handleFetchMerged} />;
             default: return <div>Unknown Step</div>;
         }

@@ -5,13 +5,16 @@ import { GitPullRequest, CheckCircle2, FileCode, ExternalLink, GitCommit, Loader
 interface Props {
   tasks: TaskItem[];
   onApprovePR: (taskId: string) => Promise<void>;
+  onRequestChanges: (taskId: string, feedback: string) => void;
   onCheckStatus: () => Promise<void>;
 }
 
-export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onCheckStatus }) => {
+export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestChanges, onCheckStatus }) => {
   const pendingReview = tasks.filter(t => t.status === TaskStatus.IMPLEMENTED);
   const activePRs = tasks.filter(t => t.status === TaskStatus.PR_CREATED || t.status === TaskStatus.PR_MERGED);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [requestingId, setRequestingId] = useState<string | null>(null);
+  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [isChecking, setIsChecking] = useState(false);
 
   const handleApprove = async (id: string) => {
@@ -24,6 +27,21 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onCheckStatu
     setIsChecking(true);
     await onCheckStatus();
     setIsChecking(false);
+  };
+
+  const handleRequestChanges = (id: string) => {
+    setRequestingId(id);
+    try {
+      const note = (reviewNotes[id] || '').trim();
+      onRequestChanges(id, note);
+      setReviewNotes(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    } finally {
+      setRequestingId(null);
+    }
   };
 
   return (
@@ -62,16 +80,30 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onCheckStatu
                         </pre>
                     </div>
                 </div>
-                <div className="p-3 bg-slate-900 border-t border-slate-800 flex justify-between items-center">
-                   <button className="text-xs text-red-400 hover:text-red-300 font-medium px-3 py-1 hover:bg-red-950/30 rounded transition-colors">Request Changes</button>
-                   <button 
-                     onClick={() => handleApprove(task.id)}
-                     disabled={loadingId === task.id}
-                     className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all shadow-[0_0_10px_rgba(20,184,166,0.2)] disabled:opacity-70 disabled:cursor-not-allowed"
-                   >
-                     {loadingId === task.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <GitPullRequest className="w-3.5 h-3.5" />}
-                     Approve & Open PR
-                   </button>
+                <div className="p-3 bg-slate-900/80 border-t border-slate-800 flex flex-col md:flex-row md:items-stretch gap-2.5">
+                   <textarea
+                     value={reviewNotes[task.id] || ''}
+                     onChange={(e) => setReviewNotes(prev => ({ ...prev, [task.id]: e.target.value }))}
+                     placeholder="Add feedback for requested changes (optional)"
+                     className="w-full md:flex-1 min-h-[38px] max-h-24 resize-y rounded-lg border border-slate-700/80 bg-slate-950/90 px-3 py-2 text-xs leading-5 text-slate-200 placeholder:text-slate-500 shadow-inner shadow-black/20 focus:outline-none focus:border-red-400/40 focus:ring-2 focus:ring-red-500/20"
+                   />
+                    <div className="flex items-center justify-end gap-2 md:shrink-0">
+                      <button
+                        onClick={() => handleRequestChanges(task.id)}
+                        disabled={requestingId === task.id || loadingId === task.id}
+                        className="h-9 px-3 rounded-lg border border-red-500/25 bg-red-500/10 text-xs font-semibold text-red-300 hover:bg-red-500/20 hover:border-red-400/40 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        {requestingId === task.id ? 'Requesting...' : 'Request Changes'}
+                      </button>
+                      <button
+                        onClick={() => handleApprove(task.id)}
+                        disabled={loadingId === task.id || requestingId === task.id}
+                        className="h-9 bg-teal-600 hover:bg-teal-500 text-white px-4 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all shadow-[0_0_10px_rgba(20,184,166,0.2)] disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        {loadingId === task.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <GitPullRequest className="w-3.5 h-3.5" />}
+                        Approve & Open PR
+                      </button>
+                    </div>
                 </div>
               </div>
             ))
