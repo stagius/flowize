@@ -1,10 +1,6 @@
-<div align="center">
-<img width="1200" height="475" alt="Flowize banner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
-
-[![Vercel Deployment Status](https://therealsujitk-vercel-badge.vercel.app/?app=flowize)](https://flowize-git.vercel.app)
 
 # Flowize
+[![Vercel Deployment Status](https://therealsujitk-vercel-badge.vercel.app/?app=flowize)](https://flowize-git.vercel.app)
 
 Flowize is a React + TypeScript interface for running a parallel GitHub workflow from raw task input to merged pull request. It helps you organize work across issue intake, worktree assignment, implementation, review, and merge tracking in one UI.
 
