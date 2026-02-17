@@ -7,10 +7,11 @@ interface Props {
   onClose: () => void;
   currentSettings: AppSettings;
   onSave: (settings: AppSettings) => void;
+  onReset: () => void;
   hasApiKey: boolean;
 }
 
-export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSettings, onSave, hasApiKey }) => {
+export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSettings, onSave, onReset, hasApiKey }) => {
   const [formData, setFormData] = useState<AppSettings>(currentSettings);
   const [bridgeTest, setBridgeTest] = useState<{ status: 'idle' | 'testing' | 'ok' | 'error'; message: string }>({ status: 'idle', message: '' });
   const [bridgeHealth, setBridgeHealth] = useState<{ status: 'checking' | 'healthy' | 'unhealthy'; message: string }>({
@@ -490,6 +491,16 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
           </div>
 
           <div className="pt-2 flex justify-end gap-3">
+             <button
+                type="button"
+                onClick={() => {
+                  onReset();
+                  onClose();
+                }}
+                className="mr-auto px-4 py-2 text-sm font-medium text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg transition-colors"
+             >
+                Reset Defaults
+             </button>
              <button 
                 type="button"
                 onClick={onClose}

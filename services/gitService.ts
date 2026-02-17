@@ -137,20 +137,7 @@ const copyBaseContextToWorktree = async (settings: AppSettings, slotPath: string
     branch: branchName
   });
 
-  const copyOpenCodeCommand =
-    `node -e "const fs=require('fs');const path=require('path');` +
-    `const srcRoot=process.argv[1];const dstRoot=process.argv[2];` +
-    `const src=path.join(srcRoot,'.opencode');const dst=path.join(dstRoot,'.opencode');` +
-    `if(!fs.existsSync(src)||!fs.existsSync(dstRoot)){process.exit(0);}` +
-    `if(fs.cpSync){fs.cpSync(src,dst,{recursive:true,force:true});}` +
-    `else{const copy=(a,b)=>{const st=fs.statSync(a);if(st.isDirectory()){if(!fs.existsSync(b))fs.mkdirSync(b,{recursive:true});for(const n of fs.readdirSync(a))copy(path.join(a,n),path.join(b,n));}else{fs.copyFileSync(a,b);}};copy(src,dst);}` +
-    `" "${sourcePath}" "${slotPath}"`;
-
-  console.log(`[GitService] Copying .opencode from ${sourcePath} to ${slotPath}`);
-  await runBridgeCommand(settings, copyOpenCodeCommand, {
-    worktreePath: slotPath,
-    branch: branchName
-  });
+  console.log('[GitService] Skipping full .opencode copy for clean worktrees');
 };
 
 const getBridgeCandidates = (endpoint: string): string[] => {

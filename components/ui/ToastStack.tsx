@@ -34,7 +34,7 @@ interface ToastStackProps {
 
 export const ToastStack: React.FC<ToastStackProps> = ({ toasts }) => {
   return (
-    <div className="fixed z-[130] top-4 right-4 space-y-2 max-w-md w-[calc(100vw-2rem)] pointer-events-none">
+    <div className="fixed z-[130] top-4 right-4 space-y-2 max-w-lg w-[calc(100vw-2rem)] pointer-events-none">
       {toasts.map((toast) => (
         <div
           key={toast.id}

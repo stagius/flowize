@@ -18,11 +18,40 @@ type BridgeHealthState = {
     endpoint?: string;
 };
 
+const SETTINGS_STORAGE_KEY = 'flowize.settings.v1';
+
+const createDefaultSettings = (envGithubToken: string, browserHost: string): AppSettings => ({
+    repoOwner: 'stagius',
+    repoName: 'flowize',
+    defaultBranch: 'master',
+    worktreeRoot: 'z:/flowize',
+    maxWorktrees: 3,
+    githubToken: envGithubToken,
+    antiGravityAgentCommand: 'cd "{worktreePath}" && opencode run {agentFlag} "Implement issue #{issueNumber} on branch {branch}. Use {issueDescriptionFile} as requirements and follow {skillFile}. Return code/output for this task." --print-logs',
+    antiGravityAgentName: '',
+    antiGravityAgentEndpoint: `http://${browserHost}:4141/run`,
+    antiGravityAgentSubdir: '.antigravity',
+    antiGravitySkillFile: '.opencode/skills/specflow-worktree-automation/SKILL.md'
+});
+
+const normalizeSettings = (raw: Partial<AppSettings>, defaults: AppSettings): AppSettings => {
+    const merged = { ...defaults, ...raw };
+    const maxWorktrees = Number.isFinite(Number(merged.maxWorktrees))
+        ? Math.max(1, Math.min(10, Number(merged.maxWorktrees)))
+        : defaults.maxWorktrees;
+
+    return {
+        ...merged,
+        maxWorktrees
+    };
+};
+
 export default function App() {
     const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
     const envGithubToken = env?.VITE_GITHUB_TOKEN || env?.GITHUB_TOKEN || '';
     const envApiKey = env?.VITE_API_KEY || env?.API_KEY || '';
     const browserHost = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
+    const defaultSettings = createDefaultSettings(envGithubToken, browserHost);
 
     const [currentStep, setCurrentStep] = useState(1);
     const [tasks, setTasks] = useState<TaskItem[]>([]);
@@ -119,19 +148,27 @@ export default function App() {
         return `${trimmed}${suffix}`;
     };
 
-    const [settings, setSettings] = useState<AppSettings>({
-        repoOwner: 'stagius',
-        repoName: 'flowize',
-        defaultBranch: 'master', // Updated default to 'master'
-        worktreeRoot: 'z:/flowize',
-        maxWorktrees: 3,
-        githubToken: envGithubToken,
-        antiGravityAgentCommand: 'cd "{worktreePath}" && opencode run {agentFlag} "Implement issue #{issueNumber} on branch {branch}. Use {issueDescriptionFile} as requirements and follow {skillFile}. Return code/output for this task." --print-logs',
-        antiGravityAgentName: '',
-        antiGravityAgentEndpoint: `http://${browserHost}:4141/run`,
-        antiGravityAgentSubdir: '.antigravity',
-        antiGravitySkillFile: '.opencode/skills/specflow-worktree-automation/SKILL.md'
+    const [settings, setSettings] = useState<AppSettings>(() => {
+        if (typeof window === 'undefined') {
+            return defaultSettings;
+        }
+
+        try {
+            const stored = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+            if (!stored) {
+                return defaultSettings;
+            }
+            const parsed = JSON.parse(stored) as Partial<AppSettings>;
+            return normalizeSettings(parsed, defaultSettings);
+        } catch {
+            return defaultSettings;
+        }
     });
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    }, [settings]);
 
     // Initialize slots
     const [slots, setSlots] = useState<WorktreeSlot[]>(
@@ -237,6 +274,18 @@ export default function App() {
     const handleTasksGenerated = (newTasks: TaskItem[]) => {
         setTasks(prev => [...prev, ...newTasks]);
         if (tasks.length === 0) setCurrentStep(2);
+    };
+
+    const handleSaveSettings = (next: AppSettings) => {
+        setSettings(normalizeSettings(next, defaultSettings));
+    };
+
+    const handleResetSettings = () => {
+        setSettings(defaultSettings);
+        if (typeof window !== 'undefined') {
+            window.localStorage.removeItem(SETTINGS_STORAGE_KEY);
+        }
+        showToast('Settings reset to defaults.', 'info');
     };
 
     const handlePromoteToIssue = async (taskId: string) => {
@@ -728,7 +777,8 @@ export default function App() {
                 isOpen={isSettingsOpen}
                 onClose={() => setIsSettingsOpen(false)}
                 currentSettings={settings}
-                onSave={setSettings}
+                onSave={handleSaveSettings}
+                onReset={handleResetSettings}
                 hasApiKey={hasApiKey}
             />
 

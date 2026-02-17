@@ -54,7 +54,7 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({ dialog, onClose, onAct
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative w-full max-w-md rounded-xl border p-5 shadow-2xl ${toneStyles[dialog.tone].panel}`}>
+      <div className={`relative w-full max-w-lg rounded-xl border p-5 shadow-2xl ${toneStyles[dialog.tone].panel}`}>
         <div className="flex items-start gap-3">
           <AlertTriangle className={`w-5 h-5 mt-0.5 ${toneStyles[dialog.tone].icon}`} />
           <div className="min-w-0">
@@ -98,7 +98,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ dialog, onCancel, 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onCancel} />
-      <div className={`relative w-full max-w-md rounded-xl border p-5 shadow-2xl ${toneStyles[dialog.tone].panel}`}>
+      <div className={`relative w-full max-w-lg rounded-xl border p-5 shadow-2xl ${toneStyles[dialog.tone].panel}`}>
         <div className="flex items-start gap-3">
           <AlertTriangle className={`w-5 h-5 mt-0.5 ${toneStyles[dialog.tone].icon}`} />
           <div className="min-w-0">
