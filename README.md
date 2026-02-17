@@ -1,3 +1,5 @@
+<img width="1958" height="1268" alt="image" src="https://github.com/user-attachments/assets/6295d9b0-357f-466d-9624-e8edf7dd77c6" />
+
 
 # Flowize
 [![Vercel Deployment Status](https://therealsujitk-vercel-badge.vercel.app/?app=flowize)](https://flowize-git.vercel.app)
