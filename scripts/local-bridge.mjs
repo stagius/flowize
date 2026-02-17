@@ -45,7 +45,13 @@ const cleanupExpiredJobs = () => {
   }
 };
 
-const openWindowsCmd = async (worktreePath, title = 'Flowize Worktree', startupCommand = 'git status') => {
+const openWindowsCmd = async (
+  worktreePath,
+  title = 'Flowize Worktree',
+  startupCommand = 'git status',
+  closeAfterStartup = false,
+  launchAntigravity = false
+) => {
   if (process.platform !== 'win32') {
     return { success: false, error: 'open-windows-cmd is only supported on Windows' };
   }
@@ -70,6 +76,53 @@ const openWindowsCmd = async (worktreePath, title = 'Flowize Worktree', startupC
   const bootCommand = typeof startupCommand === 'string' && startupCommand.trim().length > 0
     ? startupCommand.replace(/[\r\n]+/g, ' ').trim()
     : 'git status';
+
+  if (launchAntigravity) {
+    // Launch via cmd/start so Windows PATH command shims resolve reliably.
+    const ideChild = spawn(shell, [
+      '/d',
+      '/c',
+      'start',
+      '""',
+      '/B',
+      '/D',
+      escapedPath,
+      'antigravity',
+      '--new-window',
+      '.'
+    ], {
+      cwd: escapedPath,
+      detached: true,
+      windowsHide: true,
+      stdio: 'ignore',
+      env: process.env
+    });
+    ideChild.unref();
+
+    return await new Promise((resolve) => {
+      let settled = false;
+      const finish = (payload) => {
+        if (settled) return;
+        settled = true;
+        resolve(payload);
+      };
+
+      ideChild.once('error', (error) => {
+        finish({ success: false, error: `Failed to launch Antigravity: ${error.message}` });
+      });
+
+      ideChild.once('close', (code) => {
+        if (typeof code === 'number' && code !== 0) {
+          finish({ success: false, error: `Failed to launch Antigravity (exit code ${code})` });
+          return;
+        }
+        finish({ success: true });
+      });
+
+      setTimeout(() => finish({ success: true }), 250);
+    });
+  }
+
   const startupScriptPath = `${escapedPath.replace(/[\\/]+$/, '')}\\.flowize-startup.cmd`;
   const startupScriptName = '.flowize-startup.cmd';
   const startupScript = [
@@ -91,7 +144,7 @@ const openWindowsCmd = async (worktreePath, title = 'Flowize Worktree', startupC
     escapedPath,
     'cmd.exe',
     '/d',
-    '/k',
+    closeAfterStartup ? '/c' : '/k',
     `call ${startupScriptName}`
   ], {
     cwd: escapedPath,
@@ -363,9 +416,11 @@ const server = createServer(async (req, res) => {
       const worktreePath = typeof body.worktreePath === 'string' ? body.worktreePath.trim() : '';
       const title = typeof body.title === 'string' ? body.title.trim() : 'Flowize Worktree';
       const startupCommand = typeof body.startupCommand === 'string' ? body.startupCommand.trim() : 'git status';
+      const closeAfterStartup = body.closeAfterStartup === true;
+      const launchAntigravity = body.launchAntigravity === true;
 
       try {
-        const result = await openWindowsCmd(worktreePath, title, startupCommand);
+        const result = await openWindowsCmd(worktreePath, title, startupCommand, closeAfterStartup, launchAntigravity);
         writeJson(res, result.success ? 200 : 400, result, origin);
       } catch (error) {
         writeJson(res, 500, {

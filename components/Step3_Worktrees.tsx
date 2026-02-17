@@ -204,6 +204,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
     };
 
     const handleOpenAgentWorkspaceCmd = async (slot: WorktreeSlot, task?: TaskItem) => {
+        copyAgentCommandForTask(task, slot);
         setOpeningAgentWorkspaceSlot(slot.id);
         const workspaceSubdir = settings?.antiGravityAgentSubdir?.trim() || '.antigravity';
         const agentName = settings?.antiGravityAgentName?.trim();
@@ -463,9 +464,9 @@ ${diffContent}
                         <div className="flex-1 bg-black/50 p-4 font-mono text-xs overflow-y-auto custom-scrollbar">
                             {terminalHistory.map((line, i) => (
                                 <div key={i} className={`mb-1 whitespace-pre-wrap ${line.type === 'command' ? 'text-slate-400 font-bold mt-4' :
-                                        line.type === 'info' ? 'text-indigo-400' :
-                                            line.type === 'error' ? 'text-red-400' :
-                                                'text-slate-300'
+                                    line.type === 'info' ? 'text-indigo-400' :
+                                        line.type === 'error' ? 'text-red-400' :
+                                            'text-slate-300'
                                     }`}>
                                     {line.content}
                                 </div>
@@ -602,8 +603,8 @@ ${diffContent}
                                             disabled={!!slot.taskId}
                                             onClick={() => onAssignToSlot(task.id, slot.id)}
                                             className={`text-[10px] py-1 px-2 rounded border transition-all ${slot.taskId
-                                                    ? 'bg-slate-900/50 text-slate-700 border-slate-800 cursor-not-allowed hidden'
-                                                    : 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20 hover:bg-indigo-500/20 hover:border-indigo-500/40'
+                                                ? 'bg-slate-900/50 text-slate-700 border-slate-800 cursor-not-allowed hidden'
+                                                : 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20 hover:bg-indigo-500/20 hover:border-indigo-500/40'
                                                 }`}
                                         >
                                             WT-{slot.id}
@@ -726,15 +727,23 @@ ${diffContent}
                                     </div>
                                 ) : (
                                     <>
-                                        <div className="flex justify-between items-start mb-3 gap-2">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start mb-3 gap-2">
                                             <div className="min-w-0 pr-2">
                                                 <h3 className="font-bold text-slate-100 truncate">{assignedTask.title}</h3>
                                                 <p className="text-xs text-slate-500 truncate">{assignedTask.description}</p>
                                             </div>
-                                            <div className="flex gap-2 flex-shrink-0 flex-col sm:flex-row">
+                                            <div className="flex gap-2 flex-shrink-0 flex-row">
 
                                                 {assignedTask.status === TaskStatus.WORKTREE_ACTIVE && (
                                                     <>
+                                                        <button
+                                                            onClick={() => copyAgentCommandForTask(assignedTask, slot)}
+                                                            className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 px-2 py-1.5 rounded-lg text-xs transition-colors"
+                                                            title="Copy agent command"
+                                                        >
+                                                            {copiedCmdTaskId === assignedTask.id ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3" />}
+                                                        </button>
+
                                                         <button
                                                             onClick={() => handleOpenAgentWorkspaceCmd(slot, assignedTask)}
                                                             disabled={openingAgentWorkspaceSlot === slot.id}
@@ -743,14 +752,6 @@ ${diffContent}
                                                         >
                                                             {openingAgentWorkspaceSlot === slot.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Terminal className="w-3 h-3" />}
                                                             cmd
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => copyAgentCommandForTask(assignedTask, slot)}
-                                                            className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 px-2 py-1.5 rounded-lg text-xs transition-colors"
-                                                            title="Copy agent command"
-                                                        >
-                                                            {copiedCmdTaskId === assignedTask.id ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3" />}
                                                         </button>
 
                                                         <button

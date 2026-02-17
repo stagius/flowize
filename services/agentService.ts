@@ -35,6 +35,8 @@ export interface OpenWorktreeCmdOptions {
   ensureDirectory?: boolean;
   task?: TaskItem;
   copyTemplatedCommandToClipboard?: boolean;
+  closeAfterStartup?: boolean;
+  launchAntigravity?: boolean;
 }
 
 const DEFAULT_AGENT_SUBDIR = '.antigravity';
@@ -628,7 +630,9 @@ export const openWorktreeCmdWindow = async (
           action: 'open-windows-cmd',
           worktreePath: targetPath,
           title,
-          startupCommand
+          startupCommand,
+          closeAfterStartup: options?.closeAfterStartup === true,
+          launchAntigravity: options?.launchAntigravity === true
         })
       }, 10000);
 
