@@ -679,7 +679,7 @@ ${diffContent}
                                 <button
                                     onClick={() => handleCleanupClick(slot.id)}
                                     disabled={cleaningSlot === slot.id}
-                                    className={`mt-4 flex items-center gap-2 text-[10px] transition-colors border border-transparent hover:border-slate-800 px-2 py-1 rounded ${cleaningSlot === slot.id ? 'text-slate-500' : 'text-slate-500 hover:text-red-400'
+                                    className={`mt-4 flex items-center gap-2 text-[10px] transition-colors border border-transparent hover:border-slate-800 px-2 py-1 rounded-full ${cleaningSlot === slot.id ? 'text-slate-500' : 'text-slate-500 hover:text-red-400'
                                         }`}
                                     title="Prune/Cleanup Worktree"
                                 >
