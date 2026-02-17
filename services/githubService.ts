@@ -1,5 +1,27 @@
 import { AppSettings, TaskItem } from '../types';
 
+export interface GithubAuthenticatedUser {
+    id: number;
+    login: string;
+    avatar_url?: string;
+    name?: string;
+}
+
+export interface GithubRepository {
+    id: number;
+    name: string;
+    full_name: string;
+    private: boolean;
+    default_branch: string;
+    owner: {
+        login: string;
+    };
+}
+
+export interface GithubBranch {
+    name: string;
+}
+
 const getGithubToken = (settings: AppSettings): string => {
     const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
     return settings.githubToken || env?.VITE_GITHUB_TOKEN || env?.GITHUB_TOKEN || '';
@@ -10,6 +32,12 @@ const getHeaders = (token: string) => ({
     'Accept': 'application/vnd.github.v3+json',
     'X-GitHub-Api-Version': '2022-11-28',
     'Content-Type': 'application/json',
+});
+
+const getRepoReadHeaders = (token: string) => ({
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
 });
 
 const handleGithubError = async (response: Response, context: string) => {
@@ -391,6 +419,55 @@ export const fetchCommitStatus = async (settings: AppSettings, ref: string) => {
     if (!response.ok) {
         if (response.status === 404) return { state: 'pending', statuses: [] };
         await handleGithubError(response, `Fetch Commit Status (${ref})`);
+    }
+
+    return response.json();
+};
+
+export const fetchAuthenticatedUser = async (token: string): Promise<GithubAuthenticatedUser> => {
+    const safeToken = token.trim();
+    if (!safeToken) throw new Error('GitHub Token not configured');
+
+    const response = await fetch('https://api.github.com/user', {
+        method: 'GET',
+        headers: getRepoReadHeaders(safeToken)
+    });
+
+    if (!response.ok) {
+        await handleGithubError(response, 'Fetch Authenticated User');
+    }
+
+    return response.json();
+};
+
+export const fetchUserRepositories = async (token: string): Promise<GithubRepository[]> => {
+    const safeToken = token.trim();
+    if (!safeToken) throw new Error('GitHub Token not configured');
+
+    const response = await fetch('https://api.github.com/user/repos?sort=updated&direction=desc&per_page=100', {
+        method: 'GET',
+        headers: getRepoReadHeaders(safeToken)
+    });
+
+    if (!response.ok) {
+        await handleGithubError(response, 'Fetch User Repositories');
+    }
+
+    return response.json();
+};
+
+export const fetchRepositoryBranches = async (token: string, owner: string, repo: string): Promise<GithubBranch[]> => {
+    const safeToken = token.trim();
+    if (!safeToken) throw new Error('GitHub Token not configured');
+    if (!owner.trim() || !repo.trim()) throw new Error('Repository owner/name missing');
+
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches?per_page=100`, {
+        method: 'GET',
+        headers: getRepoReadHeaders(safeToken)
+    });
+
+    if (!response.ok) {
+        await handleGithubError(response, `Fetch Repository Branches (${owner}/${repo})`);
     }
 
     return response.json();

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppSettings } from '../types';
-import { X, Save, Github, FolderOpen, GitBranch, Terminal, Key, ShieldCheck, AlertTriangle, Cpu, Lock, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { X, Save, Github, FolderOpen, GitBranch, Terminal, Key, ShieldCheck, AlertTriangle, Cpu, Lock, Loader2, CheckCircle2, XCircle, Search } from 'lucide-react';
+import { fetchAuthenticatedUser, fetchUserRepositories, fetchRepositoryBranches, GithubAuthenticatedUser, GithubRepository, GithubBranch } from '../services/githubService';
+
+const SPECFLOW_SKILL_RELATIVE_PATH = '.opencode/skills/specflow-worktree-automation/SKILL.md';
 
 interface Props {
   isOpen: boolean;
@@ -13,21 +16,87 @@ interface Props {
 
 export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSettings, onSave, onReset, hasApiKey }) => {
   const [formData, setFormData] = useState<AppSettings>(currentSettings);
+  const [githubUser, setGithubUser] = useState<GithubAuthenticatedUser | null>(null);
+  const [githubRepos, setGithubRepos] = useState<GithubRepository[]>([]);
+  const [repoSearchValue, setRepoSearchValue] = useState('');
+  const [selectedGithubRepo, setSelectedGithubRepo] = useState('');
+  const [isRepoMenuOpen, setIsRepoMenuOpen] = useState(false);
+  const [githubBranches, setGithubBranches] = useState<GithubBranch[]>([]);
+  const [branchSearchValue, setBranchSearchValue] = useState('');
+  const [isBranchMenuOpen, setIsBranchMenuOpen] = useState(false);
+  const [loadingBranches, setLoadingBranches] = useState(false);
+  const [loadingGithubData, setLoadingGithubData] = useState(false);
+  const [githubAuthState, setGithubAuthState] = useState<{ status: 'idle' | 'connecting' | 'error'; message: string }>({ status: 'idle', message: '' });
   const [bridgeTest, setBridgeTest] = useState<{ status: 'idle' | 'testing' | 'ok' | 'error'; message: string }>({ status: 'idle', message: '' });
   const [bridgeHealth, setBridgeHealth] = useState<{ status: 'checking' | 'healthy' | 'unhealthy'; message: string }>({
     status: 'checking',
     message: 'Checking bridge health...'
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const repoPickerRef = useRef<HTMLDivElement>(null);
+  const branchPickerRef = useRef<HTMLDivElement>(null);
 
   // Sync state when modal opens
   useEffect(() => {
     if (isOpen) {
       setFormData(currentSettings);
+      const initialRepo = `${currentSettings.repoOwner}/${currentSettings.repoName}`;
+      setRepoSearchValue(initialRepo);
+      setSelectedGithubRepo(initialRepo);
+      setBranchSearchValue(currentSettings.defaultBranch || '');
+      setIsBranchMenuOpen(false);
+      setGithubAuthState({ status: 'idle', message: '' });
       setBridgeTest({ status: 'idle', message: '' });
       setBridgeHealth({ status: 'checking', message: 'Checking bridge health...' });
     }
   }, [isOpen, currentSettings]);
+
+  const getBridgeBaseUrl = (endpoint: string): string => {
+    const trimmed = endpoint.trim().replace(/\/+$/, '');
+    return trimmed.endsWith('/run') ? trimmed.slice(0, -4) : trimmed;
+  };
+
+  const loadGithubData = async (token: string) => {
+    const safeToken = token.trim();
+    if (!safeToken) {
+      setGithubUser(null);
+      setGithubRepos([]);
+      return;
+    }
+
+    setLoadingGithubData(true);
+    setGithubAuthState({ status: 'idle', message: '' });
+
+    try {
+      const [user, repos] = await Promise.all([
+        fetchAuthenticatedUser(safeToken),
+        fetchUserRepositories(safeToken)
+      ]);
+
+      setGithubUser(user);
+      setGithubRepos(repos);
+
+      const activeFullName = `${formData.repoOwner}/${formData.repoName}`;
+      const existingSelection = repos.find((repo) => repo.full_name === activeFullName);
+      if (existingSelection) {
+        setSelectedGithubRepo(existingSelection.full_name);
+      }
+    } catch (error) {
+      setGithubUser(null);
+      setGithubRepos([]);
+      setGithubAuthState({
+        status: 'error',
+        message: error instanceof Error ? error.message : String(error)
+      });
+    } finally {
+      setLoadingGithubData(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    void loadGithubData(formData.githubToken || '');
+  }, [isOpen, formData.githubToken]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,14 +108,356 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
     fileInputRef.current?.click();
   };
 
+  const handleConnectGithub = async () => {
+    const endpoint = formData.antiGravityAgentEndpoint?.trim();
+    if (!endpoint) {
+      setGithubAuthState({ status: 'error', message: 'Set Agent Bridge Endpoint before starting GitHub OAuth.' });
+      return;
+    }
+
+    const bridgeBase = getBridgeBaseUrl(endpoint);
+    const endpointCandidates = getBridgeCandidates(endpoint)
+      .map((candidate) => candidate.replace(/\/+$/, ''))
+      .filter((value, index, arr) => arr.indexOf(value) === index);
+
+    const oauthStartUrls = endpointCandidates
+      .map((candidate) => (candidate.endsWith('/run') ? candidate.slice(0, -4) : candidate))
+      .filter((value, index, arr) => arr.indexOf(value) === index)
+      .map((base) => `${base}/github/oauth/start?origin=${encodeURIComponent(window.location.origin)}`);
+
+    const allowedBridgeOrigins = endpointCandidates
+      .map((candidate) => (candidate.endsWith('/run') ? candidate.slice(0, -4) : candidate))
+      .filter((value, index, arr) => arr.indexOf(value) === index)
+      .flatMap((base) => {
+        try {
+          const parsed = new URL(base);
+          const origin = parsed.origin;
+          if (origin.includes('127.0.0.1')) {
+            return [origin, origin.replace('127.0.0.1', 'localhost')];
+          }
+          if (origin.includes('localhost')) {
+            return [origin, origin.replace('localhost', '127.0.0.1')];
+          }
+          return [origin];
+        } catch {
+          return [];
+        }
+      })
+      .filter((value, index, arr) => arr.indexOf(value) === index);
+
+    let primaryBridgeOrigin = '';
+
+    try {
+      primaryBridgeOrigin = new URL(bridgeBase).origin;
+    } catch {
+      setGithubAuthState({ status: 'error', message: 'Agent Bridge Endpoint is not a valid URL.' });
+      return;
+    }
+
+    setGithubAuthState({ status: 'connecting', message: 'Opening GitHub login window...' });
+
+    try {
+      let startPayload: { success?: boolean; authorizeUrl?: string; error?: string } | null = null;
+      let lastError = '';
+
+      for (const startUrl of oauthStartUrls) {
+        try {
+          const startResponse = await fetch(startUrl);
+          const payload = await startResponse.json() as { success?: boolean; authorizeUrl?: string; error?: string };
+          if (startResponse.ok && payload.authorizeUrl) {
+            startPayload = payload;
+            break;
+          }
+          lastError = payload.error || `HTTP ${startResponse.status} from ${startUrl}`;
+        } catch (error) {
+          lastError = error instanceof Error ? error.message : String(error);
+        }
+      }
+
+      if (!startPayload?.authorizeUrl) {
+        throw new Error(`${lastError || 'Failed to start GitHub OAuth flow.'} Tried: ${oauthStartUrls.join(', ')}. If you recently updated, restart the bridge.`);
+      }
+
+      const popup = window.open(startPayload.authorizeUrl, 'flowize-github-oauth', 'popup=yes,width=620,height=760');
+      if (!popup) {
+        throw new Error('Popup blocked. Allow popups for this site and try again.');
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        const timeout = window.setTimeout(() => {
+          cleanup();
+          reject(new Error('GitHub login timed out. Please try again.'));
+        }, 180000);
+
+        const poll = window.setInterval(() => {
+          if (popup.closed) {
+            cleanup();
+            reject(new Error('GitHub login window was closed before completing OAuth.'));
+          }
+        }, 500);
+
+        const cleanup = () => {
+          window.clearTimeout(timeout);
+          window.clearInterval(poll);
+          window.removeEventListener('message', onMessage);
+        };
+
+        const onMessage = (event: MessageEvent) => {
+          const trustedOrigins = allowedBridgeOrigins.length > 0 ? allowedBridgeOrigins : [primaryBridgeOrigin];
+          if (!trustedOrigins.includes(event.origin)) return;
+          const data = event.data as { source?: string; success?: boolean; token?: string; error?: string };
+          if (!data || data.source !== 'flowize-github-oauth') return;
+
+          cleanup();
+          popup.close();
+
+          if (!data.success || !data.token) {
+            reject(new Error(data.error || 'GitHub OAuth failed.'));
+            return;
+          }
+
+          setFormData((prev) => ({ ...prev, githubToken: data.token }));
+          resolve();
+        };
+
+        window.addEventListener('message', onMessage);
+      });
+
+      setGithubAuthState({ status: 'idle', message: '' });
+    } catch (error) {
+      setGithubAuthState({
+        status: 'error',
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  };
+
+  const handleDisconnectGithub = () => {
+    setFormData({ ...formData, githubToken: '' });
+    setGithubUser(null);
+    setGithubRepos([]);
+    setGithubBranches([]);
+    setBranchSearchValue(formData.defaultBranch || '');
+    setSelectedGithubRepo('');
+    setGithubAuthState({ status: 'idle', message: '' });
+  };
+
+  const runBridgeShellCommand = async (command: string): Promise<void> => {
+    const endpoint = formData.antiGravityAgentEndpoint?.trim();
+    if (!endpoint) {
+      throw new Error('Agent Bridge Endpoint is not configured.');
+    }
+
+    const candidates = getBridgeCandidates(endpoint);
+    let lastError = '';
+
+    for (const candidate of candidates) {
+      try {
+        const response = await fetch(candidate, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            command,
+            mode: 'shell'
+          })
+        });
+
+        const payload = await response.json() as { success?: boolean; error?: string };
+        if (response.ok && payload.success) {
+          return;
+        }
+
+        lastError = payload.error || `HTTP ${response.status} from ${candidate}`;
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : String(error);
+      }
+    }
+
+    throw new Error(lastError || 'Failed to reach bridge endpoint.');
+  };
+
+  const ensureSpecflowSkillFile = async (repoName: string): Promise<void> => {
+    const targetRoot = `z:/${repoName}`;
+    const safeTargetRoot = targetRoot.replace(/'/g, "''");
+    const safeSkillRelativePath = SPECFLOW_SKILL_RELATIVE_PATH.replace(/'/g, "''");
+    const powershellScript = [
+      "$ErrorActionPreference='Stop';",
+      `$targetRoot='${safeTargetRoot}';`,
+      `$relativePath='${safeSkillRelativePath}';`,
+      '$sourcePath=Join-Path (Get-Location) $relativePath;',
+      "if (-not (Test-Path -LiteralPath $sourcePath)) { throw ('Reference skill file not found: ' + $sourcePath) }",
+      '$destinationPath=Join-Path $targetRoot $relativePath;',
+      'if (-not (Test-Path -LiteralPath $destinationPath)) {',
+      '  New-Item -ItemType Directory -Path (Split-Path -Parent $destinationPath) -Force | Out-Null;',
+      '  Copy-Item -LiteralPath $sourcePath -Destination $destinationPath -Force;',
+      '}'
+    ].join(' ');
+
+    const command = `powershell -NoProfile -Command "${powershellScript.replace(/"/g, '\\"')}"`;
+    await runBridgeShellCommand(command);
+  };
+
+  const handleSelectRepository = (fullName: string) => {
+    setRepoSearchValue(fullName);
+    setSelectedGithubRepo(fullName);
+    setIsRepoMenuOpen(false);
+    const selected = githubRepos.find((repo) => repo.full_name === fullName);
+    if (!selected) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      repoOwner: selected.owner.login,
+      repoName: selected.name,
+      defaultBranch: selected.default_branch || prev.defaultBranch,
+      worktreeRoot: `z:/${selected.name}`
+    }));
+    setBranchSearchValue(selected.default_branch || '');
+
+    void ensureSpecflowSkillFile(selected.name).catch((error) => {
+      setGithubAuthState({
+        status: 'error',
+        message: `Repo selected, but failed to ensure ${SPECFLOW_SKILL_RELATIVE_PATH}: ${error instanceof Error ? error.message : String(error)}`
+      });
+    });
+  };
+
+  const handleRepoSearchInput = (value: string) => {
+    setRepoSearchValue(value);
+    setSelectedGithubRepo('');
+    setIsRepoMenuOpen(true);
+    const selected = githubRepos.find((repo) => repo.full_name.toLowerCase() === value.trim().toLowerCase());
+    if (!selected) return;
+    handleSelectRepository(selected.full_name);
+  };
+
+  const handleSelectBranch = (branchName: string) => {
+    setBranchSearchValue(branchName);
+    setIsBranchMenuOpen(false);
+    setFormData((prev) => ({ ...prev, defaultBranch: branchName }));
+  };
+
+  const handleBranchSearchInput = (value: string) => {
+    setBranchSearchValue(value);
+    setIsBranchMenuOpen(true);
+    const selected = githubBranches.find((branch) => branch.name.toLowerCase() === value.trim().toLowerCase());
+    if (!selected) return;
+    handleSelectBranch(selected.name);
+  };
+
+  const repoQuery = repoSearchValue.trim().toLowerCase();
+  const filteredGithubRepos = (repoQuery
+    ? githubRepos.filter((repo) => (
+      repo.full_name.toLowerCase().includes(repoQuery)
+      || repo.name.toLowerCase().includes(repoQuery)
+      || repo.owner.login.toLowerCase().includes(repoQuery)
+    ))
+    : githubRepos
+  ).slice(0, 40);
+  const branchQuery = branchSearchValue.trim().toLowerCase();
+  const filteredGithubBranches = (branchQuery
+    ? githubBranches.filter((branch) => branch.name.toLowerCase().includes(branchQuery))
+    : githubBranches
+  ).slice(0, 60);
+  const selectedRepoExists = githubRepos.some((repo) => repo.full_name === selectedGithubRepo);
+  const isGithubConnected = Boolean(githubUser && (formData.githubToken || '').trim());
+  const repoControlledByOAuth = Boolean(githubUser && selectedRepoExists);
+  const canUseBranchDropdown = repoControlledByOAuth;
+
+  useEffect(() => {
+    if (!isRepoMenuOpen) return;
+
+    const handleWindowMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (repoPickerRef.current && !repoPickerRef.current.contains(target)) {
+        setIsRepoMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('mousedown', handleWindowMouseDown);
+    return () => {
+      window.removeEventListener('mousedown', handleWindowMouseDown);
+    };
+  }, [isRepoMenuOpen]);
+
+  useEffect(() => {
+    if (!isBranchMenuOpen) return;
+
+    const handleWindowMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (branchPickerRef.current && !branchPickerRef.current.contains(target)) {
+        setIsBranchMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('mousedown', handleWindowMouseDown);
+    return () => {
+      window.removeEventListener('mousedown', handleWindowMouseDown);
+    };
+  }, [isBranchMenuOpen]);
+
+  useEffect(() => {
+    if (!repoControlledByOAuth) {
+      setIsBranchMenuOpen(false);
+    }
+  }, [repoControlledByOAuth]);
+
+  useEffect(() => {
+    const token = (formData.githubToken || '').trim();
+    const owner = formData.repoOwner.trim();
+    const repo = formData.repoName.trim();
+    const currentDefaultBranch = formData.defaultBranch;
+
+    if (!token || !repoControlledByOAuth || !owner || !repo) {
+      setGithubBranches([]);
+      setLoadingBranches(false);
+      return;
+    }
+
+    let cancelled = false;
+    const loadBranches = async () => {
+      setLoadingBranches(true);
+      try {
+        const branches = await fetchRepositoryBranches(token, owner, repo);
+        if (cancelled) return;
+        setGithubBranches(branches);
+
+        if (!branches.some((branch) => branch.name === currentDefaultBranch) && branches.length > 0) {
+          const fallback = branches.find((branch) => branch.name === 'main')
+            || branches.find((branch) => branch.name === 'master')
+            || branches[0];
+          setBranchSearchValue(fallback.name);
+          setFormData((prev) => ({ ...prev, defaultBranch: fallback.name }));
+        } else {
+          setBranchSearchValue(currentDefaultBranch || '');
+        }
+      } catch {
+        if (cancelled) return;
+        setGithubBranches([]);
+      } finally {
+        if (!cancelled) {
+          setLoadingBranches(false);
+        }
+      }
+    };
+
+    void loadBranches();
+    return () => {
+      cancelled = true;
+    };
+  }, [formData.githubToken, formData.repoOwner, formData.repoName, repoControlledByOAuth]);
+
   const handleFolderSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-        // Note: Browsers do not expose the full system path (e.g. /Users/name/...) for security.
-        // We get the directory name from the relative path of the first file.
-        const file = e.target.files[0];
-        const folderName = file.webkitRelativePath.split('/')[0];
-        // Use the folder name as the root path (simulated absolute path)
-        setFormData({ ...formData, worktreeRoot: `/${folderName}` });
+      // Note: Browsers do not expose the full system path (e.g. /Users/name/...) for security.
+      // We get the directory name from the relative path of the first file.
+      const file = e.target.files[0];
+      const folderName = file.webkitRelativePath.split('/')[0];
+      // Use the folder name as the root path (simulated absolute path)
+      setFormData({ ...formData, worktreeRoot: `/${folderName}` });
     }
   };
 
@@ -196,19 +607,19 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" 
+      <div
+        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal Content */}
-      <div className="relative bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Terminal className="w-5 h-5 text-indigo-500" />
             Workflow Configuration
           </h2>
-          <button 
+          <button
             onClick={onClose}
             className="text-slate-400 hover:text-white transition-colors p-1 hover:bg-slate-800 rounded-lg"
           >
@@ -217,62 +628,153 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
-          
+
           {/* API Access Section */}
           <div className="space-y-4">
-             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                API Access
-             </h3>
-             <div className={`border rounded-lg p-3 flex justify-between items-center ${
-                 hasApiKey ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'
-             }`}>
-                <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${hasApiKey ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                        {hasApiKey ? <ShieldCheck className="w-4 h-4" /> : <Key className="w-4 h-4" />}
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-slate-200">Gemini API Key</p>
-                        <p className="text-[10px] text-slate-500">Env Var: process.env.API_KEY</p>
-                    </div>
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              API Access
+            </h3>
+            <div className={`border rounded-lg p-3 flex justify-between items-center ${hasApiKey ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'
+              }`}>
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${hasApiKey ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                  {hasApiKey ? <ShieldCheck className="w-4 h-4" /> : <Key className="w-4 h-4" />}
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-1 rounded border ${
-                    hasApiKey 
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                    : 'bg-red-500/10 text-red-400 border-red-500/20'
+                <div>
+                  <p className="text-sm font-medium text-slate-200">Gemini API Key</p>
+                  <p className="text-[10px] text-slate-500">Env Var: process.env.API_KEY</p>
+                </div>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-1 rounded border ${hasApiKey
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                : 'bg-red-500/10 text-red-400 border-red-500/20'
                 }`}>
-                    {hasApiKey ? 'CONNECTED' : 'MISSING'}
-                </span>
-             </div>
-             
-             {/* GitHub Token */}
-             <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">GitHub Personal Access Token</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-                  <input 
-                    type="password" 
-                    value={formData.githubToken || ''}
-                    onChange={e => setFormData({...formData, githubToken: e.target.value})}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
-                    placeholder="ghp_xxxxxxxxxxxx"
-                  />
+                {hasApiKey ? 'CONNECTED' : 'MISSING'}
+              </span>
+            </div>
+
+            {/* GitHub Token */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-300">GitHub Personal Access Token</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                <input
+                  type="password"
+                  value={formData.githubToken || ''}
+                  onChange={e => setFormData({ ...formData, githubToken: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                  placeholder="ghp_xxxxxxxxxxxx"
+                />
+              </div>
+              <p className="text-xs text-slate-500">
+                Required scopes: <strong>repo</strong> (Classic) or <strong>Contents:Read/Write, PullRequests:Read/Write</strong> (Fine-grained).
+              </p>
+              <p className="text-xs text-slate-500">
+                Auto-loads from <code>.env.local</code> when <code>VITE_GITHUB_TOKEN</code> is set.
+              </p>
+
+              <div className="mt-2 rounded-lg border border-slate-800 bg-slate-950/60 p-3 space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-300">GitHub OAuth (local bridge)</p>
+                    <p className="text-[11px] text-slate-500">Uses bridge env vars instead of pasting tokens manually.</p>
+                  </div>
+                  <div className="flex items-center gap-2 sm:justify-end">
+                    {!isGithubConnected && (
+                      <button
+                        type="button"
+                        onClick={handleConnectGithub}
+                        disabled={githubAuthState.status === 'connecting'}
+                        className="px-3 py-1.5 text-xs font-medium rounded-md bg-indigo-600 hover:bg-indigo-500 text-white whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                      >
+                        <Github className="w-3.5 h-3.5" />
+                        {githubAuthState.status === 'connecting' ? 'Connecting...' : 'Connect with GitHub'}
+                      </button>
+                    )}
+                    {formData.githubToken && (
+                      <button
+                        type="button"
+                        onClick={handleDisconnectGithub}
+                        className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 whitespace-nowrap"
+                      >
+                        Disconnect
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <p className="text-xs text-slate-500">
-                    Required scopes: <strong>repo</strong> (Classic) or <strong>Contents:Read/Write, PullRequests:Read/Write</strong> (Fine-grained).
-                </p>
-                <p className="text-xs text-slate-500">
-                    Auto-loads from <code>.env.local</code> when <code>VITE_GITHUB_TOKEN</code> is set.
+
+                {githubUser && (
+                  <p className="text-xs text-emerald-300">
+                    Connected as <strong>{githubUser.login}</strong>
+                  </p>
+                )}
+
+                {loadingGithubData && (
+                  <p className="text-xs text-indigo-300 flex items-center gap-1.5">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Loading GitHub profile and repositories...
+                  </p>
+                )}
+
+                {githubAuthState.status === 'error' && (
+                  <p className="text-xs text-red-300">{githubAuthState.message}</p>
+                )}
+
+                {githubRepos.length > 0 && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-300">Repository</label>
+                    <div className="relative" ref={repoPickerRef}>
+                      <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-500" />
+                      <input
+                        value={repoSearchValue}
+                        onChange={(e) => handleRepoSearchInput(e.target.value)}
+                        onFocus={() => setIsRepoMenuOpen(true)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') {
+                            setIsRepoMenuOpen(false);
+                          }
+                        }}
+                        placeholder="Search repos (owner/name)"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
+                      />
+
+                      {isRepoMenuOpen && (
+                        <div className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-700 bg-slate-900/95 shadow-2xl max-h-[400px] overflow-y-auto">
+                          {filteredGithubRepos.length === 0 ? (
+                            <div className="px-3 py-2 text-xs text-slate-500">No repositories found.</div>
+                          ) : (
+                            filteredGithubRepos.map((repo) => {
+                              const isSelected = repo.full_name === `${formData.repoOwner}/${formData.repoName}`;
+                              return (
+                                <button
+                                  key={repo.id}
+                                  type="button"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onClick={() => handleSelectRepository(repo.full_name)}
+                                  className={`w-full text-left px-3 py-2 border-b border-slate-800/70 last:border-b-0 hover:bg-slate-800/80 transition-colors ${isSelected ? 'bg-indigo-500/10' : ''}`}
+                                >
+                                  <p className="text-xs font-medium text-slate-200">{repo.full_name}</p>
+                                  <p className="text-[10px] text-slate-500">{repo.private ? 'private' : 'public'}</p>
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500">Loaded from your authenticated GitHub account (latest 100 repos).</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {!hasApiKey && (
+              <div className="flex items-start gap-2 text-xs text-yellow-500/90 bg-yellow-500/5 border border-yellow-500/10 p-3 rounded-lg">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <p>
+                  To enable AI features, you must set the <code>API_KEY</code> environment variable in your project configuration. The UI does not accept direct key input for security.
                 </p>
               </div>
-
-             {!hasApiKey && (
-                 <div className="flex items-start gap-2 text-xs text-yellow-500/90 bg-yellow-500/5 border border-yellow-500/10 p-3 rounded-lg">
-                     <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                     <p>
-                        To enable AI features, you must set the <code>API_KEY</code> environment variable in your project configuration. The UI does not accept direct key input for security.
-                     </p>
-                 </div>
-             )}
+            )}
           </div>
 
           <div className="w-full h-px bg-slate-800"></div>
@@ -280,50 +782,110 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
           {/* Repo Details */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Repository Details</h3>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-300">Owner</label>
                 <div className="relative">
                   <Github className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={formData.repoOwner}
-                    onChange={e => setFormData({...formData, repoOwner: e.target.value})}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                    onChange={e => setFormData({ ...formData, repoOwner: e.target.value })}
+                    disabled={repoControlledByOAuth}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 disabled:opacity-70 disabled:cursor-not-allowed"
                     placeholder="acme-inc"
                   />
                 </div>
+                {repoControlledByOAuth && (
+                  <p className="text-[10px] text-slate-500">Owner is synced from selected GitHub repository.</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-300">Repository Name</label>
                 <div className="relative">
                   <div className="absolute left-3 top-2.5 w-4 h-4 text-slate-500 flex items-center justify-center font-mono text-[10px] font-bold">/</div>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={formData.repoName}
-                    onChange={e => setFormData({...formData, repoName: e.target.value})}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                    onChange={e => setFormData({ ...formData, repoName: e.target.value })}
+                    disabled={repoControlledByOAuth}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 disabled:opacity-70 disabled:cursor-not-allowed"
                     placeholder="my-project"
                   />
                 </div>
+                {repoControlledByOAuth && (
+                  <p className="text-[10px] text-slate-500">Repository name is synced from selected GitHub repository.</p>
+                )}
               </div>
             </div>
 
             <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Default Branch</label>
+              <label className="text-sm font-medium text-slate-300">Default Branch</label>
+              {canUseBranchDropdown ? (
+                <div className="relative" ref={branchPickerRef}>
+                  <GitBranch className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    value={branchSearchValue}
+                    onChange={(e) => handleBranchSearchInput(e.target.value)}
+                    onFocus={() => setIsBranchMenuOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        setIsBranchMenuOpen(false);
+                      }
+                    }}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                    placeholder="Search branch"
+                  />
+
+                  {isBranchMenuOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-700 bg-slate-900/95 shadow-2xl max-h-52 overflow-y-auto">
+                      {loadingBranches ? (
+                        <div className="px-3 py-2 text-xs text-indigo-300 flex items-center gap-1.5">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Loading branches...
+                        </div>
+                      ) : filteredGithubBranches.length === 0 ? (
+                        <div className="px-3 py-2 text-xs text-slate-500">No branches found.</div>
+                      ) : (
+                        filteredGithubBranches.map((branch) => {
+                          const isSelected = branch.name === formData.defaultBranch;
+                          return (
+                            <button
+                              key={branch.name}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => handleSelectBranch(branch.name)}
+                              className={`w-full text-left px-3 py-2 border-b border-slate-800/70 last:border-b-0 hover:bg-slate-800/80 transition-colors ${isSelected ? 'bg-indigo-500/10' : ''}`}
+                            >
+                              <p className="text-xs font-medium text-slate-200">{branch.name}</p>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
                 <div className="relative">
                   <GitBranch className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={formData.defaultBranch}
-                    onChange={e => setFormData({...formData, defaultBranch: e.target.value})}
+                    onChange={e => {
+                      setBranchSearchValue(e.target.value);
+                      setFormData({ ...formData, defaultBranch: e.target.value });
+                    }}
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
                     placeholder="main"
                   />
                 </div>
-              </div>
+              )}
+              {canUseBranchDropdown && (
+                <p className="text-[10px] text-slate-500">Branch list is loaded from selected GitHub repository.</p>
+              )}
+            </div>
           </div>
 
           <div className="w-full h-px bg-slate-800"></div>
@@ -331,66 +893,66 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
           {/* Environment */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Local Environment</h3>
-            
+
             <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-2 space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">Worktree Root Path</label>
-                  <div className="flex gap-2">
-                      <div className="relative flex-1">
-                          <FolderOpen className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-                          <input 
-                          type="text" 
-                          value={formData.worktreeRoot}
-                          onChange={e => setFormData({...formData, worktreeRoot: e.target.value})}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
-                          placeholder="/home/dev/projects"
-                          />
-                      </div>
-                      <button 
-                          type="button"
-                          onClick={handleBrowse}
-                          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 text-xs font-medium transition-colors whitespace-nowrap"
-                      >
-                          Browse
-                      </button>
+              <div className="col-span-2 space-y-1.5">
+                <label className="text-sm font-medium text-slate-300">Worktree Root Path</label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <FolderOpen className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      value={formData.worktreeRoot}
+                      onChange={e => setFormData({ ...formData, worktreeRoot: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                      placeholder="/home/dev/projects"
+                    />
                   </div>
-                  <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      {...{ webkitdirectory: "", directory: "" } as any} 
-                      onChange={handleFolderSelect} 
+                  <button
+                    type="button"
+                    onClick={handleBrowse}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 text-xs font-medium transition-colors whitespace-nowrap"
+                  >
+                    Browse
+                  </button>
+                </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  {...{ webkitdirectory: "", directory: "" } as any}
+                  onChange={handleFolderSelect}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-300">Max Slots</label>
+                <div className="relative">
+                  <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={formData.maxWorktrees}
+                    onChange={e => setFormData({ ...formData, maxWorktrees: Math.max(1, Math.min(10, parseInt(e.target.value) || 1)) })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
                   />
                 </div>
-
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-300">Max Slots</label>
-                    <div className="relative">
-                        <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-                        <input 
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={formData.maxWorktrees}
-                        onChange={e => setFormData({...formData, maxWorktrees: Math.max(1, Math.min(10, parseInt(e.target.value) || 1))})}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
-                        />
-                    </div>
-                </div>
+              </div>
             </div>
             <p className="text-xs text-slate-500">
-                New worktrees will be created as sibling folders (example: /flowize-wt-1).
+              New worktrees will be created as sibling folders (example: /flowize-wt-1).
             </p>
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-300">Anti-Gravity Agent Command</label>
-                <input
-                  type="text"
-                  value={formData.antiGravityAgentCommand || ''}
-                  onChange={e => setFormData({ ...formData, antiGravityAgentCommand: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
-                  placeholder={'cd "{worktreePath}" && opencode run {agentFlag} "Implement issue #{issueNumber} on branch {branch}. Use {issueDescriptionFile} as requirements and follow {skillFile}. Return code/output for this task." --print-logs'}
-                />
+              <input
+                type="text"
+                value={formData.antiGravityAgentCommand || ''}
+                onChange={e => setFormData({ ...formData, antiGravityAgentCommand: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                placeholder={'cd "{worktreePath}" && opencode run {agentFlag} "Implement issue #{issueNumber} on branch {branch}. Use {issueDescriptionFile} as requirements and follow {skillFile}. Return code/output for this task." --print-logs'}
+              />
               <p className="text-xs text-slate-500">
                 Used when you click Implement on a worktree task with an issue. Placeholders: {'{issueNumber}'}, {'{branch}'}, {'{title}'}, {'{worktreePath}'}, {'{agentWorkspace}'}, {'{issueDescriptionFile}'}, {'{skillFile}'}, {'{agentName}'}, {'{agentFlag}'}.
               </p>
@@ -438,13 +1000,12 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 <p className="text-xs text-slate-500">
                   Must be a running local HTTP bridge that accepts POST and allows browser origin access (CORS).
                 </p>
-                <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${
-                  bridgeHealth.status === 'healthy'
-                    ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-300'
-                    : bridgeHealth.status === 'checking'
-                      ? 'bg-indigo-500/5 border-indigo-500/20 text-indigo-300'
-                      : 'bg-red-500/5 border-red-500/20 text-red-300'
-                }`}>
+                <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${bridgeHealth.status === 'healthy'
+                  ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-300'
+                  : bridgeHealth.status === 'checking'
+                    ? 'bg-indigo-500/5 border-indigo-500/20 text-indigo-300'
+                    : 'bg-red-500/5 border-red-500/20 text-red-300'
+                  }`}>
                   {bridgeHealth.status === 'healthy'
                     ? <CheckCircle2 className="w-4 h-4 mt-0.5" />
                     : bridgeHealth.status === 'checking'
@@ -453,13 +1014,12 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   <span>{bridgeHealth.message}</span>
                 </div>
                 {bridgeTest.status !== 'idle' && (
-                  <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${
-                    bridgeTest.status === 'ok'
-                      ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-300'
-                      : bridgeTest.status === 'testing'
-                        ? 'bg-indigo-500/5 border-indigo-500/20 text-indigo-300'
-                        : 'bg-red-500/5 border-red-500/20 text-red-300'
-                  }`}>
+                  <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${bridgeTest.status === 'ok'
+                    ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-300'
+                    : bridgeTest.status === 'testing'
+                      ? 'bg-indigo-500/5 border-indigo-500/20 text-indigo-300'
+                      : 'bg-red-500/5 border-red-500/20 text-red-300'
+                    }`}>
                     {bridgeTest.status === 'ok' ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : bridgeTest.status === 'testing' ? <Loader2 className="w-4 h-4 mt-0.5 animate-spin" /> : <XCircle className="w-4 h-4 mt-0.5" />}
                     <span>{bridgeTest.message}</span>
                   </div>
@@ -491,30 +1051,30 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
           </div>
 
           <div className="pt-2 flex justify-end gap-3">
-             <button
-                type="button"
-                onClick={() => {
-                  onReset();
-                  onClose();
-                }}
-                className="mr-auto px-4 py-2 text-sm font-medium text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg transition-colors"
-             >
-                Reset Defaults
-             </button>
-             <button 
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
-             >
-                Cancel
-             </button>
-             <button 
-                type="submit"
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg shadow-lg shadow-indigo-900/20 flex items-center gap-2 transition-all"
-             >
-                <Save className="w-4 h-4" />
-                Save Configuration
-             </button>
+            <button
+              type="button"
+              onClick={() => {
+                onReset();
+                onClose();
+              }}
+              className="mr-auto px-4 py-2 text-sm font-medium text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg transition-colors"
+            >
+              Reset Defaults
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg shadow-lg shadow-indigo-900/20 flex items-center gap-2 transition-all"
+            >
+              <Save className="w-4 h-4" />
+              Save Configuration
+            </button>
           </div>
 
         </form>

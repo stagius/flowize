@@ -9,9 +9,9 @@ import { Step6_Merge } from './components/Step6_Merge';
 import { SettingsModal } from './components/SettingsModal';
 import { AlertDialog, AlertDialogState, ConfirmDialog, ConfirmDialogState, DialogTone } from './components/ui/Dialogs';
 import { ToastItem, ToastStack, ToastTone } from './components/ui/ToastStack';
-import { createGithubIssue, fetchGithubIssues, createBranch, getBSHA, commitFile, createPullRequest, mergePullRequest, fetchMergedPRs, fetchOpenPRs, fetchCommitStatus } from './services/githubService';
+import { createGithubIssue, fetchGithubIssues, createBranch, getBSHA, commitFile, createPullRequest, mergePullRequest, fetchMergedPRs, fetchOpenPRs, fetchCommitStatus, fetchAuthenticatedUser } from './services/githubService';
 import { createWorktree, pruneWorktree } from './services/gitService';
-import { ChevronRight, GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server } from 'lucide-react';
+import { ChevronRight, GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github } from 'lucide-react';
 
 type BridgeHealthState = {
     status: 'checking' | 'healthy' | 'unhealthy';
@@ -63,6 +63,7 @@ export default function App() {
     const [toasts, setToasts] = useState<ToastItem[]>([]);
     const [alertActionBusy, setAlertActionBusy] = useState(false);
     const [bridgeHealth, setBridgeHealth] = useState<BridgeHealthState>({ status: 'checking' });
+    const [githubLogin, setGithubLogin] = useState<string>('');
     const confirmResolverRef = useRef<((value: boolean) => void) | null>(null);
     const alertActionRef = useRef<(() => Promise<void> | void) | null>(null);
 
@@ -267,6 +268,33 @@ export default function App() {
         };
     }, [settings.antiGravityAgentEndpoint]);
 
+    useEffect(() => {
+        const token = (settings.githubToken || '').trim();
+        if (!token) {
+            setGithubLogin('');
+            return;
+        }
+
+        let cancelled = false;
+        const loadUser = async () => {
+            try {
+                const user = await fetchAuthenticatedUser(token);
+                if (!cancelled) {
+                    setGithubLogin(user.login || '');
+                }
+            } catch {
+                if (!cancelled) {
+                    setGithubLogin('');
+                }
+            }
+        };
+
+        void loadUser();
+        return () => {
+            cancelled = true;
+        };
+    }, [settings.githubToken]);
+
     // --- Actions ---
 
     const hasGithubToken = Boolean(settings.githubToken || envGithubToken);
@@ -345,6 +373,21 @@ export default function App() {
             return;
         }
 
+        if (tasks.length > 0) {
+            const confirmReplace = await askConfirmation({
+                title: 'Replace current task list?',
+                message: 'Fetching remote issues will replace the current local task list in this session.',
+                confirmLabel: 'Replace List',
+                cancelLabel: 'Keep Current',
+                tone: 'warning'
+            });
+
+            if (!confirmReplace) {
+                showToast('Fetch cancelled. Current task list kept.', 'info');
+                return;
+            }
+        }
+
         try {
             const remoteIssues = await fetchGithubIssues(settings);
 
@@ -388,17 +431,13 @@ export default function App() {
                 } as TaskItem;
             });
 
-            // Merge avoiding duplicates (by issue number)
-            setTasks(prev => {
-                const existingNumbers = new Set(prev.filter(t => t.issueNumber).map(t => t.issueNumber));
-                const uniqueNewTasks = newTasks.filter((t: TaskItem) => t.issueNumber && !existingNumbers.has(t.issueNumber));
+            setTasks(newTasks);
 
-                if (uniqueNewTasks.length === 0) {
-                    showToast('No new issues found.', 'info');
-                    return prev;
-                }
-                return [...prev, ...uniqueNewTasks];
-            });
+            if (newTasks.length === 0) {
+                showToast('No open issues found. Task list cleared.', 'warning');
+            } else {
+                showToast(`Fetched ${newTasks.length} issues and replaced current list.`, 'warning');
+            }
 
         } catch (error: any) {
             console.error("Failed to fetch issues", error);
@@ -959,8 +998,24 @@ export default function App() {
                         <div className="h-8 w-px bg-slate-800 mx-1 md:mx-2"></div>
 
                         <div className="flex items-center gap-3">
+                            {settings.githubToken && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsSettingsOpen(true)}
+                                    className="hidden xl:flex items-center gap-2 rounded-md px-2 py-1 hover:bg-slate-800/70 transition-colors"
+                                    title="Open Settings"
+                                >
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-xs font-medium text-slate-200">
+                                            {githubLogin ? `@${githubLogin}` : 'GitHub Connected'}
+                                        </span>
+                                        <span className="text-[10px] text-slate-500">{settings.repoOwner}/{settings.repoName}</span>
+                                    </div>
+                                    <img height="16" width="16" src="https://cdn.simpleicons.org/github/fff" />
+                                </button>
+                            )}
                             <div className="hidden md:flex flex-col items-end">
-                                <span className="text-xs font-medium text-slate-200">{settings.repoOwner}</span>
+                                <span className="text-xs font-medium text-slate-200">Worktrees</span>
                                 <span className="text-[10px] text-slate-500">{activeWorktrees}/{settings.maxWorktrees} Active</span>
                             </div>
                             <button

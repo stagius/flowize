@@ -1,7 +1,46 @@
 import { createServer } from 'http';
 import { exec, spawn } from 'child_process';
 import { randomUUID } from 'crypto';
-import { existsSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
+
+const loadLocalEnvFile = () => {
+  const envPath = '.env.local';
+  if (!existsSync(envPath)) {
+    return;
+  }
+
+  try {
+    const content = readFileSync(envPath, 'utf8');
+    const lines = content.split(/\r?\n/);
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith('#')) continue;
+
+      const withoutExport = line.startsWith('export ') ? line.slice(7).trim() : line;
+      const separatorIndex = withoutExport.indexOf('=');
+      if (separatorIndex <= 0) continue;
+
+      const key = withoutExport.slice(0, separatorIndex).trim();
+      if (!key) continue;
+      if (typeof process.env[key] === 'string' && process.env[key].length > 0) continue;
+
+      let value = withoutExport.slice(separatorIndex + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"'))
+        || (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+
+      process.env[key] = value;
+    }
+  } catch {
+    // ignore malformed .env.local; explicit shell env vars still work
+  }
+};
+
+loadLocalEnvFile();
 
 const PORT = Number(process.env.BRIDGE_PORT || 4141);
 const HOST = process.env.BRIDGE_HOST || '0.0.0.0';
@@ -10,8 +49,15 @@ const WORKDIR = process.env.BRIDGE_WORKDIR || process.cwd();
 const JOB_TTL_MS = Number(process.env.BRIDGE_JOB_TTL_MS || 30 * 60 * 1000);
 const JOB_MAX_RUNTIME_MS = Number(process.env.BRIDGE_JOB_MAX_RUNTIME_MS || 10 * 60 * 1000);
 const SYNC_MAX_RUNTIME_MS = Number(process.env.BRIDGE_SYNC_MAX_RUNTIME_MS || 5 * 60 * 1000);
+const GITHUB_OAUTH_CLIENT_ID = (process.env.GITHUB_OAUTH_CLIENT_ID || '').trim();
+const GITHUB_OAUTH_CLIENT_SECRET = (process.env.GITHUB_OAUTH_CLIENT_SECRET || '').trim();
+const GITHUB_OAUTH_SCOPE = (process.env.GITHUB_OAUTH_SCOPE || 'read:user repo').trim();
+const GITHUB_OAUTH_CALLBACK_HOST = (process.env.GITHUB_OAUTH_CALLBACK_HOST || '127.0.0.1').trim();
+const GITHUB_OAUTH_REDIRECT_URI = (process.env.GITHUB_OAUTH_REDIRECT_URI || `http://${GITHUB_OAUTH_CALLBACK_HOST}:${PORT}/github/oauth/callback`).trim();
+const OAUTH_STATE_TTL_MS = Number(process.env.GITHUB_OAUTH_STATE_TTL_MS || 10 * 60 * 1000);
 
 const jobs = new Map();
+const oauthStates = new Map();
 
 const isOriginAllowed = (origin) => {
   if (!origin) return true;
@@ -35,6 +81,14 @@ const writeJson = (res, status, body, origin = '') => {
   res.end(JSON.stringify(body));
 };
 
+const writeHtml = (res, status, html) => {
+  res.writeHead(status, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store'
+  });
+  res.end(html);
+};
+
 const cleanupExpiredJobs = () => {
   const now = Date.now();
   for (const [jobId, job] of jobs.entries()) {
@@ -43,6 +97,54 @@ const cleanupExpiredJobs = () => {
       jobs.delete(jobId);
     }
   }
+};
+
+const cleanupExpiredOAuthStates = () => {
+  const now = Date.now();
+  for (const [state, entry] of oauthStates.entries()) {
+    if (now - entry.createdAt > OAUTH_STATE_TTL_MS) {
+      oauthStates.delete(state);
+    }
+  }
+};
+
+const oauthMessagePage = ({ success, origin, token, scope, error }) => {
+  const safeOrigin = origin || '*';
+  const payload = {
+    source: 'flowize-github-oauth',
+    success,
+    token,
+    scope,
+    error
+  };
+  const payloadJson = JSON.stringify(payload).replace(/</g, '\\u003c');
+  const originJson = JSON.stringify(safeOrigin);
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Flowize GitHub Login</title>
+</head>
+<body style="font-family: sans-serif; padding: 24px; background: #0f172a; color: #e2e8f0;">
+  <h2 style="margin: 0 0 8px;">${success ? 'GitHub login complete' : 'GitHub login failed'}</h2>
+  <p style="margin: 0 0 16px; color: #94a3b8;">${success ? 'You can close this window.' : (error || 'Authentication failed.')}</p>
+  <script>
+    (function () {
+      var payload = ${payloadJson};
+      var targetOrigin = ${originJson};
+      try {
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage(payload, targetOrigin);
+        }
+      } catch (e) {
+        // ignore
+      }
+      setTimeout(function () { window.close(); }, 100);
+    })();
+  </script>
+</body>
+</html>`;
 };
 
 const openWindowsCmd = async (
@@ -316,6 +418,7 @@ const runShellCommand = (command) => {
 const server = createServer(async (req, res) => {
   const origin = req.headers.origin || '';
   cleanupExpiredJobs();
+  cleanupExpiredOAuthStates();
 
   if (req.method === 'OPTIONS') {
     writeJson(res, 200, { ok: true }, origin);
@@ -328,6 +431,97 @@ const server = createServer(async (req, res) => {
       asyncJobs: true,
       maxRuntimeMs: JOB_MAX_RUNTIME_MS
     }, origin);
+    return;
+  }
+
+  if (req.method === 'GET' && req.url?.startsWith('/github/oauth/start')) {
+    if (!GITHUB_OAUTH_CLIENT_ID || !GITHUB_OAUTH_CLIENT_SECRET) {
+      writeJson(res, 503, {
+        success: false,
+        error: 'GitHub OAuth is not configured. Set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET.'
+      }, origin);
+      return;
+    }
+
+    const requestedOrigin = getQueryParam(req.url, 'origin') || origin || '*';
+    const state = randomUUID().replace(/-/g, '');
+    oauthStates.set(state, {
+      origin: requestedOrigin,
+      createdAt: Date.now()
+    });
+
+    const authorizeUrl = new URL('https://github.com/login/oauth/authorize');
+    authorizeUrl.searchParams.set('client_id', GITHUB_OAUTH_CLIENT_ID);
+    authorizeUrl.searchParams.set('redirect_uri', GITHUB_OAUTH_REDIRECT_URI);
+    authorizeUrl.searchParams.set('scope', GITHUB_OAUTH_SCOPE);
+    authorizeUrl.searchParams.set('state', state);
+
+    writeJson(res, 200, {
+      success: true,
+      authorizeUrl: authorizeUrl.toString(),
+      redirectUri: GITHUB_OAUTH_REDIRECT_URI
+    }, origin);
+    return;
+  }
+
+  if (req.method === 'GET' && req.url?.startsWith('/github/oauth/callback')) {
+    const code = getQueryParam(req.url, 'code');
+    const state = getQueryParam(req.url, 'state');
+
+    if (!code || !state) {
+      writeHtml(res, 400, oauthMessagePage({
+        success: false,
+        origin: '*',
+        error: 'Missing GitHub OAuth code or state.'
+      }));
+      return;
+    }
+
+    const stateEntry = oauthStates.get(state);
+    oauthStates.delete(state);
+
+    if (!stateEntry) {
+      writeHtml(res, 400, oauthMessagePage({
+        success: false,
+        origin: '*',
+        error: 'Invalid or expired OAuth state. Please retry login.'
+      }));
+      return;
+    }
+
+    try {
+      const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          client_id: GITHUB_OAUTH_CLIENT_ID,
+          client_secret: GITHUB_OAUTH_CLIENT_SECRET,
+          code,
+          redirect_uri: GITHUB_OAUTH_REDIRECT_URI
+        })
+      });
+
+      const tokenPayload = await tokenResponse.json();
+      if (!tokenResponse.ok || tokenPayload.error || !tokenPayload.access_token) {
+        throw new Error(tokenPayload.error_description || tokenPayload.error || 'Could not exchange OAuth code for access token.');
+      }
+
+      writeHtml(res, 200, oauthMessagePage({
+        success: true,
+        origin: stateEntry.origin,
+        token: tokenPayload.access_token,
+        scope: tokenPayload.scope || ''
+      }));
+    } catch (error) {
+      writeHtml(res, 500, oauthMessagePage({
+        success: false,
+        origin: stateEntry.origin,
+        error: error instanceof Error ? error.message : String(error)
+      }));
+    }
     return;
   }
 
@@ -459,4 +653,9 @@ server.listen(PORT, HOST, () => {
   console.log(`[flowize-bridge] workdir=${WORKDIR}`);
   console.log(`[flowize-bridge] allowed-origin=${ALLOWED_ORIGIN}`);
   console.log('[flowize-bridge] async-mode=spawn-only');
+  if (GITHUB_OAUTH_CLIENT_ID && GITHUB_OAUTH_CLIENT_SECRET) {
+    console.log(`[flowize-bridge] github-oauth=enabled redirect=${GITHUB_OAUTH_REDIRECT_URI}`);
+  } else {
+    console.log('[flowize-bridge] github-oauth=disabled (set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET)');
+  }
 });

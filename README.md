@@ -32,3 +32,19 @@ Optional environment variables:
 - `BRIDGE_HOST` (default: `0.0.0.0`)
 - `BRIDGE_ALLOWED_ORIGIN` (default: `*`, or comma-separated origins like `http://localhost:3000,http://127.0.0.1:3000`)
 - `BRIDGE_WORKDIR` (default: current directory)
+
+### GitHub OAuth login (optional, local-only)
+
+If you want to sign in with GitHub and pick repos from your account in Settings, configure the bridge with a GitHub OAuth App:
+
+1. Create a GitHub OAuth App with callback URL:
+   `http://127.0.0.1:4141/github/oauth/callback`
+2. Set bridge env vars in your shell OR add them to `.env.local` before `npm run bridge:start`:
+   - `GITHUB_OAUTH_CLIENT_ID`
+   - `GITHUB_OAUTH_CLIENT_SECRET`
+   - `GITHUB_OAUTH_SCOPE` (optional, default: `read:user repo`)
+   - `GITHUB_OAUTH_CALLBACK_HOST` (optional, default: `127.0.0.1`)
+   - `GITHUB_OAUTH_REDIRECT_URI` (optional override)
+3. In Flowize settings, use **Connect with GitHub**.
+
+No database is required. Token and selected repo remain local in app settings.
