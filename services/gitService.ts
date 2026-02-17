@@ -495,3 +495,26 @@ export const pruneWorktree = async (slot: WorktreeSlot, branchName?: string, set
     throw new Error('No local bridge endpoint configured. Real worktree prune requires Agent Bridge Endpoint.');
   }
 };
+
+export const pushWorktreeBranch = async (slot: WorktreeSlot, branchName: string, settings?: AppSettings): Promise<void> => {
+  if (!branchName) {
+    throw new Error('Branch name is required to push worktree changes.');
+  }
+
+  if (!settings?.antiGravityAgentEndpoint) {
+    throw new Error('No local bridge endpoint configured. Worktree branch push requires Agent Bridge Endpoint.');
+  }
+
+  const commitMessage = `chore: sync worktree updates for ${branchName}`;
+  const commitCommand = `git add -A && git diff --cached --quiet || git commit -m "${commitMessage.replace(/"/g, '')}"`;
+
+  await runBridgeCommand(settings, commitCommand, {
+    worktreePath: slot.path,
+    branch: branchName
+  });
+
+  await runBridgeCommand(settings, `git push -u origin "${branchName}"`, {
+    worktreePath: slot.path,
+    branch: branchName
+  });
+};

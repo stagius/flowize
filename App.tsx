@@ -10,7 +10,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { AlertDialog, AlertDialogState, ConfirmDialog, ConfirmDialogState, DialogTone } from './components/ui/Dialogs';
 import { ToastItem, ToastStack, ToastTone } from './components/ui/ToastStack';
 import { createGithubIssue, fetchGithubIssues, createBranch, getBSHA, commitFile, createPullRequest, mergePullRequest, fetchMergedPRs, fetchOpenPRs, fetchCommitStatus, fetchAuthenticatedUser, fetchPullRequestDetails } from './services/githubService';
-import { createWorktree, pruneWorktree } from './services/gitService';
+import { createWorktree, pruneWorktree, pushWorktreeBranch } from './services/gitService';
 import { ChevronRight, GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github } from 'lucide-react';
 
 type BridgeHealthState = {
@@ -600,14 +600,18 @@ export default function App() {
         const task = tasks.find(t => t.id === taskId);
         const slot = slots.find(s => s.taskId === taskId);
 
-        if (slot && task && task.branchName) {
-            try {
-                // Push implementation content to the feature branch.
-                await pushTaskImplementationToGithub(task);
-            } catch (e: any) {
-                console.error("Failed to push to GitHub", e);
-                showAlertDialog('Push Failed', `Failed to push branch: ${e.message}`, 'error');
-            }
+        if (!task || !slot || !task.branchName) {
+            showAlertDialog('Push Failed', 'This task is not assigned to an active worktree slot.', 'error');
+            return;
+        }
+
+        try {
+            await pushWorktreeBranch(slot, task.branchName, settings);
+            setCurrentStep(4);
+            showToast(`Branch ${task.branchName} pushed. Continue review in Step 4.`, 'success');
+        } catch (e: any) {
+            console.error("Failed to push to GitHub", e);
+            showAlertDialog('Push Failed', `Failed to push branch: ${e.message}`, 'error');
         }
     };
 
@@ -622,7 +626,11 @@ export default function App() {
         }
 
         try {
-            await pushTaskImplementationToGithub(task);
+            if (slot) {
+                await pushWorktreeBranch(slot, task.branchName, settings);
+            } else {
+                await pushTaskImplementationToGithub(task);
+            }
 
             const pr = await createPullRequest(
                 settings,

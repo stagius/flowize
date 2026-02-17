@@ -583,7 +583,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                     const StatusIcon = config.icon;
 
                     const gitStatus = !assignedTask ? null :
-                        assignedTask.status === TaskStatus.IMPLEMENTED ? { label: 'STAGED', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' } :
+                        assignedTask.status === TaskStatus.IMPLEMENTED ? { label: 'STAGED', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' } :
                             assignedTask.status === TaskStatus.WORKTREE_ACTIVE ? { label: 'DIRTY', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' } :
                                 { label: 'CLEAN', color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20' };
 
