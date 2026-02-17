@@ -29,8 +29,11 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onFetchMerged, se
 
   const handleFetch = async () => {
     setIsFetching(true);
-    await onFetchMerged();
-    setIsFetching(false);
+    try {
+      await onFetchMerged();
+    } finally {
+      setIsFetching(false);
+    }
   };
 
   return (

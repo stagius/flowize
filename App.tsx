@@ -747,6 +747,7 @@ export default function App() {
                 fetchMergedPRs(settings),
                 fetchOpenPRs(settings)
             ]);
+            const mergedPrNumbers = new Set<number>(mergedPRs.map((pr: any) => pr.number));
 
             setTasks(prev => {
                 const newTasks = [...prev];
@@ -755,6 +756,10 @@ export default function App() {
                     const idx = newTasks.findIndex(t => t.prNumber === pr.number);
 
                     if (idx !== -1) {
+                        if (newTasks[idx].status === TaskStatus.PR_MERGED && status === TaskStatus.PR_CREATED) {
+                            return;
+                        }
+
                         // Update existing task
                         if (newTasks[idx].status !== status) {
                             newTasks[idx] = {
@@ -784,8 +789,12 @@ export default function App() {
                     }
                 };
 
+                openPRs.forEach((pr: any) => {
+                    if (!mergedPrNumbers.has(pr.number)) {
+                        processPR(pr, TaskStatus.PR_CREATED);
+                    }
+                });
                 mergedPRs.forEach((pr: any) => processPR(pr, TaskStatus.PR_MERGED));
-                openPRs.forEach((pr: any) => processPR(pr, TaskStatus.PR_CREATED));
 
                 return newTasks;
             });

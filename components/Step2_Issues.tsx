@@ -14,13 +14,21 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
   const [isFetching, setIsFetching] = useState(false);
   
   const pendingTasks = tasks.filter(t => t.status === TaskStatus.FORMATTED);
-  const createdIssues = tasks.filter(t => t.status !== TaskStatus.FORMATTED && t.status !== TaskStatus.RAW);
+  const createdIssues = tasks.filter(t => {
+    if (t.status === TaskStatus.FORMATTED || t.status === TaskStatus.RAW) return false;
+    if (!t.issueNumber) return false;
+    if (t.id.startsWith('gh-pr-')) return false;
+    return true;
+  });
   const isAnySyncing = syncingTaskIds.size > 0;
 
   const handleFetch = async () => {
       setIsFetching(true);
-      await onFetchRemote();
-      setIsFetching(false);
+      try {
+        await onFetchRemote();
+      } finally {
+        setIsFetching(false);
+      }
   };
 
   return (
