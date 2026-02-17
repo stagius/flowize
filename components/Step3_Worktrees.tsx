@@ -264,9 +264,9 @@ export const Step3_Worktrees: React.FC<Props> = ({
             if (e.key === 'Escape') setActiveTerminalSlotId(null);
             // Only trigger if not typing in an input (future proofing)
             if (!(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
-                if (e.key.toLowerCase() === 's') runGitCommand('git status', task);
-                if (e.key.toLowerCase() === 'l') runGitCommand('git log', task);
-                if (e.key.toLowerCase() === 'd') runGitCommand('git diff', task);
+                if (e.key.toLowerCase() === 's') runGitCommand('git status');
+                if (e.key.toLowerCase() === 'l') runGitCommand('git log');
+                if (e.key.toLowerCase() === 'd') runGitCommand('git diff');
             }
         };
 
@@ -279,62 +279,13 @@ export const Step3_Worktrees: React.FC<Props> = ({
         setActiveTerminalSlotId(slotId);
     };
 
-    const runGitCommand = (command: string, task: TaskItem) => {
+    const runGitCommand = (command: string) => {
         setTerminalHistory(prev => [...prev, { type: 'command', content: `> ${command}` }]);
 
-        let output = '';
-
-        switch (command) {
-            case 'git status':
-                if (task.status === TaskStatus.IMPLEMENTED) {
-                    output = `On branch ${task.branchName}
-Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-        modified:   src/features/${task.group.toLowerCase()}/${task.id}.tsx
-
-no changes added to commit (use "git add" and/or "git commit -a")`;
-                } else {
-                    output = `On branch ${task.branchName}
-Your branch is up to date with 'origin/${task.branchName}'.
-
-nothing to commit, working tree clean`;
-                }
-                break;
-
-            case 'git log':
-                const date = new Date(task.createdAt).toDateString();
-                output = `commit a1b2c3d4e5f6g7h8 (HEAD -> ${task.branchName})
-Author: Dev User <dev@flowize.app>
-Date:   ${date}
-
-    feat: initial worktree setup for ${task.title}
-
-commit 987654321fedcba
-Author: System <bot@flowize.app>
-Date:   ${date}
-
-    chore: project initialization`;
-                break;
-
-            case 'git diff':
-                if (task.status === TaskStatus.IMPLEMENTED) {
-                    const lines = task.implementationDetails?.split('\n').slice(0, 10) || [];
-                    const diffContent = lines.map(l => `+ ${l}`).join('\n');
-                    output = `diff --git a/src/${task.id}.tsx b/src/${task.id}.tsx
-index 83c028c..b094289 100644
---- a/src/${task.id}.tsx
-+++ b/src/${task.id}.tsx
-@@ -0,0 +1,10 @@
-${diffContent}
-+ ... (rest of file)`;
-                } else {
-                    output = '';
-                }
-                break;
-            default:
-                output = `git: '${command.replace('git ', '')}' is not a git command. See 'git --help'.`;
-        }
+        const output = [
+            'This in-app terminal no longer returns synthetic git output.',
+            'Use the real worktree command window opened from the slot actions to run git commands.'
+        ].join('\n');
 
         setTimeout(() => {
             setTerminalHistory(prev => [...prev, { type: 'output', content: output }]);
@@ -490,7 +441,7 @@ ${diffContent}
                                     return (
                                         <button
                                             key={action.cmd}
-                                            onClick={() => task && runGitCommand(action.cmd, task)}
+                                            onClick={() => task && runGitCommand(action.cmd)}
                                             className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700 transition-all active:scale-95 group"
                                         >
                                             <action.icon className="w-4 h-4 text-indigo-400" />

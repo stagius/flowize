@@ -1,8 +1,7 @@
 import { AppSettings, TaskItem, WorktreeSlot } from '../types';
 
 /**
- * Simulates local git operations.
- * In a real Electron/Node environment, this would use `child_process.exec`.
+ * Executes git operations through the configured local bridge endpoint.
  */
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -403,8 +402,7 @@ export const createWorktree = async (settings: AppSettings, task: TaskItem, slot
     const startupCommand = await buildWorktreeStartupCommand(settings, task, slot);
     await openWorktreeCmdWindow(settings, slot, task.branchName, startupCommand);
   } else {
-    await delay(600);
-    await delay(1500); // Simulate the work of checking out files
+    throw new Error('No local bridge endpoint configured. Real git worktree operations require Agent Bridge Endpoint.');
   }
 
   console.log(`[GitService] Worktree ready at ${slot.path}`);
@@ -425,7 +423,7 @@ export const pruneWorktree = async (slot: WorktreeSlot, branchName?: string, set
           console.warn(`[GitService] push skipped during cleanup: ${getErrorMessage(error)}`);
         }
       } else {
-        await delay(1000);
+        throw new Error('No local bridge endpoint configured. Real git push during cleanup requires Agent Bridge Endpoint.');
       }
   }
 
@@ -469,7 +467,7 @@ export const pruneWorktree = async (slot: WorktreeSlot, branchName?: string, set
       await tryRemoveDirectory(settings, slot.path, branchName);
     }
   } else {
-    await delay(800);
+    throw new Error('No local bridge endpoint configured. Real worktree cleanup requires Agent Bridge Endpoint.');
   }
 
   console.log(`> git worktree prune`);
@@ -488,6 +486,6 @@ export const pruneWorktree = async (slot: WorktreeSlot, branchName?: string, set
       }
     }
   } else {
-    await delay(200);
+    throw new Error('No local bridge endpoint configured. Real worktree prune requires Agent Bridge Endpoint.');
   }
 };

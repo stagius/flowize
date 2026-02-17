@@ -22,7 +22,7 @@ export interface TaskItem {
   prNumber?: number;
   issueNumber?: number;
   issueUrl?: string;
-  implementationDetails?: string; // Mock code or summary
+  implementationDetails?: string;
   agentLogs?: string;
   agentLastCommand?: string;
   agentRunState?: 'idle' | 'running' | 'succeeded' | 'failed' | 'cancelled';
@@ -33,7 +33,7 @@ export interface TaskItem {
 export interface WorktreeSlot {
   id: number;
   taskId: string | null; // ID of the task currently in this slot
-  path: string; // Mock path like /worktrees/wt-1
+  path: string;
 }
 
 export interface AppSettings {

@@ -458,7 +458,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
       // We get the directory name from the relative path of the first file.
       const file = e.target.files[0];
       const folderName = file.webkitRelativePath.split('/')[0];
-      // Use the folder name as the root path (simulated absolute path)
+      // Use the folder name as the root path placeholder.
       setFormData({ ...formData, worktreeRoot: `/${folderName}` });
     }
   };

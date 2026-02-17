@@ -504,6 +504,31 @@ function createWorktrees(state: IntakeState, worktreeRoot: string, agentConfig: 
     }
 
     if (item.worktreePath && managed.has(item.worktreePath)) {
+      if (agentConfig.enabled && item.createdIssueNumber) {
+        const issueNumber = item.createdIssueNumber;
+        const branch = item.branch ?? `issue/${issueNumber}-${slugify(item.formattedTitle)}`;
+        const prepared = prepareAgentWorkspace(item, issueNumber, item.worktreePath, agentConfig);
+        const runResult = launchLocalSubAgent(
+          item,
+          issueNumber,
+          branch,
+          item.worktreePath,
+          prepared.agentWorkspacePath,
+          prepared.issueDescriptionFilePath,
+          prepared.skillFilePathForAgent,
+          agentConfig
+        );
+
+        if (agentConfig.required && runResult.status !== 'succeeded') {
+          throw new Error(`Sub-agent launch failed for issue #${issueNumber}: ${runResult.output}`);
+        }
+
+        item.branch = branch;
+        item.agentWorkspacePath = prepared.agentWorkspacePath;
+        item.agentLastRunAt = new Date().toISOString();
+        item.agentLastRunStatus = runResult.status;
+        item.agentLastRunOutput = runResult.output;
+      }
       continue;
     }
 

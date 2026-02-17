@@ -9,8 +9,7 @@ const generateId = () => Math.random().toString(36).substring(2, 9);
 
 export const analyzeAndFormatTasks = async (rawInput: string): Promise<TaskItem[]> => {
   if (!apiKey) {
-    console.warn("No API Key provided, returning mock data");
-    return mockAnalyze(rawInput);
+    throw new Error('Gemini API key is not configured. Set API_KEY (or VITE_API_KEY in client env).');
   }
 
   try {
@@ -57,12 +56,14 @@ export const analyzeAndFormatTasks = async (rawInput: string): Promise<TaskItem[
 
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return mockAnalyze(rawInput);
+    throw new Error(`Failed to analyze tasks with Gemini: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
 export const generateImplementation = async (task: TaskItem): Promise<string> => {
-  if (!apiKey) return mockImplementation(task);
+  if (!apiKey) {
+    throw new Error('Gemini API key is not configured. Set API_KEY (or VITE_API_KEY in client env).');
+  }
 
   try {
     const response = await ai.models.generateContent({
@@ -78,46 +79,6 @@ export const generateImplementation = async (task: TaskItem): Promise<string> =>
     return response.text || "No implementation generated.";
   } catch (error) {
     console.error("Gemini Impl Error:", error);
-    return mockImplementation(task);
+    throw new Error(`Failed to generate implementation with Gemini: ${error instanceof Error ? error.message : String(error)}`);
   }
-};
-
-// Fallbacks if API fails or key missing
-const mockAnalyze = (input: string): TaskItem[] => {
-  return [
-    {
-      id: generateId(),
-      rawText: input,
-      title: "Fix Login Button State",
-      description: "The login button doesn't show loading state when clicked on mobile devices.",
-      group: "Authentication",
-      priority: "High",
-      status: TaskStatus.FORMATTED,
-      createdAt: Date.now()
-    },
-    {
-      id: generateId(),
-      rawText: input,
-      title: "Add Dark Mode Toggle",
-      description: "Implement a system-aware dark mode toggle in the header.",
-      group: "UI/UX",
-      priority: "Medium",
-      status: TaskStatus.FORMATTED,
-      createdAt: Date.now()
-    }
-  ];
-};
-
-const mockImplementation = (task: TaskItem): string => {
-  return `### Plan for ${task.title}
-1. Locate the component.
-2. Add state variable.
-3. Update CSS classes.
-
-\`\`\`tsx
-// Example change
-const [isLoading, setIsLoading] = useState(false);
-return <Button disabled={isLoading}>Login</Button>;
-\`\`\`
-`;
 };

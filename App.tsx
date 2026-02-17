@@ -463,7 +463,7 @@ export default function App() {
             return t;
         }));
 
-        // 2. Perform git operations (simulated)
+        // 2. Perform git operations via local bridge
         const currentSlot = slots.find(s => s.id === slotId) || { id: slotId, path: buildWorktreeSlotPath(settings.worktreeRoot, slotId), taskId };
         const task = tasks.find(t => t.id === taskId);
 
@@ -582,7 +582,7 @@ export default function App() {
 
         if (slot && task && task.branchName) {
             try {
-                // 1. Git Push Simulation (Visual)
+                // 1. Push and cleanup through local bridge
                 await pruneWorktree(slot, task.branchName, settings);
 
                 // 2. Real GitHub API Push
@@ -610,24 +610,21 @@ export default function App() {
         const task = tasks.find(t => t.id === taskId);
         if (!task || !task.branchName) return;
 
-        try {
-            let prNumber;
-            let prUrl;
+        if (!settings.githubToken) {
+            showAlertDialog('GitHub Token Required', 'Cannot create a pull request without a GitHub token. Add one in Settings.', 'warning');
+            return;
+        }
 
-            if (settings.githubToken) {
-                const pr = await createPullRequest(
-                    settings,
-                    task.branchName,
-                    settings.defaultBranch,
-                    task.title,
-                    `${task.description}\n\nCloses #${task.issueNumber}`
-                );
-                prNumber = pr.number;
-                prUrl = pr.html_url;
-            } else {
-                // Fallback
-                prNumber = Math.floor(Math.random() * 500) + 100;
-            }
+        try {
+            const pr = await createPullRequest(
+                settings,
+                task.branchName,
+                settings.defaultBranch,
+                task.title,
+                `${task.description}\n\nCloses #${task.issueNumber}`
+            );
+            const prNumber = pr.number;
+            const prUrl = pr.html_url;
 
             // Updated: vercelStatus is now pending until specifically checked
             setTasks(prev => prev.map(t =>
