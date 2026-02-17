@@ -250,7 +250,13 @@ const getErrorMessage = (error: unknown): string => {
 
 const isDirectoryBusyError = (message: string): boolean => {
   const normalized = message.toLowerCase();
-  return normalized.includes('ebusy') || normalized.includes('resource busy') || normalized.includes('operation not permitted');
+  return (
+    normalized.includes('ebusy') ||
+    normalized.includes('resource busy') ||
+    normalized.includes('operation not permitted') ||
+    normalized.includes('permission denied') ||
+    normalized.includes('access is denied')
+  );
 };
 
 const isNotWorktreeError = (message: string): boolean => {
