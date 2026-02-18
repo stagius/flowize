@@ -583,11 +583,7 @@ export const pushWorktreeBranch = async (slot: WorktreeSlot, branchName: string,
   });
 
   const syncWithRemoteBranch = async (): Promise<void> => {
-    await runBridgeCommand(settings, `git fetch origin "${branchName}"`, {
-      worktreePath: slot.path,
-      branch: branchName
-    });
-
+    // First check if remote branch exists
     const remoteExistsPayload = await runBridgeCommand(
       settings,
       `git show-ref --verify --quiet "refs/remotes/origin/${branchName}" && echo yes || echo no`,
@@ -599,8 +595,15 @@ export const pushWorktreeBranch = async (slot: WorktreeSlot, branchName: string,
 
     const remoteExists = String(remoteExistsPayload?.stdout ?? '').trim().toLowerCase() === 'yes';
     if (!remoteExists) {
+      console.log(`[GitService] Remote branch ${branchName} does not exist yet, skipping sync`);
       return;
     }
+
+    // Remote branch exists, fetch and rebase
+    await runBridgeCommand(settings, `git fetch origin "${branchName}"`, {
+      worktreePath: slot.path,
+      branch: branchName
+    });
 
     try {
       await runBridgeCommand(settings, `git rebase "origin/${branchName}"`, {
@@ -634,6 +637,18 @@ export const pushWorktreeBranch = async (slot: WorktreeSlot, branchName: string,
     });
   } catch (error) {
     const message = getErrorMessage(error);
+    // Check if it's a "remote ref does not exist" error
+    const remoteRefMissing = /couldn't find remote ref|unknown revision|invalid refspec/i.test(message);
+    if (remoteRefMissing) {
+      // First push for this branch, retry the push
+      console.log(`[GitService] First push for branch ${branchName}, retrying...`);
+      await runBridgeCommand(settings, `git push -u origin "${branchName}"`, {
+        worktreePath: slot.path,
+        branch: branchName
+      });
+      return;
+    }
+
     const needsSyncRetry = /fetch first|non-fast-forward|failed to push some refs/i.test(message);
     if (!needsSyncRetry) {
       throw error;
