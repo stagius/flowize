@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppSettings } from '../types';
-import { X, Save, Github, FolderOpen, GitBranch, Terminal, Key, ShieldCheck, AlertTriangle, Cpu, Lock, Loader2, CheckCircle2, XCircle, Search, Copy, RefreshCw } from 'lucide-react';
+import { X, Save, Github, FolderOpen, GitBranch, Terminal, Key, ShieldCheck, AlertTriangle, Cpu, Lock, Loader2, CheckCircle2, XCircle, Search, Copy, RefreshCw, FolderOpenDot } from 'lucide-react';
 import { fetchAuthenticatedUser, fetchUserRepositories, fetchRepositoryBranches, GithubAuthenticatedUser, GithubRepository, GithubBranch } from '../services/githubService';
 
 const SPECFLOW_SKILL_RELATIVE_PATH = '.opencode/skills/specflow-worktree-automation/SKILL.md';
@@ -650,7 +650,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[85vh] xl:max-h-[80vh] overflow-y-auto custom-scrollbar">
 
           {/* API Access Section */}
           <div className="space-y-4">
@@ -917,7 +917,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Local Environment</h3>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <div className="col-span-2 space-y-1.5">
                 <label className="text-sm font-medium text-slate-300">Worktree Root Path</label>
                 <div className="flex gap-2">
@@ -934,8 +934,9 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   <button
                     type="button"
                     onClick={handleBrowse}
-                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 text-xs font-medium transition-colors whitespace-nowrap"
+                    className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white text-sm font-medium rounded-lg shadow-lg shadow-slate-900/20 flex items-center gap-2 transition-all"
                   >
+                    <FolderOpenDot className="w-4 h-4" />
                     Browse
                   </button>
                 </div>
@@ -1017,7 +1018,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   >
                     {bridgeTest.status === 'testing' ? (
                       <span className="inline-flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Testing</span>
-                    ) : 'Test Bridge'}
+                    ) : 'Test bridge'}
                   </button>
                 </div>
                 <p className="text-xs text-slate-500">
@@ -1133,7 +1134,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg shadow-lg shadow-indigo-900/20 flex items-center gap-2 transition-all"
             >
               <Save className="w-4 h-4" />
-              Save Configuration
+              Save
             </button>
           </div>
 

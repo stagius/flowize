@@ -1215,9 +1215,10 @@ export default function App() {
                         className="flex items-center gap-3 lg:hidden p-1 -ml-1 text-slate-400 hover:text-white"
                     >
                         <Menu className="w-6 h-6" />
-                        <span className="font-bold text-slate-100">Flowize</span>
+                        <span className="hidden xl:flex font-bold text-slate-100">Flowize</span>
                     </button>
 
+                    {/* Workfolder */}
                     <div className="hidden lg:flex items-center text-sm text-slate-400">
                         <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700/50 text-xs">
                             <Terminal className="w-3.5 h-3.5" />
@@ -1232,7 +1233,7 @@ export default function App() {
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hidden sm:inline">Pipeline</span>
                                 <span className="text-xs font-bold text-indigo-400">{progressPercent}%</span>
                             </div>
-                            <div className="w-24 md:w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="hidden xl:flex w-24 md:w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-700"
                                     style={{ width: `${progressPercent}%` }}
@@ -1247,7 +1248,7 @@ export default function App() {
                                 <button
                                     type="button"
                                     onClick={() => setIsSettingsOpen(true)}
-                                    className="hidden xl:flex items-center gap-2 rounded-md px-2 py-1 hover:bg-slate-800/70 transition-colors"
+                                    className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-slate-800/70 transition-colors"
                                     title="Open Settings"
                                 >
                                     <div className="flex flex-col items-end">

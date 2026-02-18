@@ -163,7 +163,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
                       <tr>
                           <th className="px-6 py-3">Task</th>
                           <th className="px-6 py-3">PR</th>
-                          <th className="px-6 py-3">Group</th>
+                          <th className="hidden xl:flex px-6 py-3">Group</th>
                           <th className="px-6 py-3 text-right">Status</th>
                       </tr>
                   </thead>
@@ -180,7 +180,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
                               return (
                               <tr key={task.id} className="hover:bg-slate-800/30 transition-colors">
                                   <td className="px-6 py-3 font-medium text-slate-200">{task.title}</td>
-                                  <td className="px-6 py-3 font-mono text-slate-500">
+                                  <td className="px-5 py-3 font-mono text-slate-500">
                                       {prUrl ? (
                                         <a 
                                             href={prUrl}
@@ -194,7 +194,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
                                         <span>#{task.prNumber}</span>
                                       )}
                                   </td>
-                                  <td className="px-6 py-3">
+                                  <td className="hidden xl:flex px-6 py-3">
                                       <span className="bg-slate-800/50 border border-slate-700 px-2 py-1 rounded-full text-xs text-slate-400">{task.group}</span>
                                   </td>
                                   <td className="px-6 py-3 text-right">
