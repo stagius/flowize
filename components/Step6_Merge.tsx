@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AppSettings, TaskItem, TaskStatus } from '../types';
-import { GitMerge, CheckCircle, ExternalLink, PlayCircle, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { GitMerge, CheckCircle, ExternalLink, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ErrorState, LoadingSkeleton } from './ui/AsyncStates';
 
 interface Props {
   tasks: TaskItem[];
@@ -16,6 +17,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
   const [mergingId, setMergingId] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(false);
+  const [mergeError, setMergeError] = useState<string | null>(null);
 
   const buildPrUrl = (task: TaskItem): string | null => {
     if (task.issueUrl) return task.issueUrl;
@@ -24,27 +26,39 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
   };
 
   const handleMergeClick = async (taskId: string) => {
+      setMergeError(null);
       setMergingId(taskId);
       try {
         await onMerge(taskId);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setMergeError(message);
       } finally {
         setMergingId(null);
       }
   };
 
   const handleResolveClick = async (taskId: string) => {
+      setMergeError(null);
       setResolvingId(taskId);
       try {
         await onResolveConflict(taskId);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setMergeError(message);
       } finally {
         setResolvingId(null);
       }
   };
 
   const handleFetch = async () => {
+    setMergeError(null);
     setIsFetching(true);
     try {
       await onFetchMerged();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setMergeError(message);
     } finally {
       setIsFetching(false);
     }
@@ -52,6 +66,15 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
 
   return (
     <div className="h-full flex flex-col gap-6">
+      {mergeError && (
+        <ErrorState
+          title="Merge workflow failed"
+          message={mergeError}
+          onRetry={handleFetch}
+          retryLabel="Retry Sync"
+          compact
+        />
+      )}
       
       {/* Ready to Merge */}
       <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 overflow-hidden flex-shrink-0">
@@ -158,6 +181,12 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
              </button>
           </div>
           <div className="flex-1 overflow-y-auto p-0 custom-scrollbar">
+              {isFetching && mergedHistory.length === 0 && (
+                <div className="p-4">
+                  <LoadingSkeleton rows={3} />
+                </div>
+              )}
+              {!isFetching && (
               <table className="w-full text-sm text-left">
                   <thead className="bg-slate-950/50 text-slate-500 font-medium border-b border-slate-800">
                       <tr>
@@ -208,6 +237,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
                        )}
                   </tbody>
               </table>
+              )}
           </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { TaskItem } from '../types';
 import { analyzeAndFormatTasks } from '../services/geminiService';
 import { Loader2, Plus, Sparkles, Trash2, AlignLeft } from 'lucide-react';
+import { ErrorState, LoadingSkeleton } from './ui/AsyncStates';
 import { PRIORITY_BADGES, SPACING, TYPOGRAPHY } from '../designSystem';
 
 interface Props {
@@ -12,14 +13,22 @@ interface Props {
 export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks }) => {
   const [input, setInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
     if (!input.trim()) return;
     setIsAnalyzing(true);
-    const tasks = await analyzeAndFormatTasks(input);
-    onTasksGenerated(tasks);
-    setIsAnalyzing(false);
-    setInput('');
+    setAnalysisError(null);
+    try {
+      const tasks = await analyzeAndFormatTasks(input);
+      onTasksGenerated(tasks);
+      setInput('');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setAnalysisError(message);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -37,6 +46,18 @@ export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks }
             Paste raw bug reports, feature specs, or slack messages.
           </p>
         </div>
+
+        {analysisError && (
+          <div className="mb-4">
+            <ErrorState
+              title="Task analysis failed"
+              message={analysisError}
+              onRetry={handleAnalyze}
+              retryLabel="Retry"
+              compact
+            />
+          </div>
+        )}
 
         <textarea
           className="flex-1 w-full min-h-[280px] p-4 bg-slate-950/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 outline-none resize-none text-slate-300 font-mono text-sm placeholder:text-slate-700 transition-all shadow-inner"
@@ -76,7 +97,9 @@ export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks }
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-          {existingTasks.length === 0 ? (
+          {isAnalyzing ? (
+            <LoadingSkeleton rows={3} />
+          ) : existingTasks.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-700 opacity-50">
               <div className="w-16 h-16 mb-4 border-2 border-dashed border-slate-800 rounded-xl flex items-center justify-center">
                  <Plus className="w-6 h-6" />

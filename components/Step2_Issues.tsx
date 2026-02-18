@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { TaskItem, TaskStatus } from '../types';
-import { Github, ArrowRight, Check, AlertCircle, Loader2, ExternalLink, CloudDownload } from 'lucide-react';
+import { Github, ArrowRight, Check, Loader2, ExternalLink, CloudDownload } from 'lucide-react';
 import { PRIORITY_BADGES } from '../designSystem';
+import { ErrorState, LoadingSkeleton } from './ui/AsyncStates';
 
 interface Props {
   tasks: TaskItem[];
@@ -13,6 +14,7 @@ interface Props {
 
 export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromoteAll, syncingTaskIds, onFetchRemote }) => {
   const [isFetching, setIsFetching] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   
   const pendingTasks = tasks.filter(t => t.status === TaskStatus.FORMATTED);
   const createdIssues = tasks.filter(t => {
@@ -24,11 +26,25 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
   const isAnySyncing = syncingTaskIds.size > 0;
 
   const handleFetch = async () => {
+      setSyncError(null);
       setIsFetching(true);
       try {
         await onFetchRemote();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setSyncError(message);
       } finally {
         setIsFetching(false);
+      }
+  };
+
+  const handleSyncAll = async () => {
+      setSyncError(null);
+      try {
+        await Promise.resolve(onPromoteAll());
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setSyncError(message);
       }
   };
 
@@ -54,8 +70,10 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
                   Fetch Remote
               </button>
               
-              <button 
-                onClick={onPromoteAll}
+               <button 
+                onClick={() => {
+                  void handleSyncAll();
+                }}
                 disabled={pendingTasks.length === 0 || isAnySyncing || isFetching}
                 className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-900/20 border border-purple-500/20 w-full md:w-auto"
               >
@@ -64,6 +82,16 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
               </button>
           </div>
        </div>
+
+       {syncError && (
+        <ErrorState
+          title="Issue sync failed"
+          message={syncError}
+          onRetry={handleFetch}
+          retryLabel="Retry Fetch"
+          compact
+        />
+       )}
 
        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden">
           {/* Pending Column */}
@@ -76,7 +104,9 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
                 <span className="text-xs text-slate-500">{pendingTasks.length} tasks</span>
              </div>
              <div className="overflow-y-auto p-4 space-y-3 flex-1 custom-scrollbar">
-                {pendingTasks.length === 0 ? (
+                 {isFetching ? (
+                    <LoadingSkeleton rows={3} className="pt-1" />
+                 ) : pendingTasks.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-slate-600 text-sm gap-2">
                         <Check className="w-8 h-8 opacity-20" />
                         All caught up!
@@ -127,7 +157,8 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
                 <h3 className="font-semibold text-slate-400">Synced Issues</h3>
              </div>
              <div className="overflow-y-auto p-4 space-y-3 flex-1 custom-scrollbar">
-                {createdIssues.slice().reverse().map(task => (
+                {isFetching && createdIssues.length === 0 && <LoadingSkeleton rows={2} />}
+                {!isFetching && createdIssues.slice().reverse().map(task => (
                     <div key={task.id} className="flex items-start gap-3 p-3 bg-slate-900/50 rounded-lg border border-slate-800/50 opacity-80 hover:opacity-100 transition-opacity">
                          <div className="mt-1">
                              <Github className="w-4 h-4 text-green-500" />
@@ -148,7 +179,7 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
                           </div>
                      </div>
                 ))}
-                {createdIssues.length === 0 && (
+                {!isFetching && createdIssues.length === 0 && (
                      <div className="text-center text-slate-600 text-sm mt-10">No issues synced yet.</div>
                 )}
              </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TaskItem, TaskStatus } from '../types';
 import { GitPullRequest, CheckCircle2, FileCode, ExternalLink, GitCommit, Loader2, RefreshCw } from 'lucide-react';
+import { ErrorState, LoadingSkeleton } from './ui/AsyncStates';
 
 interface Props {
   tasks: TaskItem[];
@@ -16,17 +17,32 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
   const [requestingId, setRequestingId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [isChecking, setIsChecking] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   const handleApprove = async (id: string) => {
+      setReviewError(null);
       setLoadingId(id);
-      await onApprovePR(id);
-      setLoadingId(null);
+      try {
+        await onApprovePR(id);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setReviewError(message);
+      } finally {
+        setLoadingId(null);
+      }
   };
 
   const handleCheckStatus = async () => {
+    setReviewError(null);
     setIsChecking(true);
-    await onCheckStatus();
-    setIsChecking(false);
+    try {
+      await onCheckStatus();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setReviewError(message);
+    } finally {
+      setIsChecking(false);
+    }
   };
 
   const handleRequestChanges = (id: string) => {
@@ -46,6 +62,18 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+
+      {reviewError && (
+        <div className="lg:col-span-2">
+          <ErrorState
+            title="Review action failed"
+            message={reviewError}
+            onRetry={handleCheckStatus}
+            retryLabel="Retry Status Check"
+            compact
+          />
+        </div>
+      )}
       
       {/* Pending Reviews */}
       <div className="flex flex-col h-full bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 overflow-hidden">
@@ -127,7 +155,9 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-           {activePRs.filter(t => t.status === TaskStatus.PR_CREATED).length === 0 ? (
+           {isChecking ? (
+              <LoadingSkeleton rows={3} />
+           ) : activePRs.filter(t => t.status === TaskStatus.PR_CREATED).length === 0 ? (
               <div className="flex items-center justify-center h-full text-slate-600 text-sm">
                 No active PRs.
               </div>
