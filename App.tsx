@@ -441,6 +441,10 @@ export default function App() {
         }));
     };
 
+    const handleDeleteTask = (taskId: string) => {
+        setTasks(prev => prev.filter(task => !(task.id === taskId && task.status === TaskStatus.FORMATTED)));
+    };
+
     const handleSaveSettings = (next: AppSettings) => {
         setSettings(normalizeSettings(next, defaultSettings));
     };
@@ -1188,7 +1192,7 @@ export default function App() {
     const renderContent = () => {
         switch (currentStep) {
             case 1: return <Step1_Input onTasksGenerated={handleTasksGenerated} existingTasks={tasks} model={settings.model} />;
-            case 2: return <Step2_Issues tasks={tasks} onPromoteToIssue={handlePromoteToIssue} onPromoteAll={handlePromoteAllIssues} syncingTaskIds={syncingTaskIds} onFetchRemote={handleFetchRemote} onEditTask={handleEditTask} />;
+            case 2: return <Step2_Issues tasks={tasks} onPromoteToIssue={handlePromoteToIssue} onPromoteAll={handlePromoteAllIssues} syncingTaskIds={syncingTaskIds} onFetchRemote={handleFetchRemote} onEditTask={handleEditTask} onDeleteTask={handleDeleteTask} />;
             case 3: return <Step3_Worktrees
                 tasks={tasks}
                 slots={slots}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TaskItem, TaskStatus } from '../types';
-import { Github, ArrowRight, Check, Loader2, ExternalLink, CloudDownload, ChevronDown } from 'lucide-react';
+import { Github, ArrowRight, Check, Loader2, ExternalLink, CloudDownload, ChevronDown, Trash2 } from 'lucide-react';
 import { PRIORITY_BADGES } from '../designSystem';
 import { ErrorState, LoadingSkeleton } from './ui/AsyncStates';
 
@@ -11,6 +11,7 @@ interface Props {
   syncingTaskIds: Set<string>;
   onFetchRemote: () => Promise<void>;
   onEditTask: (taskId: string, updates: Partial<Pick<TaskItem, 'title' | 'description' | 'group' | 'priority'>>) => void;
+  onDeleteTask: (taskId: string) => void;
 }
 
 export const Step2_Issues: React.FC<Props> = ({
@@ -19,7 +20,8 @@ export const Step2_Issues: React.FC<Props> = ({
   onPromoteAll,
   syncingTaskIds,
   onFetchRemote,
-  onEditTask
+  onEditTask,
+  onDeleteTask
 }) => {
   const [isFetching, setIsFetching] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -191,6 +193,14 @@ export const Step2_Issues: React.FC<Props> = ({
                                           className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 disabled:opacity-70 disabled:cursor-not-allowed"
                                       >
                                           Edit
+                                      </button>
+                                      <button
+                                          onClick={() => onDeleteTask(task.id)}
+                                          disabled={isSyncing}
+                                          className="px-2.5 py-1.5 text-xs font-medium rounded-md bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-200 border border-slate-700 hover:border-red-400/40 disabled:opacity-70 disabled:cursor-not-allowed"
+                                          title="Delete pending task"
+                                      >
+                                          <Trash2 className="w-3.5 h-3.5" />
                                       </button>
                                       <button 
                                           onClick={() => onPromoteToIssue(task.id)}
