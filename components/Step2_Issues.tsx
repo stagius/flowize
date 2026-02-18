@@ -56,7 +56,7 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
               <Github className="w-5 h-5 text-purple-400" />
               Issue Sync
             </h2>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-slate-400 mt-1">
               Review AI-formatted tasks and push to GitHub.
             </p>
           </div>
@@ -101,7 +101,7 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
                     <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
                     Pending Approval
                 </h3>
-                <span className="text-xs text-slate-500">{pendingTasks.length} tasks</span>
+                <span className="text-xs text-slate-400">{pendingTasks.length} tasks</span>
              </div>
              <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                   {isFetching ? (

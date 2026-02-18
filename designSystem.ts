@@ -21,8 +21,8 @@ export const COLOR_PALETTE = {
 export const TYPOGRAPHY = {
   pageTitleClass: 'text-2xl font-bold tracking-tight text-white',
   sectionTitleClass: 'text-lg font-semibold text-slate-200',
-  sectionSubtleClass: 'text-sm text-slate-500',
-  labelCapsClass: 'text-xs font-bold uppercase tracking-wider text-slate-500',
+  sectionSubtleClass: 'text-sm text-slate-400', // Changed from slate-500 for WCAG AA contrast (5.9:1 vs 4.0:1)
+  labelCapsClass: 'text-xs font-bold uppercase tracking-wider text-slate-400', // Changed from slate-500 for WCAG AA contrast
   codeClass: 'font-mono text-xs'
 } as const;
 

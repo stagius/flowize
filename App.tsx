@@ -1216,6 +1216,13 @@ export default function App() {
 
     return (
         <div className="min-h-screen flex bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30">
+            {/* Skip to main content link for keyboard users */}
+            <a 
+                href="#main-content" 
+                className="sr-only focus:not-sr-only focus:absolute focus:z-[200] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-indigo-600 focus:text-white focus:rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+                Skip to main content
+            </a>
 
             <SettingsModal
                 isOpen={isSettingsOpen}
@@ -1242,25 +1249,39 @@ export default function App() {
 
             {/* Mobile Menu Overlay */}
             {isMobileMenuOpen && (
-                <div className="fixed inset-0 z-[60] lg:hidden">
-                    <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+                <div 
+                    id="mobile-navigation"
+                    className="fixed inset-0 z-[60] lg:hidden"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Navigation menu"
+                >
+                    <div 
+                        className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm" 
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        aria-hidden="true"
+                    />
                     <div className="absolute inset-y-0 left-0 w-[20.5rem] max-w-[90vw] bg-gradient-to-b from-slate-900 to-slate-950 border-r border-slate-700/80 shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
                         <div className="h-20 flex items-center justify-between px-6 border-b border-slate-800/80">
                             <div className="flex items-center gap-3">
                                 <div className="bg-indigo-500/10 p-2 rounded-lg text-indigo-400">
-                                    <GitGraph className="w-6 h-6" />
+                                    <GitGraph className="w-6 h-6" aria-hidden="true" />
                                 </div>
                                 <div>
                                     <p className="font-bold text-lg text-slate-100 leading-tight">Flowize</p>
-                                    <p className="text-[11px] text-slate-500">Workflow Navigator</p>
+                                    <p className="text-[11px] text-slate-400">Workflow Navigator</p>
                                 </div>
                             </div>
-                            <button onClick={() => setIsMobileMenuOpen(false)} className="text-slate-400 hover:text-white rounded-lg p-1 hover:bg-slate-800/80 transition-colors">
-                                <X className="w-5 h-5" />
+                            <button 
+                                onClick={() => setIsMobileMenuOpen(false)} 
+                                className="text-slate-400 hover:text-white rounded-lg p-1 hover:bg-slate-800/80 transition-colors"
+                                aria-label="Close navigation menu"
+                            >
+                                <X className="w-5 h-5" aria-hidden="true" />
                             </button>
                         </div>
 
-                        <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
+                        <nav className="p-4 space-y-2 flex-1 overflow-y-auto" aria-label="Workflow steps">
                             {STEPS.map((step) => {
                                 const isActive = currentStep === step.id;
                                 const Icon = step.icon;
@@ -1271,14 +1292,16 @@ export default function App() {
                                             setCurrentStep(step.id);
                                             setIsMobileMenuOpen(false);
                                         }}
+                                        aria-current={isActive ? 'step' : undefined}
+                                        aria-label={`${step.label}${isActive ? ', current step' : ''}`}
                                         className={`relative w-full flex items-center min-h-[56px] px-4 py-3 rounded-xl border transition-all ${isActive
                                             ? `${step.bg} ${step.color} ${step.border}`
-                                            : 'border-transparent text-slate-500 hover:bg-slate-800/80 hover:border-slate-700/70 hover:text-slate-300'
+                                            : 'border-transparent text-slate-400 hover:bg-slate-800/80 hover:border-slate-700/70 hover:text-slate-300'
                                             }`}
                                     >
-                                        <Icon className={`w-5 h-5 ${isActive ? step.color : 'text-slate-500'}`} />
+                                        <Icon className={`w-5 h-5 ${isActive ? step.color : 'text-slate-400'}`} aria-hidden="true" />
                                         <span className="ml-3 text-sm font-semibold tracking-wide">{step.label}</span>
-                                        {isActive && <span className="ml-auto text-[11px] font-semibold uppercase tracking-wider text-slate-300/80">Current</span>}
+                                        {isActive && <span className="ml-auto text-[11px] font-semibold uppercase tracking-wider text-slate-300/80" aria-hidden="true">Current</span>}
                                     </button>
                                 );
                             })}
@@ -1294,13 +1317,13 @@ export default function App() {
                                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                                     <span className="text-emerald-500 font-medium">Online</span>
                                 </div>
-                                <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center text-slate-500">
+                                <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center text-slate-400">
                                     <span className="flex items-center gap-1.5"><Key className="w-3 h-3" /> API Key</span>
                                     <span className={`text-[10px] px-1.5 py-0.5 rounded ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
                                         {hasApiKey ? 'CONFIGURED' : 'MISSING'}
                                     </span>
                                 </div>
-                                <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center text-slate-500">
+                                <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center text-slate-400">
                                     <span className="flex items-center gap-1.5"><Server className="w-3 h-3" /> Bridge</span>
                                     <span className={`text-[10px] px-1.5 py-0.5 rounded ${bridgeBadgeClass}`} title={bridgeHealth.endpoint || settings.antiGravityAgentEndpoint}>
                                         {bridgeLabel}
@@ -1321,11 +1344,11 @@ export default function App() {
                         </div>
                         <div className="ml-3">
                             <p className="font-bold text-lg tracking-tight text-slate-100">Flowize</p>
-                            <p className="text-[11px] text-slate-500">Workflow Navigator</p>
+                            <p className="text-[11px] text-slate-400">Workflow Navigator</p>
                         </div>
                     </div>
 
-                    <nav className="p-4 space-y-2">
+                    <nav className="p-4 space-y-2" aria-label="Workflow steps">
                         {STEPS.map((step) => {
                             const isActive = currentStep === step.id;
                             const Icon = step.icon;
@@ -1334,14 +1357,16 @@ export default function App() {
                                 <button
                                     key={step.id}
                                     onClick={() => setCurrentStep(step.id)}
+                                    aria-current={isActive ? 'step' : undefined}
+                                    aria-label={`${step.label}${isActive ? ', current step' : ''}`}
                                     className={`relative w-full flex items-center min-h-[52px] px-4 py-3 rounded-xl border transition-all duration-200 group ${isActive
                                         ? `${step.bg} ${step.color} ${step.border}`
-                                        : 'border-transparent text-slate-500 hover:bg-slate-800/80 hover:border-slate-700/70 hover:text-slate-300'
+                                        : 'border-transparent text-slate-400 hover:bg-slate-800/80 hover:border-slate-700/70 hover:text-slate-300'
                                         }`}
                                 >
-                                    <Icon className={`w-5 h-5 ${isActive ? step.color : 'text-slate-500 group-hover:text-slate-300'}`} />
+                                    <Icon className={`w-5 h-5 ${isActive ? step.color : 'text-slate-400 group-hover:text-slate-300'}`} aria-hidden="true" />
                                     <span className="ml-3 font-medium text-sm">{step.label}</span>
-                                    {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_8px_currentColor]"></div>}
+                                    {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_8px_currentColor]" aria-hidden="true"></div>}
                                 </button>
                             );
                         })}
@@ -1358,13 +1383,13 @@ export default function App() {
                             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                             <span className="text-emerald-500 font-medium">Online</span>
                         </div>
-                        <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center text-slate-500">
+                        <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center text-slate-400">
                             <span className="flex items-center gap-1.5"><Key className="w-3 h-3" /> API Key</span>
                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
                                 {hasApiKey ? 'CONFIGURED' : 'MISSING'}
                             </span>
                         </div>
-                        <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center text-slate-500">
+                        <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center text-slate-400">
                             <span className="flex items-center gap-1.5"><Server className="w-3 h-3" /> Bridge</span>
                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${bridgeBadgeClass}`} title={bridgeHealth.endpoint || settings.antiGravityAgentEndpoint}>
                                 {bridgeLabel}
@@ -1381,8 +1406,11 @@ export default function App() {
                     <button
                         onClick={() => setIsMobileMenuOpen(true)}
                         className="flex items-center gap-3 lg:hidden p-1 -ml-1 text-slate-400 hover:text-white"
+                        aria-label="Open navigation menu"
+                        aria-expanded={isMobileMenuOpen}
+                        aria-controls="mobile-navigation"
                     >
-                        <Menu className="w-6 h-6" />
+                        <Menu className="w-6 h-6" aria-hidden="true" />
                         <span className="hidden xl:flex font-bold text-slate-100">Flowize</span>
                     </button>
 
@@ -1390,7 +1418,7 @@ export default function App() {
                     <div className="hidden lg:flex items-center text-sm text-slate-400">
                         <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700/50 text-xs">
                             <Terminal className="w-3.5 h-3.5" />
-                            <span className="text-slate-500">{settings.worktreeRoot}</span>
+                            <span className="text-slate-400">{settings.worktreeRoot}</span>
                             <span className="font-mono text-slate-300">/{settings.repoName}</span>
                         </span>
                     </div>
@@ -1398,7 +1426,7 @@ export default function App() {
                     <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
                         <div className="flex flex-col items-end">
                             <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hidden sm:inline">Pipeline</span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden sm:inline">Pipeline</span>
                                 <span className="text-xs font-bold text-indigo-400">{progressPercent}%</span>
                             </div>
                             <div className="hidden xl:flex w-24 md:w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -1423,26 +1451,30 @@ export default function App() {
                                         <span className="text-xs font-medium text-slate-200">
                                             {githubLogin ? `@${githubLogin}` : 'GitHub Connected'}
                                         </span>
-                                        <span className="text-[10px] text-slate-500">{settings.repoOwner}/{settings.repoName}</span>
+                                        <span className="text-[10px] text-slate-400">{settings.repoOwner}/{settings.repoName}</span>
                                     </div>
                                     <img height="16" width="16" src="https://cdn.simpleicons.org/github/fff" />
                                 </button>
                             )}
                             <div className="hidden md:flex flex-col items-end">
                                 <span className="text-xs font-medium text-slate-200">Worktrees</span>
-                                <span className="text-[10px] text-slate-500">{activeWorktrees}/{settings.maxWorktrees} Active</span>
+                                <span className="text-[10px] text-slate-400">{activeWorktrees}/{settings.maxWorktrees} Active</span>
                             </div>
                             <button
                                 onClick={() => setIsSettingsOpen(true)}
                                 className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                                aria-label="Open settings"
                             >
-                                <Settings className="w-5 h-5" />
+                                <Settings className="w-5 h-5" aria-hidden="true" />
                             </button>
                         </div>
                     </div>
                 </header>
 
-                <main className={`flex-1 min-h-0 p-4 md:p-8 md:pt-4 overflow-x-hidden ${isMergeStep ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+                <main 
+                    id="main-content"
+                    className={`flex-1 min-h-0 p-4 md:p-8 md:pt-4 overflow-x-hidden ${isMergeStep ? 'overflow-hidden' : 'overflow-y-auto'}`}
+                >
                     <div className="mx-auto h-full min-h-0 flex flex-col">
                         {/* Page Header */}
                         <div className="mb-6 flex items-center justify-between">

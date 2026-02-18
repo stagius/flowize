@@ -93,7 +93,7 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
               <div key={task.id} className="border border-slate-700 rounded-xl overflow-hidden bg-slate-900 shadow-lg">
                 <div className="bg-slate-800 p-3 border-b border-slate-700 flex justify-between items-center">
                   <div className="flex items-center gap-2">
-                    <GitCommit className="w-4 h-4 text-slate-500" />
+                    <GitCommit className="w-4 h-4 text-slate-400" />
                     <span className="font-semibold text-slate-200">{task.title}</span>
                   </div>
                   <span className="text-[10px] font-mono text-slate-400 bg-slate-950 px-2 py-1 rounded border border-slate-800">
@@ -113,7 +113,7 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
                     value={reviewNotes[task.id] || ''}
                     onChange={(e) => setReviewNotes(prev => ({ ...prev, [task.id]: e.target.value }))}
                     placeholder="Add feedback for requested changes (optional)"
-                    className="w-full md:flex-1 min-h-[38px] max-h-24 resize-y rounded-lg border border-slate-700/80 bg-slate-950/90 px-3 py-2 text-xs leading-5 text-slate-200 placeholder:text-slate-500 shadow-inner shadow-black/20 focus:outline-none focus:border-red-400/40 focus:ring-2 focus:ring-red-500/20"
+                    className="w-full md:flex-1 min-h-[38px] max-h-24 resize-y rounded-lg border border-slate-700/80 bg-slate-950/90 px-3 py-2 text-xs leading-5 text-slate-200 placeholder:text-slate-400 shadow-inner shadow-black/20 focus:outline-none focus:border-red-400/40 focus:ring-2 focus:ring-red-500/20"
                   />
                   <div className="flex items-center justify-end gap-2 md:shrink-0">
                     <button
@@ -169,7 +169,7 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
                              <span className="text-blue-400 font-mono text-sm">#{task.prNumber}</span>
                              <span className="font-medium text-slate-200">{task.title}</span>
                         </div>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
                              <span className="flex items-center gap-1.5">
                                 <span className={`w-1.5 h-1.5 rounded-full shadow-[0_0_5px_currentColor] ${
                                     task.vercelStatus === 'success' ? 'bg-emerald-500 text-emerald-500' :
@@ -190,7 +190,7 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
                              </span>
                         </div>
                     </div>
-                    <a href={task.issueUrl || '#'} target="_blank" className="p-2 text-slate-500 hover:text-blue-400 bg-slate-950/50 rounded-lg border border-slate-800 transition-colors">
+                    <a href={task.issueUrl || '#'} target="_blank" className="p-2 text-slate-400 hover:text-blue-400 bg-slate-950/50 rounded-lg border border-slate-800 transition-colors">
                         <ExternalLink className="w-4 h-4" />
                     </a>
                 </div>
