@@ -24,7 +24,7 @@ export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks }
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
       {/* Input Section */}
-      <div className="bg-slate-900/50 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 flex flex-col relative group">
+      <div className="bg-slate-900/50 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 flex flex-col relative group h-full min-h-[460px]">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 rounded-2xl -z-10"></div>
         
         <div className="mb-4">
@@ -38,7 +38,7 @@ export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks }
         </div>
 
         <textarea
-          className="flex-1 w-full p-4 bg-slate-950/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 outline-none resize-none text-slate-300 font-mono text-sm placeholder:text-slate-700 transition-all shadow-inner"
+          className="flex-1 w-full min-h-[280px] p-4 bg-slate-950/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 outline-none resize-none text-slate-300 font-mono text-sm placeholder:text-slate-700 transition-all shadow-inner"
           placeholder="> Fix the login button on mobile...&#10;> Add dark mode support to header...&#10;> Refactor user profile hooks..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -48,7 +48,7 @@ export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks }
           <button
             onClick={handleAnalyze}
             disabled={isAnalyzing || !input.trim()}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] border border-indigo-400/20"
+            className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-indigo-500/30 bg-indigo-500/15 text-indigo-100 hover:bg-indigo-500/25 hover:border-indigo-400/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
             {isAnalyzing ? (
               <>
