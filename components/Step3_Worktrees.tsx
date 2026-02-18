@@ -682,25 +682,25 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                     <>
                                         <div className="flex flex-col sm:flex-row justify-between items-start mb-3 gap-2">
                                             <div className="min-w-0 pr-2">
-                                                <div className="flex items-center gap-2 mb-1">
+                                                <div className="flex items-center gap-2 mb-1 min-w-0">
                                                     {assignedTask.issueNumber && (
                                                         assignedTask.issueUrl ? (
                                                             <a 
                                                                 href={assignedTask.issueUrl} 
                                                                 target="_blank" 
                                                                 rel="noopener noreferrer"
-                                                                className="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700 hover:text-indigo-400 hover:border-indigo-500/50 transition-colors flex items-center gap-1"
+                                                                className="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700 hover:text-indigo-400 hover:border-indigo-500/50 transition-colors flex items-center gap-1 flex-shrink-0"
                                                             >
                                                                 <span className="opacity-50">Issue</span> #{assignedTask.issueNumber}
                                                             </a>
                                                         ) : (
-                                                            <span className="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700 flex items-center gap-1 cursor-default">
+                                                            <span className="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700 flex items-center gap-1 cursor-default flex-shrink-0">
                                                                 <span className="opacity-50">Issue</span> #{assignedTask.issueNumber}
                                                             </span>
                                                         )
                                                     )}
+                                                    <h3 className="font-bold text-slate-100 truncate">{assignedTask.title}</h3>
                                                 </div>
-                                                <h3 className="font-bold text-slate-100 truncate">{assignedTask.title}</h3>
                                                 <p className="text-xs text-slate-500 truncate">{assignedTask.description}</p>
                                                 {assignedTask.reviewFeedback && (
                                                     <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-200">
