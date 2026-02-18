@@ -700,44 +700,45 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                     </div>
                                 ) : (
                                     <>
-                                        <div className="flex flex-col sm:flex-row justify-between items-start mb-3 gap-3 md:gap-2">
-                                            <div className="min-w-0 pr-0 md:pr-2 w-full sm:w-auto">
-                                                <div className="flex items-center gap-2 mb-1 min-w-0">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start mb-3 gap-3 md:gap-4">
+                                            <div className="min-w-0 pr-0 md:pr-4 w-full sm:w-auto flex-1">
+                                                <div className="flex items-center gap-2 mb-1.5 min-w-0">
                                                     {assignedTask.issueNumber && (
                                                         assignedTask.issueUrl ? (
                                                             <a 
                                                                 href={assignedTask.issueUrl} 
                                                                 target="_blank" 
                                                                 rel="noopener noreferrer"
-                                                                className="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700 hover:text-indigo-400 hover:border-indigo-500/50 transition-colors flex items-center gap-1 flex-shrink-0"
+                                                                className="text-[10px] md:text-xs font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 hover:text-indigo-400 hover:border-indigo-500/50 transition-colors flex items-center gap-1.5 flex-shrink-0"
                                                             >
                                                                 <span className="opacity-50">Issue</span> #{assignedTask.issueNumber}
                                                             </a>
                                                         ) : (
-                                                            <span className="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700 flex items-center gap-1 cursor-default flex-shrink-0">
+                                                            <span className="text-[10px] md:text-xs font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 flex items-center gap-1.5 cursor-default flex-shrink-0">
                                                                 <span className="opacity-50">Issue</span> #{assignedTask.issueNumber}
                                                             </span>
                                                         )
                                                     )}
-                                                    <h3 className="font-bold text-slate-100 truncate min-w-0">{assignedTask.title}</h3>
+                                                    <h3 className="font-bold text-slate-100 truncate min-w-0 text-sm md:text-lg">{assignedTask.title}</h3>
                                                 </div>
-                                                <p className="text-xs text-slate-500 truncate">{assignedTask.description}</p>
+                                                <p className="text-xs md:text-sm text-slate-500 truncate">{assignedTask.description}</p>
                                                 {assignedTask.reviewFeedback && (
-                                                    <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-200">
-                                                        Requested changes: {assignedTask.reviewFeedback}
+                                                    <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                                                        <span className="font-bold uppercase tracking-wider text-[10px] opacity-70 block mb-1">Feedback</span>
+                                                        {assignedTask.reviewFeedback}
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="flex gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
+                                            <div className="flex gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto flex-shrink-0">
 
                                                 {assignedTask.status === TaskStatus.WORKTREE_ACTIVE && (
                                                     <>
                                                         <button
                                                             onClick={() => copyAgentCommandForTask(assignedTask, slot)}
-                                                            className="flex-1 sm:flex-none flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 px-2 py-1.5 rounded-lg text-xs transition-colors"
+                                                            className="flex-1 sm:flex-none flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm transition-colors"
                                                             title="Copy agent command"
                                                         >
-                                                            {copiedCmdTaskId === assignedTask.id ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3" />}
+                                                            {copiedCmdTaskId === assignedTask.id ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
                                                         </button>
                                                         
                                                         {/* Mobile: Agent actions Group */}
@@ -745,10 +746,10 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                                             <button
                                                                 onClick={() => handleOpenAgentWorkspaceCmd(slot, assignedTask)}
                                                                 disabled={openingAgentWorkspaceSlot === slot.id}
-                                                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-lg shadow-indigo-900/20"
+                                                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors shadow-lg shadow-indigo-900/20"
                                                                 title="Open interactive terminal in AG workspace"
                                                             >
-                                                                {openingAgentWorkspaceSlot === slot.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Terminal className="w-3 h-3" />}
+                                                                {openingAgentWorkspaceSlot === slot.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Terminal className="w-4 h-4" />}
                                                                 <span className="hidden sm:inline">cmd</span>
                                                                 <span className="sm:hidden">CMD</span>
                                                             </button>
@@ -756,10 +757,10 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                                             <button
                                                                 onClick={() => handleOpenFullAgentIde(slot)}
                                                                 disabled={openingFullAgentSlot === slot.id}
-                                                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-lg shadow-indigo-900/20"
+                                                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors shadow-lg shadow-indigo-900/20"
                                                                 title="Open full Anti-Gravity IDE"
                                                             >
-                                                                {openingFullAgentSlot === slot.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Terminal className="w-3 h-3" />}
+                                                                {openingFullAgentSlot === slot.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Terminal className="w-4 h-4" />}
                                                                 <span className="hidden sm:inline">Open IDE</span>
                                                                 <span className="sm:hidden">IDE</span>
                                                             </button>
@@ -767,10 +768,10 @@ export const Step3_Worktrees: React.FC<Props> = ({
 
                                                         <button
                                                             onClick={() => handleMarkFlowSuccess(assignedTask)}
-                                                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-lg shadow-emerald-900/20"
+                                                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors shadow-lg shadow-emerald-900/20"
                                                             title="Manually set this flow as success"
                                                         >
-                                                            <CheckCircle2 className="w-3 h-3" />
+                                                            <CheckCircle2 className="w-4 h-4" />
                                                             <span className="hidden sm:inline">Finish</span>
                                                             <span className="sm:hidden">Done</span>
                                                         </button>
@@ -780,12 +781,12 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                                     <button
                                                         onClick={() => handlePush(assignedTask.id)}
                                                         disabled={isPushing}
-                                                        className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-lg shadow-emerald-900/20 disabled:opacity-70 disabled:cursor-not-allowed"
+                                                        className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors shadow-lg shadow-emerald-900/20 disabled:opacity-70 disabled:cursor-not-allowed"
                                                     >
                                                         {isPushing ? (
-                                                            <><Loader2 className="w-3 h-3 animate-spin" /> Pushing...</>
+                                                            <><Loader2 className="w-4 h-4 animate-spin" /> Pushing...</>
                                                         ) : (
-                                                            <><CloudUpload className="w-3 h-3" /> Push & Review</>
+                                                            <><CloudUpload className="w-4 h-4" /> Push & Review</>
                                                         )}
                                                     </button>
                                                 )}
@@ -793,7 +794,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                         </div>
 
                                         {/* Code Editor View */}
-                                        <div className="flex-1 bg-slate-950 rounded-lg border border-slate-800 overflow-hidden relative group min-h-[150px] md:min-h-[150px]">
+                                        <div className="flex-1 bg-slate-950 rounded-lg border border-slate-800 overflow-hidden relative group min-h-[150px] md:min-h-[250px]">
                                             <div className="absolute top-0 left-0 right-0 h-6 bg-slate-900 border-b border-slate-800 flex items-center px-2 gap-1.5">
                                                 <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50"></div>
                                                 <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>

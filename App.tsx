@@ -1198,6 +1198,8 @@ export default function App() {
         ? Math.round((tasks.filter(t => t.status === TaskStatus.PR_MERGED).length / tasks.length) * 100)
         : 0;
 
+    const isMergeStep = currentStep === 5;
+
     const hasApiKey = Boolean(envApiKey);
     const bridgeLabel = bridgeHealth.status === 'healthy'
         ? 'HEALTHY'
@@ -1440,8 +1442,8 @@ export default function App() {
                     </div>
                 </header>
 
-                <main className="flex-1 p-4 md:p-8 md:pt-4 overflow-y-auto overflow-x-hidden">
-                    <div className="mx-auto h-full flex flex-col">
+                <main className={`flex-1 min-h-0 p-4 md:p-8 md:pt-4 overflow-x-hidden ${isMergeStep ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+                    <div className="mx-auto h-full min-h-0 flex flex-col">
                         {/* Page Header */}
                         <div className="mb-6 flex items-center justify-between">
                             <div>

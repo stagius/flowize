@@ -65,7 +65,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
   };
 
   return (
-    <div className="h-full flex flex-col gap-6">
+    <div className="h-full min-h-0 flex flex-col gap-6">
       {mergeError && (
         <ErrorState
           title="Merge workflow failed"
@@ -77,8 +77,8 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
       )}
       
       {/* Ready to Merge */}
-      <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 overflow-hidden flex-shrink-0">
-         <div className="p-4 border-b border-slate-800 bg-green-500/5 flex justify-between items-center">
+      <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 overflow-hidden flex-shrink-0 flex flex-col max-h-[45%] min-h-[220px]">
+         <div className="p-4 border-b border-slate-800 bg-green-500/5 flex justify-between items-center flex-shrink-0">
              <h3 className="font-bold text-green-400 flex items-center gap-2">
                <GitMerge className="w-5 h-5" /> Ready to Merge
              </h3>
@@ -86,7 +86,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
                {readyToMerge.length} Ready
              </span>
          </div>
-         <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+         <div className="flex-1 min-h-0 overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 custom-scrollbar">
             {readyToMerge.length === 0 ? (
                 <div className="col-span-full py-12 text-center text-slate-600">
                     No PRs ready for merge. Complete reviews first.
@@ -166,7 +166,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
       </div>
 
       {/* Merged History */}
-      <div className="flex-1 bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 overflow-hidden flex flex-col">
           <div className="p-4 border-b border-slate-800 bg-slate-900/80 flex justify-between items-center">
              <h3 className="font-bold text-slate-300 flex items-center gap-2">
                <CheckCircle className="w-5 h-5 text-slate-500" /> Merged History
@@ -180,7 +180,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
                 Sync PRs
              </button>
           </div>
-          <div className="flex-1 overflow-y-auto p-0 custom-scrollbar">
+          <div className="flex-1 min-h-0 overflow-y-auto p-0 custom-scrollbar">
               {isFetching && mergedHistory.length === 0 && (
                 <div className="p-4">
                   <LoadingSkeleton rows={3} />
