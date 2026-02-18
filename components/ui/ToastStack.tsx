@@ -12,23 +12,23 @@ export interface ToastItem {
 
 const toastStyles: Record<ToastTone, { wrapper: string; icon: React.ReactNode; ariaRole: 'status' | 'alert' }> = {
   info: {
-    wrapper: `${TONE_STYLES.info.border} ${TONE_STYLES.info.bg} text-sky-100`,
-    icon: <Info className="w-4 h-4 text-sky-300" aria-hidden="true" />,
+    wrapper: `border-sky-200 bg-sky-50 text-sky-900 dark:${TONE_STYLES.info.border} dark:${TONE_STYLES.info.bg} dark:text-sky-100`,
+    icon: <Info className="w-4 h-4 text-sky-600 dark:text-sky-300" aria-hidden="true" />,
     ariaRole: 'status'
   },
   success: {
-    wrapper: `${TONE_STYLES.success.border} ${TONE_STYLES.success.bg} text-emerald-100`,
-    icon: <CheckCircle2 className="w-4 h-4 text-emerald-300" aria-hidden="true" />,
+    wrapper: `border-emerald-200 bg-emerald-50 text-emerald-900 dark:${TONE_STYLES.success.border} dark:${TONE_STYLES.success.bg} dark:text-emerald-100`,
+    icon: <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-300" aria-hidden="true" />,
     ariaRole: 'status'
   },
   warning: {
-    wrapper: `${TONE_STYLES.warning.border} ${TONE_STYLES.warning.bg} text-amber-100`,
-    icon: <AlertTriangle className="w-4 h-4 text-amber-300" aria-hidden="true" />,
+    wrapper: `border-amber-200 bg-amber-50 text-amber-900 dark:${TONE_STYLES.warning.border} dark:${TONE_STYLES.warning.bg} dark:text-amber-100`,
+    icon: <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-300" aria-hidden="true" />,
     ariaRole: 'alert'
   },
   error: {
-    wrapper: `${TONE_STYLES.error.border} ${TONE_STYLES.error.bg} text-red-100`,
-    icon: <AlertTriangle className="w-4 h-4 text-red-300" aria-hidden="true" />,
+    wrapper: `border-red-200 bg-red-50 text-red-900 dark:${TONE_STYLES.error.border} dark:${TONE_STYLES.error.bg} dark:text-red-100`,
+    icon: <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-300" aria-hidden="true" />,
     ariaRole: 'alert'
   }
 };

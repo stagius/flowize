@@ -46,7 +46,7 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({ dialog, onClose, onAct
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <div 
-        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" 
+        className="absolute inset-0 bg-slate-900/20 dark:bg-slate-950/80 backdrop-blur-sm" 
         onClick={onClose}
         aria-hidden="true"
       />
@@ -61,8 +61,8 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({ dialog, onClose, onAct
         <div className="flex items-start gap-3">
           <AlertTriangle className={`w-5 h-5 mt-0.5 ${TONE_STYLES[dialog.tone].text}`} aria-hidden="true" />
           <div className="min-w-0">
-            <h2 id={titleId} className="text-base font-semibold text-slate-100">{dialog.title}</h2>
-            <p id={descriptionId} className="mt-2 text-sm text-slate-300 whitespace-pre-wrap">{dialog.message}</p>
+            <h2 id={titleId} className="text-base font-semibold text-slate-900 dark:text-slate-100">{dialog.title}</h2>
+            <p id={descriptionId} className="mt-2 text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{dialog.message}</p>
           </div>
         </div>
         <div className="mt-5 flex justify-end gap-2" role="group" aria-label="Dialog actions">
@@ -78,7 +78,7 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({ dialog, onClose, onAct
           )}
           <button
             onClick={onClose}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm text-slate-100"
+            className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100"
           >
             OK
           </button>
@@ -110,7 +110,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ dialog, onCancel, 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <div 
-        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" 
+        className="absolute inset-0 bg-slate-900/20 dark:bg-slate-950/80 backdrop-blur-sm" 
         onClick={onCancel}
         aria-hidden="true"
       />
@@ -125,14 +125,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ dialog, onCancel, 
         <div className="flex items-start gap-3">
           <AlertTriangle className={`w-5 h-5 mt-0.5 ${TONE_STYLES[dialog.tone].text}`} aria-hidden="true" />
           <div className="min-w-0">
-            <h2 id={titleId} className="text-base font-semibold text-slate-100">{dialog.title}</h2>
-            <p id={descriptionId} className="mt-2 text-sm text-slate-300 whitespace-pre-wrap">{dialog.message}</p>
+            <h2 id={titleId} className="text-base font-semibold text-slate-900 dark:text-slate-100">{dialog.title}</h2>
+            <p id={descriptionId} className="mt-2 text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{dialog.message}</p>
           </div>
         </div>
         <div className="mt-5 flex justify-end gap-2" role="group" aria-label="Dialog actions">
           <button
             onClick={onCancel}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm text-slate-100"
+            className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100"
           >
             {dialog.cancelLabel}
           </button>

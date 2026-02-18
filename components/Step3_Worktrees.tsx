@@ -411,28 +411,28 @@ export const Step3_Worktrees: React.FC<Props> = ({
             {/* Terminal Modal Overlay */}
             {activeTerminalSlotId !== null && (
                 <div 
-                    className="absolute inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-slate-950/60 animate-in fade-in duration-200"
+                    className="absolute inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-white/60 dark:bg-slate-950/60 animate-in fade-in duration-200"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby={terminalModalTitleId}
                 >
                     <div 
                         ref={terminalModalRef}
-                        className="w-full max-w-3xl bg-slate-950 border border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-slate-800 h-[600px]"
+                        className="w-full max-w-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800 h-[600px]"
                     >
                         {/* Terminal Header */}
-                        <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800">
+                        <div className="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                             <div className="flex items-center gap-3">
-                                <Terminal className="w-5 h-5 text-indigo-400" aria-hidden="true" />
-                                <h2 id={terminalModalTitleId} className="font-mono text-sm text-slate-200">
+                                <Terminal className="w-5 h-5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+                                <h2 id={terminalModalTitleId} className="font-mono text-sm text-slate-900 dark:text-slate-200">
                                     wt-{activeTerminalSlotId}
-                                    <span className="text-slate-600 mx-2" aria-hidden="true">|</span>
+                                    <span className="text-slate-500 dark:text-slate-600 mx-2" aria-hidden="true">|</span>
                                     {tasks.find(t => t.id === slots.find(s => s.id === activeTerminalSlotId)?.taskId)?.branchName || 'HEAD'}
                                 </h2>
                             </div>
                             <button
                                 onClick={() => setActiveTerminalSlotId(null)}
-                                className="text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded transition-colors"
+                                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors"
                                 aria-label="Close terminal"
                             >
                                 <X className="w-5 h-5" aria-hidden="true" />
@@ -441,16 +441,16 @@ export const Step3_Worktrees: React.FC<Props> = ({
 
                         {/* Terminal Output */}
                         <div 
-                            className="flex-1 bg-black/50 p-4 font-mono text-xs overflow-y-auto custom-scrollbar"
+                            className="flex-1 bg-slate-100 dark:bg-black/50 p-4 font-mono text-xs overflow-y-auto custom-scrollbar"
                             role="log"
                             aria-live="polite"
                             aria-label="Terminal output"
                         >
                             {terminalHistory.map((line, i) => (
-                                <div key={i} className={`mb-1 whitespace-pre-wrap ${line.type === 'command' ? 'text-slate-400 font-bold mt-4' :
-                                    line.type === 'info' ? 'text-indigo-400' :
-                                        line.type === 'error' ? 'text-red-400' :
-                                            'text-slate-300'
+                                <div key={i} className={`mb-1 whitespace-pre-wrap ${line.type === 'command' ? 'text-slate-600 dark:text-slate-400 font-bold mt-4' :
+                                    line.type === 'info' ? 'text-indigo-600 dark:text-indigo-400' :
+                                        line.type === 'error' ? 'text-red-600 dark:text-red-400' :
+                                            'text-slate-900 dark:text-slate-300'
                                     }`}>
                                     {line.content}
                                 </div>
@@ -459,8 +459,8 @@ export const Step3_Worktrees: React.FC<Props> = ({
                         </div>
 
                         {/* Command Palette */}
-                        <div className="bg-slate-900 border-t border-slate-800 p-4">
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-3 flex items-center gap-2">
+                        <div className="bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4">
+                            <div className="text-[10px] text-slate-600 dark:text-slate-400 uppercase tracking-wider font-bold mb-3 flex items-center gap-2">
                                 <Command className="w-3 h-3" aria-hidden="true" /> Git Operations
                             </div>
                             <div className="flex flex-wrap gap-2" role="toolbar" aria-label="Git commands">
@@ -476,11 +476,11 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                             key={action.cmd}
                                             onClick={() => task && runGitCommand(action.cmd)}
                                             aria-label={`Run ${action.cmd}`}
-                                            className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700 transition-all active:scale-95 group"
+                                            className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 transition-all active:scale-95 group"
                                         >
-                                            <action.icon className="w-4 h-4 text-indigo-400" aria-hidden="true" />
+                                            <action.icon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
                                             {action.label}
-                                            <span className="ml-1 bg-slate-950 px-1.5 rounded text-slate-400 text-[10px] border border-slate-800 group-hover:border-slate-600 transition-colors" aria-hidden="true">
+                                            <span className="ml-1 bg-slate-100 dark:bg-slate-950 px-1.5 rounded text-slate-600 dark:text-slate-400 text-[10px] border border-slate-200 dark:border-slate-800 group-hover:border-slate-300 dark:group-hover:border-slate-600 transition-colors" aria-hidden="true">
                                                 {action.key}
                                             </span>
                                         </button>
@@ -495,23 +495,23 @@ export const Step3_Worktrees: React.FC<Props> = ({
             {/* Agent Console Overlay */}
             {activeAgentConsoleSlotId !== null && (
                 <div 
-                    className="absolute inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-slate-950/60 animate-in fade-in duration-200"
+                    className="absolute inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-white/60 dark:bg-slate-950/60 animate-in fade-in duration-200"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby={agentConsoleTitleId}
                 >
                     <div 
                         ref={agentConsoleRef}
-                        className="w-full max-w-3xl bg-slate-950 border border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-slate-800 h-[600px]"
+                        className="w-full max-w-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800 h-[600px]"
                     >
-                        <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800">
+                        <div className="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                             <div className="flex items-center gap-3">
-                                <ScrollText className="w-5 h-5 text-cyan-400" aria-hidden="true" />
-                                <h2 id={agentConsoleTitleId} className="font-mono text-sm text-slate-200">
+                                <ScrollText className="w-5 h-5 text-cyan-600 dark:text-cyan-400" aria-hidden="true" />
+                                <h2 id={agentConsoleTitleId} className="font-mono text-sm text-slate-900 dark:text-slate-200">
                                     agent-console
-                                    <span className="text-slate-600 mx-2" aria-hidden="true">|</span>
+                                    <span className="text-slate-500 dark:text-slate-600 mx-2" aria-hidden="true">|</span>
                                     wt-{activeAgentConsoleSlotId}
-                                    <span className="text-slate-600 mx-2" aria-hidden="true">|</span>
+                                    <span className="text-slate-500 dark:text-slate-600 mx-2" aria-hidden="true">|</span>
                                     {activeAgentTask?.branchName || 'HEAD'}
                                 </h2>
                             </div>
@@ -519,11 +519,11 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                 {activeAgentTask && activeAgentCommand && (
                                     <button
                                         onClick={handleCopyActiveAgentCommand}
-                                        className="text-[11px] px-2.5 py-1 rounded border border-slate-700 bg-slate-800/60 text-slate-200 hover:bg-slate-700/80"
+                                        className="text-[11px] px-2.5 py-1 rounded border border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800/60 text-slate-900 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700/80"
                                         aria-label={copiedAgentCommandTaskId === activeAgentTask.id ? 'Command copied' : 'Copy agent command'}
                                     >
                                         <span className="inline-flex items-center gap-1.5">
-                                            {copiedAgentCommandTaskId === activeAgentTask.id ? <Check className="w-3.5 h-3.5 text-emerald-300" aria-hidden="true" /> : <Copy className="w-3.5 h-3.5" aria-hidden="true" />}
+                                            {copiedAgentCommandTaskId === activeAgentTask.id ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" aria-hidden="true" /> : <Copy className="w-3.5 h-3.5" aria-hidden="true" />}
                                             {copiedAgentCommandTaskId === activeAgentTask.id ? 'Copied' : 'Copy Command'}
                                         </span>
                                     </button>
@@ -533,14 +533,14 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                         onClick={() => handleCancelAgent(activeAgentTask.id)}
                                         disabled={cancellingTaskId === activeAgentTask.id}
                                         aria-busy={cancellingTaskId === activeAgentTask.id}
-                                        className="text-[11px] px-2.5 py-1 rounded border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
+                                        className="text-[11px] px-2.5 py-1 rounded border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-300 hover:bg-red-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
                                     >
                                         {cancellingTaskId === activeAgentTask.id ? 'Cancelling...' : 'Cancel Run'}
                                     </button>
                                 )}
                                 <button
                                     onClick={() => setActiveAgentConsoleSlotId(null)}
-                                    className="text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded transition-colors"
+                                    className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors"
                                     aria-label="Close agent console"
                                 >
                                     <X className="w-5 h-5" aria-hidden="true" />
@@ -549,7 +549,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                         </div>
 
                         <div 
-                            className="px-4 py-2 border-b border-slate-800 bg-slate-900/60 text-[11px] text-slate-400 font-mono"
+                            className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 text-[11px] text-slate-600 dark:text-slate-400 font-mono"
                             role="status"
                             aria-live="polite"
                         >
@@ -559,7 +559,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                         </div>
 
                         <div 
-                            className="flex-1 bg-black/50 p-4 font-mono text-xs overflow-y-auto custom-scrollbar whitespace-pre-wrap text-slate-300"
+                            className="flex-1 bg-slate-100 dark:bg-black/50 p-4 font-mono text-xs overflow-y-auto custom-scrollbar whitespace-pre-wrap text-slate-900 dark:text-slate-300"
                             role="log"
                             aria-live="polite"
                             aria-label="Agent output logs"
@@ -573,32 +573,32 @@ export const Step3_Worktrees: React.FC<Props> = ({
             )}
 
             {/* Backlog Column */}
-            <div className="xl:col-span-1 bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 flex flex-col overflow-hidden h-full min-h-[460px] xl:max-h-[calc(100vh-12rem)]">
-                <div className="p-4 border-b border-slate-800 bg-slate-900/80 flex-shrink-0">
-                    <h3 className="font-semibold text-slate-300 flex items-center gap-2">
-                        <GitBranch className="w-4 h-4 text-orange-400" /> Issue Backlog
+            <div className="xl:col-span-1 bg-slate-100 dark:bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden h-full min-h-[460px] xl:max-h-[calc(100vh-12rem)]">
+                <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/80 flex-shrink-0">
+                    <h3 className="font-semibold text-slate-900 dark:text-slate-300 flex items-center gap-2">
+                        <GitBranch className="w-4 h-4 text-orange-600 dark:text-orange-400" /> Issue Backlog
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                         Assign issues to available worktree slots.
                     </p>
                 </div>
                 <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3 custom-scrollbar">
                     {backlog.length === 0 ? (
-                        <div className="text-center text-slate-600 text-sm mt-10 p-4">
+                        <div className="text-center text-slate-500 dark:text-slate-600 text-sm mt-10 p-4">
                             Backlog empty. <br />Sync issues from previous step.
                         </div>
                     ) : (
                         backlog.map(task => (
-                            <div key={task.id} className="p-3 border border-slate-800 rounded-xl hover:bg-slate-800/50 transition-colors bg-slate-900/30 group">
+                            <div key={task.id} className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800/50 transition-colors bg-white dark:bg-slate-900/30 group">
                                 <div className="flex justify-between items-center mb-2 gap-2">
-                                    <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700 font-mono">
+                                    <span className="text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 font-mono">
                                         #{task.issueNumber ?? task.id}
                                     </span>
                                     <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${PRIORITY_BADGES[task.priority]}`}>
                                         {task.priority}
                                     </span>
                                 </div>
-                                <p className="font-medium text-sm text-slate-200 mb-3">{task.title}</p>
+                                <p className="font-medium text-sm text-slate-900 dark:text-slate-200 mb-3">{task.title}</p>
 
                                 {/* Assignment Actions */}
                                 <div className="flex flex-wrap gap-1">
@@ -608,15 +608,15 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                             disabled={!!slot.taskId}
                                             onClick={() => onAssignToSlot(task.id, slot.id)}
                                             className={`text-[10px] py-1 px-2 rounded border transition-all ${slot.taskId
-                                                ? 'bg-slate-900/50 text-slate-700 border-slate-800 cursor-not-allowed hidden'
-                                                : 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20 hover:bg-indigo-500/20 hover:border-indigo-500/40'
+                                                ? 'bg-slate-100 dark:bg-slate-900/50 text-slate-600 dark:text-slate-700 border-slate-200 dark:border-slate-800 cursor-not-allowed hidden'
+                                                : 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20 hover:bg-indigo-500/20 hover:border-indigo-500/40'
                                                 }`}
                                         >
                                             WT-{slot.id}
                                         </button>
                                     ))}
                                     {slots.every(s => s.taskId) && (
-                                        <span className="text-[10px] text-slate-600 italic">No slots available</span>
+                                        <span className="text-[10px] text-slate-500 dark:text-slate-600 italic">No slots available</span>
                                     )}
                                 </div>
                             </div>
@@ -637,10 +637,10 @@ export const Step3_Worktrees: React.FC<Props> = ({
                     const StatusIcon = config.icon;
 
                     const gitStatus = !assignedTask ? null :
-                        assignedTask.status === TaskStatus.IMPLEMENTED ? { label: 'STAGED', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' } :
+                        assignedTask.status === TaskStatus.IMPLEMENTED ? { label: 'STAGED', color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' } :
                             assignedTask.status === TaskStatus.PUSHED ? { label: 'PUSHED', color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' } :
-                            assignedTask.status === TaskStatus.WORKTREE_ACTIVE ? { label: 'DIRTY', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' } :
-                                { label: 'CLEAN', color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20' };
+                            assignedTask.status === TaskStatus.WORKTREE_ACTIVE ? { label: 'DIRTY', color: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' } :
+                                { label: 'CLEAN', color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20' };
 
                     return (
                         <div key={slot.id} className={`rounded-xl border flex flex-col md:flex-row overflow-hidden transition-all relative flex-shrink-0 min-h-[250px] ${theme.border} ${theme.bg} ${assignedTask ? 'shadow-lg' : ''}`}>
@@ -648,7 +648,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                             {assignedTask && <div className={`absolute top-0 left-0 w-full h-1 md:w-1 md:h-full ${theme.bar} ${config.animate ? 'animate-pulse' : ''}`}></div>}
 
                             {/* Slot Header / Status - Mobile Optimized */}
-                            <div className="w-full md:w-56 bg-slate-950/50 border-b md:border-b-0 md:border-r border-slate-800 p-3 md:p-4 flex flex-row md:flex-col justify-between md:justify-center items-center text-left md:text-center flex-shrink-0 gap-3 md:gap-0">
+                            <div className="w-full md:w-56 bg-slate-100 dark:bg-slate-950/50 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 p-3 md:p-4 flex flex-row md:flex-col justify-between md:justify-center items-center text-left md:text-center flex-shrink-0 gap-3 md:gap-0">
                                 
                                 {/* Mobile Left: Icon + ID + Status */}
                                 <div className="flex items-center md:flex-col gap-3 md:gap-0 min-w-0 flex-1 md:flex-none">
@@ -657,7 +657,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                     </div>
 
                                     <div className="flex flex-col md:items-center min-w-0">
-                                        <h4 className="font-bold text-slate-200 text-sm md:text-base truncate">WT-{slot.id}</h4>
+                                        <h4 className="font-bold text-slate-900 dark:text-slate-200 text-sm md:text-base truncate">WT-{slot.id}</h4>
                                         
                                         <div className="flex items-center gap-2 md:flex-col md:gap-2 md:mt-2">
                                             <div className={`px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-bold uppercase tracking-wider border ${theme.text} ${theme.iconBg} ${theme.iconBorder}`}>
@@ -683,7 +683,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                         </div>
                                     )}
 
-                                    <p className="text-[10px] text-slate-400 font-mono mt-3 bg-slate-900 px-2 py-1 rounded border border-slate-800 truncate w-full max-w-[150px] mx-auto opacity-70">
+                                    <p className="text-[10px] text-slate-600 dark:text-slate-400 font-mono mt-3 bg-slate-200 dark:bg-slate-900 px-2 py-1 rounded border border-slate-300 dark:border-slate-800 truncate w-full max-w-[150px] mx-auto opacity-70">
                                         {slot.path}
                                     </p>
 
@@ -699,7 +699,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                         disabled={cleaningSlot === slot.id}
                                         aria-busy={cleaningSlot === slot.id}
                                         aria-label={`Cleanup worktree slot ${slot.id}`}
-                                        className={`mt-4 flex items-center gap-2 text-[10px] transition-colors border border-transparent hover:border-slate-800 px-2 py-1 rounded-full ${cleaningSlot === slot.id ? 'text-slate-400' : 'text-slate-400 hover:text-red-400'}`}
+                                        className={`mt-4 flex items-center gap-2 text-[10px] transition-colors border border-transparent hover:border-slate-300 dark:hover:border-slate-800 px-2 py-1 rounded-full ${cleaningSlot === slot.id ? 'text-slate-500 dark:text-slate-400' : 'text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'}`}
                                     >
                                         {cleaningSlot === slot.id ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> : <Trash2 className="w-3 h-3" aria-hidden="true" />}
                                         Cleanup
@@ -713,7 +713,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                         disabled={cleaningSlot === slot.id}
                                         aria-busy={cleaningSlot === slot.id}
                                         aria-label={`Cleanup worktree slot ${slot.id}`}
-                                        className={`p-1.5 rounded-lg border border-slate-800 bg-slate-900 ${cleaningSlot === slot.id ? 'text-slate-600' : 'text-slate-400 hover:text-red-400'}`}
+                                        className={`p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 ${cleaningSlot === slot.id ? 'text-slate-500 dark:text-slate-600' : 'text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'}`}
                                     >
                                         {cleaningSlot === slot.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />}
                                     </button>
@@ -723,7 +723,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                             {/* Content Area */}
                             <div className="flex-1 p-3 md:p-4 relative flex flex-col min-w-0">
                                 {!assignedTask ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-slate-600 gap-2 py-6 md:py-0">
+                                    <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-600 gap-2 py-6 md:py-0">
                                         <FolderGit2 className="w-8 h-8 opacity-20" />
                                         <span className="text-sm">Available for development</span>
                                         {backlog.length > 0 ? (
@@ -736,18 +736,18 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                                 Assign Next Issue
                                             </button>
                                         ) : (
-                                            <span className="text-[11px] text-slate-700">No backlog issue to assign</span>
+                                            <span className="text-[11px] text-slate-600 dark:text-slate-700">No backlog issue to assign</span>
                                         )}
                                     </div>
                                 ) : isInitializing ? (
-                                    <div className="flex flex-col items-center justify-center h-full gap-4 text-slate-400 py-6 md:py-8">
+                                    <div className="flex flex-col items-center justify-center h-full gap-4 text-slate-600 dark:text-slate-400 py-6 md:py-8">
                                         <div className={`flex items-center gap-2 text-sm font-medium ${theme.text}`}>
                                             <Loader2 className="w-4 h-4 animate-spin" />
                                             Setting up Worktree...
                                         </div>
-                                        <div className="w-full max-w-sm bg-slate-950 rounded-lg border border-slate-800 p-3 font-mono text-xs space-y-2 opacity-70">
-                                            <p className="text-slate-400">{'>'} git fetch origin</p>
-                                            <p className="text-slate-400">{'>'} mkdir -p {slot.path}</p>
+                                        <div className="w-full max-w-sm bg-slate-100 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 p-3 font-mono text-xs space-y-2 opacity-70">
+                                            <p className="text-slate-600 dark:text-slate-400">{'>'} git fetch origin</p>
+                                            <p className="text-slate-600 dark:text-slate-400">{'>'} mkdir -p {slot.path}</p>
                                             <p className={`${theme.text} animate-pulse`}>
                                                 {'>'} git worktree add {slot.path}
                                             </p>
@@ -764,21 +764,21 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                                                 href={assignedTask.issueUrl} 
                                                                 target="_blank" 
                                                                 rel="noopener noreferrer"
-                                                                className="text-[10px] md:text-xs font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 hover:text-indigo-400 hover:border-indigo-500/50 transition-colors flex items-center gap-1.5 flex-shrink-0"
+                                                                className="text-[10px] md:text-xs font-mono bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-500/50 transition-colors flex items-center gap-1.5 flex-shrink-0"
                                                             >
                                                                 <span className="opacity-50">Issue</span> #{assignedTask.issueNumber}
                                                             </a>
                                                         ) : (
-                                                            <span className="text-[10px] md:text-xs font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 flex items-center gap-1.5 cursor-default flex-shrink-0">
+                                                            <span className="text-[10px] md:text-xs font-mono bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 cursor-default flex-shrink-0">
                                                                 <span className="opacity-50">Issue</span> #{assignedTask.issueNumber}
                                                             </span>
                                                         )
                                                     )}
-                                                    <h3 className="font-bold text-slate-100 truncate min-w-0 text-sm md:text-lg">{assignedTask.title}</h3>
+                                                    <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate min-w-0 text-sm md:text-lg">{assignedTask.title}</h3>
                                                 </div>
-                                                <p className="text-xs md:text-sm text-slate-400 truncate">{assignedTask.description}</p>
+                                                <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 truncate">{assignedTask.description}</p>
                                                 {assignedTask.reviewFeedback && (
-                                                    <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                                                    <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-200">
                                                         <span className="font-bold uppercase tracking-wider text-[10px] opacity-70 block mb-1">Feedback</span>
                                                         {assignedTask.reviewFeedback}
                                                     </div>
@@ -790,10 +790,10 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                                     <>
                                                         <button
                                                             onClick={() => copyAgentCommandForTask(assignedTask, slot)}
-                                                            className="flex-1 sm:flex-none flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm transition-colors"
+                                                            className="flex-1 sm:flex-none flex items-center justify-center bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm transition-colors"
                                                             aria-label={copiedCmdTaskId === assignedTask.id ? 'Command copied' : 'Copy agent command'}
                                                         >
-                                                            {copiedCmdTaskId === assignedTask.id ? <Check className="w-4 h-4 text-emerald-300" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
+                                                            {copiedCmdTaskId === assignedTask.id ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-300" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
                                                         </button>
                                                         
                                                         {/* Mobile: Agent actions Group */}
@@ -853,13 +853,13 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                         </div>
 
                                         {/* Code Editor View */}
-                                        <div className="flex-1 bg-slate-950 rounded-lg border border-slate-800 overflow-hidden relative group min-h-[150px] md:min-h-[250px]">
-                                            <div className="absolute top-0 left-0 right-0 h-6 bg-slate-900 border-b border-slate-800 flex items-center px-2 gap-1.5">
+                                        <div className="flex-1 bg-slate-100 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden relative group min-h-[150px] md:min-h-[250px]">
+                                            <div className="absolute top-0 left-0 right-0 h-6 bg-slate-200 dark:bg-slate-900 border-b border-slate-300 dark:border-slate-800 flex items-center px-2 gap-1.5">
                                                 <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50"></div>
                                                 <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
                                                 <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50"></div>
                                             </div>
-                                            <div className="pt-8 pb-2 px-3 h-full overflow-y-auto font-mono text-xs text-slate-300">
+                                            <div className="pt-8 pb-2 px-3 h-full overflow-y-auto font-mono text-xs text-slate-900 dark:text-slate-300">
                                                 {assignedTask.status === TaskStatus.IMPLEMENTED || assignedTask.status === TaskStatus.PUSHED ? (
                                                     <pre className="whitespace-pre-wrap"><code className="language-typescript">{assignedTask.implementationDetails}</code></pre>
                                                 ) : loadingTask === assignedTask.id ? (
@@ -867,10 +867,10 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                                         <div className="relative">
                                                             <div className="w-8 h-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin"></div>
                                                         </div>
-                                                        <span className="text-indigo-400 animate-pulse">Writing code...</span>
+                                                        <span className="text-indigo-600 dark:text-indigo-400 animate-pulse">Writing code...</span>
                                                     </div>
                                                 ) : (
-                                                    <div className="h-full flex flex-col items-center justify-center text-slate-700 gap-2">
+                                                    <div className="h-full flex flex-col items-center justify-center text-slate-600 dark:text-slate-700 gap-2">
                                                         <span className="opacity-50"># Waiting for implementation...</span>
                                                     </div>
                                                 )}

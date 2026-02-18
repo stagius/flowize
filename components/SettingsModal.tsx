@@ -698,7 +698,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
     <div className={`fixed inset-0 z-[100] ${isMobileView ? 'flex items-stretch justify-end' : 'flex items-center justify-center p-4'}`}>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-slate-950/80 dark:bg-slate-950/80 backdrop-blur-sm transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -709,19 +709,19 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
         role="dialog"
         aria-modal="true"
         aria-labelledby={modalTitleId}
-        className={`relative bg-slate-900 border-slate-800 shadow-2xl overflow-hidden duration-200 ${isMobileView
+        className={`relative bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden duration-200 ${isMobileView
           ? 'h-full w-full max-w-md border-l animate-in slide-in-from-right'
           : 'w-full max-w-5xl border rounded-2xl animate-in fade-in zoom-in-95'
         }`}
       >
-        <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-          <h2 id={modalTitleId} className="text-xl font-bold text-white flex items-center gap-2">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
+          <h2 id={modalTitleId} className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Terminal className="w-5 h-5 text-indigo-500" aria-hidden="true" />
             Workflow Configuration
           </h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors p-1 hover:bg-slate-800 rounded-lg"
+            className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
             aria-label="Close settings"
           >
             <X className="w-5 h-5" aria-hidden="true" />
@@ -732,7 +732,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
 
           {/* API Access Section */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
               API Access
             </h3>
             <div className={`border rounded-lg p-3 flex justify-between items-center ${hasApiKey ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'
@@ -742,8 +742,8 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   {hasApiKey ? <ShieldCheck className="w-4 h-4" /> : <Key className="w-4 h-4" />}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-200">Gemini API Key</p>
-                  <p className="text-[10px] text-slate-400">Env Var: process.env.API_KEY</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-200">Gemini API Key</p>
+                  <p className="text-[10px] text-slate-600 dark:text-slate-400">Env Var: process.env.API_KEY</p>
                 </div>
               </div>
               <span className={`text-[10px] font-bold px-2 py-1 rounded border ${hasApiKey
@@ -756,29 +756,29 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
 
             {/* GitHub Token */}
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300">GitHub Personal Access Token</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">GitHub Personal Access Token</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
                 <input
                   type="password"
                   value={formData.githubToken || ''}
                   onChange={e => setFormData({ ...formData, githubToken: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
                   placeholder="ghp_xxxxxxxxxxxx"
                 />
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Required scopes: <strong>repo</strong> (Classic) or <strong>Contents:Read/Write, PullRequests:Read/Write</strong> (Fine-grained).
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Auto-loads from <code>.env.local</code> when <code>VITE_GITHUB_TOKEN</code> is set.
               </p>
 
-              <div className="mt-2 rounded-lg border border-slate-800 bg-slate-950/60 p-3 space-y-3">
+              <div className="mt-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/60 p-3 space-y-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-slate-300">GitHub OAuth (local bridge)</p>
-                    <p className="text-[11px] text-slate-400">Uses bridge env vars instead of pasting tokens manually.</p>
+                    <p className="text-xs font-semibold text-slate-900 dark:text-slate-300">GitHub OAuth (local bridge)</p>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">Uses bridge env vars instead of pasting tokens manually.</p>
                   </div>
                   <div className="flex items-center gap-2 sm:justify-end">
                     {!isGithubConnected && (
@@ -796,7 +796,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                       <button
                         type="button"
                         onClick={handleDisconnectGithub}
-                        className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 whitespace-nowrap"
+                        className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 whitespace-nowrap"
                       >
                         Disconnect
                       </button>
@@ -805,26 +805,26 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 </div>
 
                 {githubUser && (
-                  <p className="text-xs text-emerald-300">
+                  <p className="text-xs text-emerald-700 dark:text-emerald-300">
                     Connected as <strong>{githubUser.login}</strong>
                   </p>
                 )}
 
                 {loadingGithubData && (
-                  <p className="text-xs text-indigo-300 flex items-center gap-1.5">
+                  <p className="text-xs text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
                     <Loader2 className="w-3 h-3 animate-spin" /> Loading GitHub profile and repositories...
                   </p>
                 )}
 
                 {githubAuthState.status === 'error' && (
-                  <p className="text-xs text-red-300">{githubAuthState.message}</p>
+                  <p className="text-xs text-red-700 dark:text-red-300">{githubAuthState.message}</p>
                 )}
 
                 {githubRepos.length > 0 && (
                   <div className="space-y-1.5">
-                    <label id={`${repoListboxId}-label`} className="text-xs font-medium text-slate-300">Repository</label>
+                    <label id={`${repoListboxId}-label`} className="text-xs font-medium text-slate-700 dark:text-slate-300">Repository</label>
                     <div className="relative" ref={repoPickerRef}>
-                      <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
+                      <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-600 dark:text-slate-400" aria-hidden="true" />
                       <input
                         value={repoSearchValue}
                         onChange={(e) => {
@@ -862,7 +862,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                         aria-autocomplete="list"
                         aria-activedescendant={repoActiveIndex >= 0 ? `repo-option-${repoActiveIndex}` : undefined}
                         aria-labelledby={`${repoListboxId}-label`}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
                       />
 
                       {isRepoMenuOpen && (
@@ -870,10 +870,10 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                           id={repoListboxId}
                           role="listbox"
                           aria-label="Repository options"
-                          className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-700 bg-slate-900/95 shadow-2xl max-h-[400px] overflow-y-auto"
+                          className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 shadow-2xl max-h-[400px] overflow-y-auto"
                         >
                           {filteredGithubRepos.length === 0 ? (
-                            <li className="px-3 py-2 text-xs text-slate-400" role="option" aria-disabled="true">No repositories found.</li>
+                            <li className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400" role="option" aria-disabled="true">No repositories found.</li>
                           ) : (
                             filteredGithubRepos.map((repo, index) => {
                               const isSelected = repo.full_name === `${formData.repoOwner}/${formData.repoName}`;
@@ -890,10 +890,10 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                                     setRepoActiveIndex(-1);
                                   }}
                                   onMouseEnter={() => setRepoActiveIndex(index)}
-                                  className={`w-full text-left px-3 py-2 border-b border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-800/80' : 'hover:bg-slate-800/80'}`}
+                                  className={`w-full text-left px-3 py-2 border-b border-slate-200 dark:border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-100 dark:bg-slate-800/80' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'}`}
                                 >
-                                  <p className="text-xs font-medium text-slate-200">{repo.full_name}</p>
-                                  <p className="text-[10px] text-slate-400">{repo.private ? 'private' : 'public'}</p>
+                                  <p className="text-xs font-medium text-slate-900 dark:text-slate-200">{repo.full_name}</p>
+                                  <p className="text-[10px] text-slate-500 dark:text-slate-400">{repo.private ? 'private' : 'public'}</p>
                                 </li>
                               );
                             })
@@ -901,7 +901,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                         </ul>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-400">Loaded from your authenticated GitHub account (latest 100 repos).</p>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">Loaded from your authenticated GitHub account (latest 100 repos).</p>
                   </div>
                 )}
               </div>
@@ -909,9 +909,9 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
 
             {/* Model Selection */}
             <div className="space-y-1.5">
-              <label id={`${modelListboxId}-label`} className="text-sm font-medium text-slate-300">Gemini Model</label>
+              <label id={`${modelListboxId}-label`} className="text-sm font-medium text-slate-700 dark:text-slate-300">Gemini Model</label>
               <div className="relative" ref={modelPickerRef}>
-                <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" aria-hidden="true" />
+                <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
                 <button
                   type="button"
                   onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
@@ -953,7 +953,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   aria-controls={modelListboxId}
                   aria-labelledby={`${modelListboxId}-label`}
                   aria-activedescendant={modelActiveIndex >= 0 ? `model-option-${modelActiveIndex}` : undefined}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-9 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-left flex items-center justify-between"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-9 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-left flex items-center justify-between"
                 >
                   <span>
                     {(() => {
@@ -961,7 +961,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                       return selected ? `${selected.label}${selected.description ? ` (${selected.description})` : ''}` : (formData.model || 'gemini-3-pro');
                     })()}
                   </span>
-                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                  <ChevronDown className={`w-4 h-4 text-slate-600 dark:text-slate-400 transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
                 </button>
 
                 {isModelMenuOpen && (
@@ -969,7 +969,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                     id={modelListboxId}
                     role="listbox"
                     aria-label="Model options"
-                    className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-700 bg-slate-900/95 shadow-2xl max-h-[300px] overflow-y-auto"
+                    className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 shadow-2xl max-h-[300px] overflow-y-auto"
                   >
                     {MODEL_OPTIONS.map((model, index) => {
                       const isSelected = model.value === (formData.model || 'gemini-3-pro');
@@ -987,11 +987,11 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                             setModelActiveIndex(-1);
                           }}
                           onMouseEnter={() => setModelActiveIndex(index)}
-                          className={`w-full text-left px-3 py-2 border-b border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-800/80' : 'hover:bg-slate-800/80'}`}
+                          className={`w-full text-left px-3 py-2 border-b border-slate-200 dark:border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-100 dark:bg-slate-800/80' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'}`}
                         >
-                          <p className="text-xs font-medium text-slate-200">{model.label}</p>
+                          <p className="text-xs font-medium text-slate-900 dark:text-slate-200">{model.label}</p>
                           {model.description && (
-                            <p className="text-[10px] text-slate-400">{model.description}</p>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400">{model.description}</p>
                           )}
                         </li>
                       );
@@ -999,7 +999,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   </ul>
                 )}
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Select the Gemini model for AI task analysis.
               </p>
             </div>
@@ -1014,55 +1014,55 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
             )}
           </div>
 
-          <div className="w-full h-px bg-slate-800"></div>
+          <div className="w-full h-px bg-slate-200 dark:bg-slate-800"></div>
 
           {/* Repo Details */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Repository Details</h3>
+            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider">Repository Details</h3>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Owner</label>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Owner</label>
                 <div className="relative">
-                  <Github className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                  <Github className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
                   <input
                     type="text"
                     value={formData.repoOwner}
                     onChange={e => setFormData({ ...formData, repoOwner: e.target.value })}
                     disabled={repoControlledByOAuth}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600 disabled:opacity-70 disabled:cursor-not-allowed"
                     placeholder="acme-inc"
                   />
                 </div>
                 {repoControlledByOAuth && (
-                  <p className="text-[10px] text-slate-400">Owner is synced from selected GitHub repository.</p>
+                  <p className="text-[10px] text-slate-600 dark:text-slate-400">Owner is synced from selected GitHub repository.</p>
                 )}
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Repository Name</label>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Repository Name</label>
                 <div className="relative">
-                  <div className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 flex items-center justify-center font-mono text-[10px] font-bold">/</div>
+                  <div className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400 flex items-center justify-center font-mono text-[10px] font-bold">/</div>
                   <input
                     type="text"
                     value={formData.repoName}
                     onChange={e => setFormData({ ...formData, repoName: e.target.value })}
                     disabled={repoControlledByOAuth}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600 disabled:opacity-70 disabled:cursor-not-allowed"
                     placeholder="my-project"
                   />
                 </div>
                 {repoControlledByOAuth && (
-                  <p className="text-[10px] text-slate-400">Repository name is synced from selected GitHub repository.</p>
+                  <p className="text-[10px] text-slate-600 dark:text-slate-400">Repository name is synced from selected GitHub repository.</p>
                 )}
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label id={`${branchListboxId}-label`} className="text-sm font-medium text-slate-300">Default Branch</label>
+              <label id={`${branchListboxId}-label`} className="text-sm font-medium text-slate-700 dark:text-slate-300">Default Branch</label>
               {canUseBranchDropdown ? (
                 <div className="relative" ref={branchPickerRef}>
-                  <GitBranch className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" aria-hidden="true" />
+                  <GitBranch className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
                   <input
                     type="text"
                     value={branchSearchValue}
@@ -1100,7 +1100,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                     aria-autocomplete="list"
                     aria-activedescendant={branchActiveIndex >= 0 ? `branch-option-${branchActiveIndex}` : undefined}
                     aria-labelledby={`${branchListboxId}-label`}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
                     placeholder="Search branch"
                   />
 
@@ -1109,14 +1109,14 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                       id={branchListboxId}
                       role="listbox"
                       aria-label="Branch options"
-                      className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-700 bg-slate-900/95 shadow-2xl max-h-52 overflow-y-auto"
+                      className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 shadow-2xl max-h-52 overflow-y-auto"
                     >
                       {loadingBranches ? (
-                        <li className="px-3 py-2 text-xs text-indigo-300 flex items-center gap-1.5" role="option" aria-disabled="true">
+                        <li className="px-3 py-2 text-xs text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5" role="option" aria-disabled="true">
                           <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> Loading branches...
                         </li>
                       ) : filteredGithubBranches.length === 0 ? (
-                        <li className="px-3 py-2 text-xs text-slate-400" role="option" aria-disabled="true">No branches found.</li>
+                        <li className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400" role="option" aria-disabled="true">No branches found.</li>
                       ) : (
                         filteredGithubBranches.map((branch, index) => {
                           const isSelected = branch.name === formData.defaultBranch;
@@ -1133,9 +1133,9 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                                 setBranchActiveIndex(-1);
                               }}
                               onMouseEnter={() => setBranchActiveIndex(index)}
-                              className={`w-full text-left px-3 py-2 border-b border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-800/80' : 'hover:bg-slate-800/80'}`}
+                              className={`w-full text-left px-3 py-2 border-b border-slate-200 dark:border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-100 dark:bg-slate-800/80' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'}`}
                             >
-                              <p className="text-xs font-medium text-slate-200">{branch.name}</p>
+                              <p className="text-xs font-medium text-slate-900 dark:text-slate-200">{branch.name}</p>
                             </li>
                           );
                         })
@@ -1145,7 +1145,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 </div>
               ) : (
                 <div className="relative">
-                  <GitBranch className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" aria-hidden="true" />
+                  <GitBranch className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
                   <input
                     type="text"
                     value={formData.defaultBranch}
@@ -1154,34 +1154,34 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                       setFormData({ ...formData, defaultBranch: e.target.value });
                     }}
                     aria-labelledby={`${branchListboxId}-label`}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
                     placeholder="main"
                   />
                 </div>
               )}
               {canUseBranchDropdown && (
-                <p className="text-[10px] text-slate-400">Branch list is loaded from selected GitHub repository.</p>
+                <p className="text-[10px] text-slate-600 dark:text-slate-400">Branch list is loaded from selected GitHub repository.</p>
               )}
             </div>
           </div>
 
-          <div className="w-full h-px bg-slate-800"></div>
+          <div className="w-full h-px bg-slate-200 dark:bg-slate-800"></div>
 
           {/* Environment */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Local Environment</h3>
+            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider">Local Environment</h3>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <div className="col-span-2 space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Worktree Root Path</label>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Worktree Root Path</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <FolderOpen className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                    <FolderOpen className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
                     <input
                       type="text"
                       value={formData.worktreeRoot}
                       onChange={e => setFormData({ ...formData, worktreeRoot: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
                       placeholder="/home/dev/projects"
                     />
                   </div>
@@ -1204,85 +1204,85 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Max Slots</label>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Max Slots</label>
                 <div className="relative">
-                  <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                  <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
                   <input
                     type="number"
                     min="1"
                     max="10"
                     value={formData.maxWorktrees}
                     onChange={e => setFormData({ ...formData, maxWorktrees: Math.max(1, Math.min(10, parseInt(e.target.value) || 1)) })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
                   />
                 </div>
               </div>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               New worktrees will be created as sibling folders (example: /flowize-wt-1).
             </p>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300">Anti-Gravity Agent Command</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Anti-Gravity Agent Command</label>
               <input
                 type="text"
                 value={formData.antiGravityAgentCommand || ''}
                 onChange={e => setFormData({ ...formData, antiGravityAgentCommand: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
                 placeholder={'cd "{worktreePath}" && opencode run {agentFlag} "Implement issue #{issueNumber} on branch {branch}. Use {issueDescriptionFile} as requirements and follow {skillFile}. Return code/output for this task." --print-logs'}
               />
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Used when you click Implement on a worktree task with an issue. Placeholders: {'{issueNumber}'}, {'{branch}'}, {'{title}'}, {'{worktreePath}'}, {'{agentWorkspace}'}, {'{issueDescriptionFile}'}, {'{skillFile}'}, {'{agentName}'}, {'{agentFlag}'}.
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Use a headless CLI command that prints to stdout (for example `opencode run ... --print-logs`). GUI chat commands open windows and will not stream implementation output back.
               </p>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300">OpenCode Agent Name (optional)</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">OpenCode Agent Name (optional)</label>
               <input
                 type="text"
                 value={formData.antiGravityAgentName || ''}
                 onChange={e => setFormData({ ...formData, antiGravityAgentName: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
                 placeholder="frontend"
               />
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 If set, {'{agentFlag}'} expands to `--agent "name"` in the command template.
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Agent Bridge Endpoint</label>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Bridge Endpoint</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={formData.antiGravityAgentEndpoint || ''}
                     onChange={e => setFormData({ ...formData, antiGravityAgentEndpoint: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
                     placeholder="http://127.0.0.1:4141/run"
                   />
                   <button
                     type="button"
                     onClick={handleTestBridge}
                     disabled={bridgeTest.status === 'testing'}
-                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     {bridgeTest.status === 'testing' ? (
                       <span className="inline-flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Testing</span>
                     ) : 'Test bridge'}
                   </button>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Must be a running local HTTP bridge that accepts POST and allows browser origin access (CORS).
                 </p>
                 <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${bridgeHealth.status === 'healthy'
-                  ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-300'
+                  ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
                   : bridgeHealth.status === 'checking'
-                    ? 'bg-indigo-500/5 border-indigo-500/20 text-indigo-300'
-                    : 'bg-red-500/5 border-red-500/20 text-red-300'
+                    ? 'bg-indigo-500/5 border-indigo-500/20 text-indigo-700 dark:text-indigo-300'
+                    : 'bg-red-500/5 border-red-500/20 text-red-700 dark:text-red-300'
                   }`}>
                   {bridgeHealth.status === 'healthy'
                     ? <CheckCircle2 className="w-4 h-4 mt-0.5" />
@@ -1293,10 +1293,10 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 </div>
                 {bridgeTest.status !== 'idle' && (
                   <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${bridgeTest.status === 'ok'
-                    ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-300'
+                    ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
                     : bridgeTest.status === 'testing'
-                      ? 'bg-indigo-500/5 border-indigo-500/20 text-indigo-300'
-                      : 'bg-red-500/5 border-red-500/20 text-red-300'
+                      ? 'bg-indigo-500/5 border-indigo-500/20 text-indigo-700 dark:text-indigo-300'
+                      : 'bg-red-500/5 border-red-500/20 text-red-700 dark:text-red-300'
                     }`}>
                     {bridgeTest.status === 'ok' ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : bridgeTest.status === 'testing' ? <Loader2 className="w-4 h-4 mt-0.5 animate-spin" /> : <XCircle className="w-4 h-4 mt-0.5" />}
                     <span>{bridgeTest.message}</span>
@@ -1304,14 +1304,14 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 )}
                 {shouldShowBridgeRecovery && (
                   <div className="space-y-2">
-                    <p className="text-xs text-amber-300/90">
+                    <p className="text-xs text-amber-600 dark:text-amber-300/90">
                       Browser security cannot start a terminal directly. Auto-start only works when a bridge endpoint is already reachable.
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={handleCopyBridgeStartCommand}
-                        className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 text-xs font-medium transition-colors whitespace-nowrap"
+                        className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap"
                       >
                         <span className="inline-flex items-center gap-1.5"><Copy className="w-3 h-3" /> Copy Start Command</span>
                       </button>
@@ -1330,8 +1330,8 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                     </div>
                     {bridgeRecovery.status !== 'idle' && (
                       <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${bridgeRecovery.status === 'ok'
-                        ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-300'
-                        : 'bg-red-500/5 border-red-500/20 text-red-300'
+                        ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                        : 'bg-red-500/5 border-red-500/20 text-red-700 dark:text-red-300'
                         }`}>
                         {bridgeRecovery.status === 'ok' ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : <XCircle className="w-4 h-4 mt-0.5" />}
                         <span>{bridgeRecovery.message}</span>
@@ -1342,24 +1342,24 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Agent Subfolder</label>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Subfolder</label>
                 <input
                   type="text"
                   value={formData.antiGravityAgentSubdir || ''}
                   onChange={e => setFormData({ ...formData, antiGravityAgentSubdir: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
                   placeholder=".antigravity"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300">Skill File Path</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Skill File Path</label>
               <input
                 type="text"
                 value={formData.antiGravitySkillFile || ''}
                 onChange={e => setFormData({ ...formData, antiGravitySkillFile: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
                 placeholder=".opencode/skills/specflow-worktree-automation/SKILL.md"
               />
             </div>
@@ -1372,9 +1372,10 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 onClearLocalSession();
                 onClose();
               }}
-              className="mr-auto px-4 py-2 text-sm font-medium text-rose-300 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg transition-colors"
+              className="mr-auto px-4 py-2 text-sm font-medium text-rose-600 dark:text-rose-300 hover:text-rose-700 dark:hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg transition-colors"
             >
-              Clear Local Session
+              <span className="sm:hidden">Clear</span>
+              <span className="hidden sm:inline">Clear Local Session</span>
             </button>
             <button
               type="button"
@@ -1382,14 +1383,16 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 onReset();
                 onClose();
               }}
-              className="px-4 py-2 text-sm font-medium text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-medium text-amber-600 dark:text-amber-300 hover:text-amber-700 dark:hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg transition-colors flex items-center gap-2"
             >
-              Reset Defaults
+              <RefreshCw className="w-4 h-4" aria-hidden="true" />
+              <span className="sm:hidden">Settings</span>
+              <span className="hidden sm:inline">Reset Defaults</span>
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
             >
               Cancel
             </button>

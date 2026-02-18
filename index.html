@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -28,23 +28,41 @@
     <style>
       body {
         font-family: 'Inter', sans-serif;
+      }
+      /* Light mode body styles */
+      body {
+        background-color: #f8fafc; /* Slate 50 */
+        color: #0f172a; /* Slate 900 */
+      }
+      /* Dark mode body styles */
+      .dark body {
         background-color: #020617; /* Slate 950 */
         color: #f8fafc; /* Slate 50 */
       }
-      /* Custom scrollbar for cleaner look */
+      /* Custom scrollbar - light mode */
       ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
       }
       ::-webkit-scrollbar-track {
-        background: #0f172a;
+        background: #e2e8f0; /* slate-200 */
       }
       ::-webkit-scrollbar-thumb {
-        background: #334155;
+        background: #94a3b8; /* slate-400 */
         border-radius: 3px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #475569;
+        background: #64748b; /* slate-500 */
+      }
+      /* Custom scrollbar - dark mode */
+      .dark ::-webkit-scrollbar-track {
+        background: #0f172a; /* slate-900 */
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #334155; /* slate-700 */
+      }
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #475569; /* slate-600 */
       }
     </style>
   <script type="importmap">
@@ -58,7 +76,6 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="root"></div>
