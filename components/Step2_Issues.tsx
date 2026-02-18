@@ -198,7 +198,7 @@ export const Step2_Issues: React.FC<Props> = ({
                                           className={`text-xs px-3 py-1.5 rounded font-semibold transition-all hover:scale-105 ${
                                               isSyncing 
                                               ? 'bg-purple-900/50 text-purple-300 cursor-not-allowed' 
-                                              : 'bg-white text-slate-900'
+                                              : 'bg-purple-600 hover:bg-purple-500 text-white border border-purple-500/40 shadow-lg shadow-purple-900/20'
                                           }`}
                                       >
                                           <span className="inline-flex items-center gap-1.5">
