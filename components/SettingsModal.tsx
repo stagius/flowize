@@ -11,10 +11,11 @@ interface Props {
   currentSettings: AppSettings;
   onSave: (settings: AppSettings) => void;
   onReset: () => void;
+  onClearLocalSession: () => void;
   hasApiKey: boolean;
 }
 
-export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSettings, onSave, onReset, hasApiKey }) => {
+export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSettings, onSave, onReset, onClearLocalSession, hasApiKey }) => {
   const [formData, setFormData] = useState<AppSettings>(currentSettings);
   const [isMobileView, setIsMobileView] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -1140,10 +1141,20 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
             <button
               type="button"
               onClick={() => {
+                onClearLocalSession();
+                onClose();
+              }}
+              className="mr-auto px-4 py-2 text-sm font-medium text-rose-300 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg transition-colors"
+            >
+              Clear Local Session
+            </button>
+            <button
+              type="button"
+              onClick={() => {
                 onReset();
                 onClose();
               }}
-              className="mr-auto px-4 py-2 text-sm font-medium text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-medium text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg transition-colors"
             >
               Reset Defaults
             </button>

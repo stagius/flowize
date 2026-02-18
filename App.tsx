@@ -19,6 +19,9 @@ type BridgeHealthState = {
 };
 
 const SETTINGS_STORAGE_KEY = 'flowize.settings.v1';
+const TASKS_STORAGE_KEY = 'flowize.tasks.v1';
+const SLOTS_STORAGE_KEY = 'flowize.slots.v1';
+const STEP_STORAGE_KEY = 'flowize.current-step.v1';
 
 const createDefaultSettings = (envGithubToken: string, browserHost: string): AppSettings => ({
     repoOwner: 'stagius',
@@ -53,8 +56,62 @@ export default function App() {
     const browserHost = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
     const defaultSettings = createDefaultSettings(envGithubToken, browserHost);
 
-    const [currentStep, setCurrentStep] = useState(1);
-    const [tasks, setTasks] = useState<TaskItem[]>([]);
+    const [currentStep, setCurrentStep] = useState<number>(() => {
+        if (typeof window === 'undefined') {
+            return 1;
+        }
+
+        try {
+            const stored = Number(window.localStorage.getItem(STEP_STORAGE_KEY));
+            return [1, 2, 3, 4, 5].includes(stored) ? stored : 1;
+        } catch {
+            return 1;
+        }
+    });
+    const [tasks, setTasks] = useState<TaskItem[]>(() => {
+        if (typeof window === 'undefined') {
+            return [];
+        }
+
+        try {
+            const stored = window.localStorage.getItem(TASKS_STORAGE_KEY);
+            if (!stored) {
+                return [];
+            }
+
+            const parsed = JSON.parse(stored);
+            if (!Array.isArray(parsed)) {
+                return [];
+            }
+
+            const validStatuses = new Set(Object.values(TaskStatus));
+            return parsed
+                .map((item: unknown) => {
+                    if (!item || typeof item !== 'object') return null;
+                    const value = item as Partial<TaskItem>;
+                    if (
+                        typeof value.id !== 'string' ||
+                        typeof value.rawText !== 'string' ||
+                        typeof value.title !== 'string' ||
+                        typeof value.description !== 'string' ||
+                        typeof value.group !== 'string' ||
+                        !['High', 'Medium', 'Low'].includes(String(value.priority)) ||
+                        !validStatuses.has(value.status as TaskStatus)
+                    ) {
+                        return null;
+                    }
+
+                    return {
+                        ...value,
+                        status: value.status as TaskStatus,
+                        createdAt: Number.isFinite(Number(value.createdAt)) ? Number(value.createdAt) : Date.now()
+                    } as TaskItem;
+                })
+                .filter((item): item is TaskItem => Boolean(item));
+        } catch {
+            return [];
+        }
+    });
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [syncingTaskIds, setSyncingTaskIds] = useState<Set<string>>(new Set());
@@ -149,6 +206,14 @@ export default function App() {
         return `${trimmed}${suffix}`;
     };
 
+    const buildDefaultSlots = (root: string, count: number): WorktreeSlot[] => {
+        return Array.from({ length: count }, (_, i) => ({
+            id: i + 1,
+            taskId: null,
+            path: buildWorktreeSlotPath(root, i + 1)
+        }));
+    };
+
     const [settings, setSettings] = useState<AppSettings>(() => {
         if (typeof window === 'undefined') {
             return defaultSettings;
@@ -172,13 +237,73 @@ export default function App() {
     }, [settings]);
 
     // Initialize slots
-    const [slots, setSlots] = useState<WorktreeSlot[]>(
-        Array.from({ length: 3 }, (_, i) => ({
-            id: i + 1,
-            taskId: null,
-            path: buildWorktreeSlotPath('/flowize', i + 1)
-        }))
-    );
+    const [slots, setSlots] = useState<WorktreeSlot[]>(() => {
+        if (typeof window === 'undefined') {
+            return buildDefaultSlots(settings.worktreeRoot, settings.maxWorktrees);
+        }
+
+        try {
+            const stored = window.localStorage.getItem(SLOTS_STORAGE_KEY);
+            if (!stored) {
+                return buildDefaultSlots(settings.worktreeRoot, settings.maxWorktrees);
+            }
+
+            const parsed = JSON.parse(stored);
+            if (!Array.isArray(parsed)) {
+                return buildDefaultSlots(settings.worktreeRoot, settings.maxWorktrees);
+            }
+
+            const sanitized = parsed
+                .map((slot: unknown) => {
+                    if (!slot || typeof slot !== 'object') return null;
+                    const value = slot as Partial<WorktreeSlot>;
+                    const id = Number(value.id);
+                    if (!Number.isInteger(id) || id < 1) return null;
+                    return {
+                        id,
+                        taskId: typeof value.taskId === 'string' ? value.taskId : null,
+                        path: typeof value.path === 'string' ? value.path : buildWorktreeSlotPath(settings.worktreeRoot, id)
+                    } as WorktreeSlot;
+                })
+                .filter((slot): slot is WorktreeSlot => Boolean(slot));
+
+            return sanitized.length > 0
+                ? sanitized
+                : buildDefaultSlots(settings.worktreeRoot, settings.maxWorktrees);
+        } catch {
+            return buildDefaultSlots(settings.worktreeRoot, settings.maxWorktrees);
+        }
+    });
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem(STEP_STORAGE_KEY, String(currentStep));
+    }, [currentStep]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
+    }, [tasks]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem(SLOTS_STORAGE_KEY, JSON.stringify(slots));
+    }, [slots]);
+
+    useEffect(() => {
+        const taskIds = new Set(tasks.map(task => task.id));
+        setSlots(prev => {
+            const next = prev.map(slot => {
+                if (slot.taskId && !taskIds.has(slot.taskId)) {
+                    return { ...slot, taskId: null };
+                }
+                return slot;
+            });
+
+            const changed = next.some((slot, index) => slot.taskId !== prev[index]?.taskId);
+            return changed ? next : prev;
+        });
+    }, [tasks]);
 
     // Update slots when settings change (path or count)
     useEffect(() => {
@@ -314,6 +439,24 @@ export default function App() {
             window.localStorage.removeItem(SETTINGS_STORAGE_KEY);
         }
         showToast('Settings reset to defaults.', 'info');
+    };
+
+    const handleClearLocalSession = () => {
+        setCurrentStep(1);
+        setTasks([]);
+        setSlots(prev => prev.map(slot => ({
+            ...slot,
+            taskId: null,
+            path: buildWorktreeSlotPath(settings.worktreeRoot, slot.id)
+        })));
+
+        if (typeof window !== 'undefined') {
+            window.localStorage.removeItem(TASKS_STORAGE_KEY);
+            window.localStorage.removeItem(SLOTS_STORAGE_KEY);
+            window.localStorage.removeItem(STEP_STORAGE_KEY);
+        }
+
+        showToast('Local workflow session cleared.', 'info');
     };
 
     const handlePromoteToIssue = async (taskId: string) => {
@@ -1076,6 +1219,7 @@ export default function App() {
                 currentSettings={settings}
                 onSave={handleSaveSettings}
                 onReset={handleResetSettings}
+                onClearLocalSession={handleClearLocalSession}
                 hasApiKey={hasApiKey}
             />
 
