@@ -539,7 +539,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                             <div key={task.id} className="p-3 border border-slate-800 rounded-xl hover:bg-slate-800/50 transition-colors bg-slate-900/30 group">
                                 <div className="flex justify-between items-center mb-2 gap-2">
                                     <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700 font-mono">
-                                        #{task.id.substring(0, 4)}
+                                        #{task.issueNumber ?? task.id}
                                     </span>
                                     <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${PRIORITY_BADGES[task.priority]}`}>
                                         {task.priority}

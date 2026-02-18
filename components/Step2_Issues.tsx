@@ -142,7 +142,7 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
                                 <p className="text-sm text-slate-400 mb-3 leading-relaxed">{task.description}</p>
                                 <div className="flex items-center gap-2 text-xs relative z-10">
                                     <span className="bg-slate-800 px-2 py-1 rounded text-slate-400 border border-slate-700">{task.group}</span>
-                                    <span className="text-slate-600 font-mono">ID: {task.id.substring(0,6)}</span>
+                                    <span className="text-slate-600 font-mono">ID: {task.issueNumber ?? task.id}</span>
                                 </div>
                             </div>
                         );

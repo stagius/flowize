@@ -603,7 +603,9 @@ export default function App() {
         // 1. Reserve slot and set task to initializing
         setSlots(prev => prev.map(s => s.id === slotId ? { ...s, taskId } : s));
 
-        const branchName = `feat/${tasks.find(t => t.id === taskId)?.group.toLowerCase().replace(/\s+/g, '-')}-${taskId.substring(0, 4)}`;
+        const taskItem = tasks.find(t => t.id === taskId);
+        const branchId = taskItem?.issueNumber ?? taskId;
+        const branchName = `feat/${taskItem?.group.toLowerCase().replace(/\s+/g, '-')}-${branchId}`;
 
         setTasks(prev => prev.map(t => {
             if (t.id === taskId) {
