@@ -16,6 +16,10 @@ interface Props {
 
 export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSettings, onSave, onReset, hasApiKey }) => {
   const [formData, setFormData] = useState<AppSettings>(currentSettings);
+  const [isMobileView, setIsMobileView] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 1023px)').matches;
+  });
   const [githubUser, setGithubUser] = useState<GithubAuthenticatedUser | null>(null);
   const [githubRepos, setGithubRepos] = useState<GithubRepository[]>([]);
   const [repoSearchValue, setRepoSearchValue] = useState('');
@@ -99,6 +103,24 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
     if (!isOpen) return;
     void loadGithubData(formData.githubToken || '');
   }, [isOpen, formData.githubToken]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mediaQuery = window.matchMedia('(max-width: 1023px)');
+    const updateIsMobileView = (event?: MediaQueryListEvent) => {
+      setIsMobileView(event ? event.matches : mediaQuery.matches);
+    };
+
+    updateIsMobileView();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', updateIsMobileView);
+      return () => mediaQuery.removeEventListener('change', updateIsMobileView);
+    }
+
+    mediaQuery.addListener(updateIsMobileView);
+    return () => mediaQuery.removeListener(updateIsMobileView);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -628,7 +650,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className={`fixed inset-0 z-[100] ${isMobileView ? 'flex items-stretch justify-end' : 'flex items-center justify-center p-4'}`}>
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
@@ -636,7 +658,10 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
       />
 
       {/* Modal Content */}
-      <div className="relative bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className={`relative bg-slate-900 border-slate-800 shadow-2xl overflow-hidden duration-200 ${isMobileView
+        ? 'h-full w-full max-w-md border-l animate-in slide-in-from-right'
+        : 'w-full max-w-5xl border rounded-2xl animate-in fade-in zoom-in-95'
+        }`}>
         <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Terminal className="w-5 h-5 text-indigo-500" />
@@ -650,7 +675,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[85vh] xl:max-h-[80vh] overflow-y-auto custom-scrollbar">
+        <form onSubmit={handleSubmit} className={`p-6 space-y-6 overflow-y-auto custom-scrollbar ${isMobileView ? 'h-[calc(100vh-89px)] pb-[max(1.25rem,env(safe-area-inset-bottom))]' : 'max-h-[85vh] xl:max-h-[80vh]'}`}>
 
           {/* API Access Section */}
           <div className="space-y-4">

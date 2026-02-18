@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogState, ConfirmDialog, ConfirmDialogState, Dialo
 import { ToastItem, ToastStack, ToastTone } from './components/ui/ToastStack';
 import { createGithubIssue, fetchGithubIssues, createBranch, getBSHA, commitFile, createPullRequest, mergePullRequest, fetchMergedPRs, fetchOpenPRs, fetchCommitStatus, fetchAuthenticatedUser, fetchPullRequestDetails } from './services/githubService';
 import { createWorktree, pruneWorktree, pushWorktreeBranch, forcePushWorktreeBranchWithLease } from './services/gitService';
-import { ChevronRight, GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github } from 'lucide-react';
+import { ChevronLeft, ChevronRight, GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github } from 'lucide-react';
 
 type BridgeHealthState = {
     status: 'checking' | 'healthy' | 'unhealthy';
@@ -1054,6 +1054,19 @@ export default function App() {
             ? 'bg-indigo-500/10 text-indigo-400'
             : 'bg-red-500/10 text-red-500';
 
+    const activeStepIndex = STEPS.findIndex((step) => step.id === currentStep);
+    const activeStep = activeStepIndex >= 0 ? STEPS[activeStepIndex] : null;
+    const canGoToPreviousStep = activeStepIndex > 0;
+    const canGoToNextStep = activeStepIndex >= 0 && activeStepIndex < STEPS.length - 1;
+
+    const moveStep = (direction: -1 | 1) => {
+        if (activeStepIndex < 0) return;
+        const targetStep = STEPS[activeStepIndex + direction];
+        if (!targetStep) return;
+        setCurrentStep(targetStep.id);
+        setIsMobileMenuOpen(false);
+    };
+
     return (
         <div className="min-h-screen flex bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30">
 
@@ -1083,20 +1096,23 @@ export default function App() {
             {isMobileMenuOpen && (
                 <div className="fixed inset-0 z-[60] lg:hidden">
                     <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-                    <div className="absolute inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
-                        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
+                    <div className="absolute inset-y-0 left-0 w-[20.5rem] max-w-[90vw] bg-gradient-to-b from-slate-900 to-slate-950 border-r border-slate-700/80 shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
+                        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-800/80">
                             <div className="flex items-center gap-3">
                                 <div className="bg-indigo-500/10 p-2 rounded-lg text-indigo-400">
                                     <GitGraph className="w-6 h-6" />
                                 </div>
-                                <span className="font-bold text-lg text-slate-100">Flowize</span>
+                                <div>
+                                    <p className="font-bold text-lg text-slate-100 leading-tight">Flowize</p>
+                                    <p className="text-[11px] text-slate-500">Workflow Navigator</p>
+                                </div>
                             </div>
-                            <button onClick={() => setIsMobileMenuOpen(false)} className="text-slate-400 hover:text-white">
+                            <button onClick={() => setIsMobileMenuOpen(false)} className="text-slate-400 hover:text-white rounded-lg p-1 hover:bg-slate-800/80 transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
 
-                        <nav className="p-4 space-y-2 flex-1">
+                        <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
                             {STEPS.map((step) => {
                                 const isActive = currentStep === step.id;
                                 const Icon = step.icon;
@@ -1107,20 +1123,21 @@ export default function App() {
                                             setCurrentStep(step.id);
                                             setIsMobileMenuOpen(false);
                                         }}
-                                        className={`w-full flex items-center p-3 rounded-lg transition-all ${isActive
-                                            ? `${step.bg} ${step.color} ring-1 ring-inset ${step.border}`
-                                            : 'text-slate-500 hover:bg-slate-800 hover:text-slate-300'
+                                        className={`relative w-full flex items-center min-h-[56px] px-4 py-3 rounded-xl border transition-all ${isActive
+                                            ? `${step.bg} ${step.color} ${step.border}`
+                                            : 'border-transparent text-slate-500 hover:bg-slate-800/80 hover:border-slate-700/70 hover:text-slate-300'
                                             }`}
                                     >
                                         <Icon className={`w-5 h-5 ${isActive ? step.color : 'text-slate-500'}`} />
-                                        <span className="ml-3 font-medium">{step.label}</span>
+                                        <span className="ml-3 text-sm font-semibold tracking-wide">{step.label}</span>
+                                        {isActive && <span className="ml-auto text-[11px] font-semibold uppercase tracking-wider text-slate-300/80">Current</span>}
                                     </button>
                                 );
                             })}
                         </nav>
 
                         <div className="p-4 border-t border-slate-800">
-                            <div className="bg-slate-800/50 rounded-lg p-3 text-xs space-y-2">
+                            <div className="bg-slate-900/80 rounded-xl border border-slate-700/80 p-3 text-xs space-y-2">
                                 <div className="flex justify-between items-center text-slate-400">
                                     <span>System Status</span>
                                     <Activity className="w-3 h-3 text-emerald-400" />
@@ -1148,13 +1165,16 @@ export default function App() {
             )}
 
             {/* Desktop Sidebar Navigation */}
-            <aside className="w-64 flex-shrink-0 border-r border-slate-800 bg-slate-900/50 backdrop-blur-xl flex flex-col justify-between hidden lg:flex sticky top-0 h-screen">
+            <aside className="w-80 flex-shrink-0 border-r border-slate-800 bg-gradient-to-b from-slate-900/80 to-slate-950/80 backdrop-blur-xl flex flex-col justify-between hidden lg:flex sticky top-0 h-screen">
                 <div>
-                    <div className="h-16 flex items-center justify-start px-6 border-b border-slate-800">
+                    <div className="h-20 flex items-center justify-start px-6 border-b border-slate-800/80">
                         <div className="bg-indigo-500/10 p-2 rounded-lg text-indigo-400">
                             <GitGraph className="w-6 h-6" />
                         </div>
-                        <span className="ml-3 font-bold text-lg tracking-tight text-slate-100">Flowize</span>
+                        <div className="ml-3">
+                            <p className="font-bold text-lg tracking-tight text-slate-100">Flowize</p>
+                            <p className="text-[11px] text-slate-500">Workflow Navigator</p>
+                        </div>
                     </div>
 
                     <nav className="p-4 space-y-2">
@@ -1166,9 +1186,9 @@ export default function App() {
                                 <button
                                     key={step.id}
                                     onClick={() => setCurrentStep(step.id)}
-                                    className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 group ${isActive
-                                        ? `${step.bg} ${step.color} ring-1 ring-inset ${step.border}`
-                                        : 'text-slate-500 hover:bg-slate-800 hover:text-slate-300'
+                                    className={`relative w-full flex items-center min-h-[52px] px-4 py-3 rounded-xl border transition-all duration-200 group ${isActive
+                                        ? `${step.bg} ${step.color} ${step.border}`
+                                        : 'border-transparent text-slate-500 hover:bg-slate-800/80 hover:border-slate-700/70 hover:text-slate-300'
                                         }`}
                                 >
                                     <Icon className={`w-5 h-5 ${isActive ? step.color : 'text-slate-500 group-hover:text-slate-300'}`} />
@@ -1227,7 +1247,7 @@ export default function App() {
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-4 md:gap-6">
+                    <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
                         <div className="flex flex-col items-end">
                             <div className="flex items-center gap-2 mb-1">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hidden sm:inline">Pipeline</span>
@@ -1274,7 +1294,7 @@ export default function App() {
                     </div>
                 </header>
 
-                <main className="flex-1 p-4 md:p-8 overflow-y-auto overflow-x-hidden">
+                <main className="flex-1 p-4 pb-24 md:p-8 md:pb-28 lg:pb-8 overflow-y-auto overflow-x-hidden">
                     <div className="mx-auto h-full flex flex-col">
                         {/* Page Header */}
                         <div className="mb-6 flex items-center justify-between">
@@ -1292,6 +1312,37 @@ export default function App() {
                         </div>
                     </div>
                 </main>
+                <div className="fixed inset-x-0 bottom-0 z-40 lg:hidden bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent px-3 pt-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                    <div className="mx-auto flex max-w-xl items-center justify-between gap-2 rounded-2xl border border-slate-700/70 bg-slate-900/90 p-2 shadow-[0_-10px_30px_rgba(2,6,23,0.65)] backdrop-blur-xl">
+                        <button
+                            type="button"
+                            onClick={() => moveStep(-1)}
+                            disabled={!canGoToPreviousStep}
+                            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900/80 px-3 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800/80 disabled:cursor-not-allowed disabled:opacity-40"
+                            aria-label="Previous step"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setIsMobileMenuOpen(true)}
+                            className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/15 px-3 text-sm font-semibold text-indigo-100 transition-colors hover:bg-indigo-500/20"
+                        >
+                            <span className="block w-full truncate text-center">
+                                {activeStep ? `${activeStepIndex + 1}/${STEPS.length} - ${activeStep.label}` : 'Open Steps'}
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => moveStep(1)}
+                            disabled={!canGoToNextStep}
+                            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900/80 px-3 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800/80 disabled:cursor-not-allowed disabled:opacity-40"
+                            aria-label="Next step"
+                        >
+                            <ChevronRight className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
             </div>
 
         </div>
