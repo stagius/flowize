@@ -139,6 +139,51 @@ const copyBaseContextToWorktree = async (settings: AppSettings, slotPath: string
   console.log('[GitService] Skipping full .opencode copy for clean worktrees');
 };
 
+const setupAgentWorkspace = async (settings: AppSettings, slotPath: string, task: TaskItem): Promise<void> => {
+  if (!settings.antiGravityAgentEndpoint) {
+    return;
+  }
+
+  const subdir = settings.antiGravityAgentSubdir?.trim() || DEFAULT_AGENT_SUBDIR;
+  const agentWorkspace = joinPath(slotPath, subdir);
+  const issueDescriptionFile = joinPath(agentWorkspace, 'issue-description.md');
+  const configuredSkillFile = settings.antiGravitySkillFile?.trim() || DEFAULT_SKILL_FILE;
+  const sourceSkillFile = resolvePathForWorktree(slotPath, configuredSkillFile);
+  const skillFile = joinPath(agentWorkspace, 'SKILL.md');
+  const issueDescriptionContent = buildIssueDescription(task);
+  const issueDescriptionB64 = encodeBase64(issueDescriptionContent);
+  const fallbackSkillB64 = encodeBase64([
+    '# Flowize Agent Skill Fallback',
+    '',
+    '- Read issue-description.md and implement only requested scope.',
+    '- Keep changes minimal and consistent with existing code style.',
+    '- Return clear implementation output and verification notes.'
+  ].join('\n'));
+
+  const ensureWorkspaceCommand =
+    `node -e "const fs=require('fs');const path=require('path');` +
+    `const dir=process.argv[1];const issueFile=process.argv[2];const issueB64=process.argv[3]||'';` +
+    `const srcSkill=process.argv[4]||'';const dstSkill=process.argv[5]||'';const fallbackB64=process.argv[6]||'';` +
+    `const issueContent=Buffer.from(issueB64,'base64').toString('utf8');` +
+    `const fallbackSkill=Buffer.from(fallbackB64,'base64').toString('utf8');` +
+    `if(!fs.existsSync(dir))fs.mkdirSync(dir,{recursive:true});` +
+    `fs.writeFileSync(issueFile,issueContent,'utf8');` +
+    `let skillContent='';` +
+    `try{if(srcSkill&&fs.existsSync(srcSkill)&&fs.statSync(srcSkill).isFile()){skillContent=fs.readFileSync(srcSkill,'utf8');}}catch{}` +
+    `if(!skillContent.trim())skillContent=fallbackSkill;` +
+    `if(dstSkill){fs.writeFileSync(dstSkill,skillContent,'utf8');}` +
+    `" "${agentWorkspace}" "${issueDescriptionFile}" "${issueDescriptionB64}" "${sourceSkillFile}" "${skillFile}" "${fallbackSkillB64}"`;
+
+  console.log(`[GitService] Setting up agent workspace at ${agentWorkspace}`);
+  await runBridgeCommand(settings, ensureWorkspaceCommand, {
+    worktreePath: slotPath,
+    branch: task.branchName,
+    issueNumber: task.issueNumber,
+    issueDescriptionFile
+  });
+  console.log(`[GitService] Agent workspace ready at ${agentWorkspace}`);
+};
+
 const getBridgeCandidates = (endpoint: string): string[] => {
   const trimmed = endpoint.trim().replace(/\/+$/, '');
   const withRun = trimmed.endsWith('/run') ? trimmed : `${trimmed}/run`;
@@ -355,6 +400,7 @@ export const createWorktree = async (settings: AppSettings, task: TaskItem, slot
       if (existingAtPath.branch === task.branchName) {
         console.log(`[GitService] Reusing existing worktree ${slot.path} on ${task.branchName}`);
         await copyBaseContextToWorktree(settings, slot.path, task.branchName);
+        await setupAgentWorkspace(settings, slot.path, task);
         const startupCommand = await buildWorktreeStartupCommand(settings, task, slot);
         await openWorktreeCmdWindow(settings, slot, task.branchName, startupCommand);
         return;
@@ -405,6 +451,7 @@ export const createWorktree = async (settings: AppSettings, task: TaskItem, slot
     });
 
     await copyBaseContextToWorktree(settings, slot.path, task.branchName);
+    await setupAgentWorkspace(settings, slot.path, task);
     const startupCommand = await buildWorktreeStartupCommand(settings, task, slot);
     await openWorktreeCmdWindow(settings, slot, task.branchName, startupCommand);
   } else {
