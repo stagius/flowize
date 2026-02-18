@@ -442,7 +442,17 @@ export default function App() {
         showToast('Settings reset to defaults.', 'info');
     };
 
-    const handleClearLocalSession = () => {
+    const handleClearLocalSession = async () => {
+        const confirmed = await askConfirmation({
+            title: 'Clear Session Data',
+            message: 'Are you sure you want to clear all session data? This will remove all tasks, worktree assignments, and reset the workflow step. This action cannot be undone.',
+            confirmLabel: 'Clear Data',
+            cancelLabel: 'Cancel',
+            tone: 'warning'
+        });
+
+        if (!confirmed) return;
+
         setCurrentStep(1);
         setTasks([]);
         setSlots(prev => prev.map(slot => ({
