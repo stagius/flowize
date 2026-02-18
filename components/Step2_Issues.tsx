@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TaskItem, TaskStatus } from '../types';
-import { Github, ArrowRight, Check, Loader2, ExternalLink, CloudDownload } from 'lucide-react';
+import { Github, ArrowRight, Check, Loader2, ExternalLink, CloudDownload, ChevronDown } from 'lucide-react';
 import { PRIORITY_BADGES } from '../designSystem';
 import { ErrorState, LoadingSkeleton } from './ui/AsyncStates';
 
@@ -10,11 +10,22 @@ interface Props {
   onPromoteAll: () => void;
   syncingTaskIds: Set<string>;
   onFetchRemote: () => Promise<void>;
+  onEditTask: (taskId: string, updates: Partial<Pick<TaskItem, 'title' | 'description' | 'group' | 'priority'>>) => void;
 }
 
-export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromoteAll, syncingTaskIds, onFetchRemote }) => {
+export const Step2_Issues: React.FC<Props> = ({
+  tasks,
+  onPromoteToIssue,
+  onPromoteAll,
+  syncingTaskIds,
+  onFetchRemote,
+  onEditTask
+}) => {
   const [isFetching, setIsFetching] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editDrafts, setEditDrafts] = useState<Record<string, { title: string; description: string; group: string; priority: TaskItem['priority'] }>>({});
+  const [openPriorityTaskId, setOpenPriorityTaskId] = useState<string | null>(null);
   
   const pendingTasks = tasks.filter(t => t.status === TaskStatus.FORMATTED);
   const createdIssues = tasks.filter(t => {
@@ -46,6 +57,53 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
         const message = error instanceof Error ? error.message : String(error);
         setSyncError(message);
       }
+  };
+
+  const startEditing = (task: TaskItem) => {
+    setEditingTaskId(task.id);
+    setOpenPriorityTaskId(null);
+    setEditDrafts(prev => ({
+      ...prev,
+      [task.id]: {
+        title: task.title,
+        description: task.description,
+        group: task.group,
+        priority: task.priority
+      }
+    }));
+  };
+
+  const cancelEditing = (taskId: string) => {
+    setEditingTaskId(null);
+    setOpenPriorityTaskId(null);
+    setEditDrafts(prev => {
+      const next = { ...prev };
+      delete next[taskId];
+      return next;
+    });
+  };
+
+  const handleEditChange = (taskId: string, field: 'title' | 'description' | 'group' | 'priority', value: string) => {
+    setEditDrafts(prev => ({
+      ...prev,
+      [taskId]: {
+        ...prev[taskId],
+        [field]: value
+      }
+    }));
+  };
+
+  const saveEditing = (taskId: string) => {
+    const draft = editDrafts[taskId];
+    if (!draft) return;
+    onEditTask(taskId, {
+      title: draft.title.trim() || 'Untitled Task',
+      description: draft.description.trim(),
+      group: draft.group.trim() || 'General',
+      priority: draft.priority
+    });
+    setOpenPriorityTaskId(null);
+    cancelEditing(taskId);
   };
 
   return (
@@ -114,8 +172,10 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
                 ) : (
                     pendingTasks.map(task => {
                         const isSyncing = syncingTaskIds.has(task.id);
+                        const isEditing = editingTaskId === task.id;
+                        const draft = editDrafts[task.id];
                         return (
-                            <div key={task.id} className="group border border-slate-800 bg-slate-950/40 rounded-xl p-4 hover:border-purple-500/30 transition-all hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)] relative overflow-hidden">
+                            <div key={task.id} className="group border border-slate-800 bg-slate-950/40 rounded-xl p-4 hover:border-purple-500/30 transition-all hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)] relative overflow-visible">
                                 <div className="flex justify-between items-start mb-2 relative z-10">
                                     <div className="flex items-center gap-3">
                                         <span className={`w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] ${
@@ -124,26 +184,121 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
                                         }`}></span>
                                         <h4 className="font-medium text-slate-200">{task.title}</h4>
                                     </div>
-                                    <span className={`hidden sm:inline-flex text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${PRIORITY_BADGES[task.priority]}`}>
-                                        {task.priority}
-                                    </span>
-                                    <button 
-                                        onClick={() => onPromoteToIssue(task.id)}
-                                        disabled={isSyncing}
-                                        className={`opacity-100 lg:opacity-0 group-hover:opacity-100 text-xs px-3 py-1.5 rounded font-semibold transition-all hover:scale-105 ${
-                                            isSyncing 
-                                            ? 'bg-purple-900/50 text-purple-300 cursor-not-allowed' 
-                                            : 'bg-white text-slate-900'
-                                        }`}
-                                    >
-                                        {isSyncing ? 'Creating...' : 'Create Issue'}
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                          onClick={() => startEditing(task)}
+                                          disabled={isSyncing}
+                                          className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 disabled:opacity-70 disabled:cursor-not-allowed"
+                                      >
+                                          Edit
+                                      </button>
+                                      <button 
+                                          onClick={() => onPromoteToIssue(task.id)}
+                                          disabled={isSyncing}
+                                          className={`text-xs px-3 py-1.5 rounded font-semibold transition-all hover:scale-105 ${
+                                              isSyncing 
+                                              ? 'bg-purple-900/50 text-purple-300 cursor-not-allowed' 
+                                              : 'bg-white text-slate-900'
+                                          }`}
+                                      >
+                                          <span className="inline-flex items-center gap-1.5">
+                                            <span className="sm:hidden">{isSyncing ? 'Creating...' : 'Create'}</span>
+                                            <span className="hidden sm:inline">{isSyncing ? 'Creating...' : 'Create Issue'}</span>
+                                            {isSyncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
+                                          </span>
+                                      </button>
+                                    </div>
                                 </div>
-                                <p className="text-sm text-slate-400 mb-3 leading-relaxed">{task.description}</p>
-                                <div className="flex items-center gap-2 text-xs relative z-10">
-                                    <span className="bg-slate-800 px-2 py-1 rounded text-slate-400 border border-slate-700">{task.group}</span>
-                                    <span className="text-slate-600 font-mono">ID: {task.issueNumber ?? task.id}</span>
-                                </div>
+                                {isEditing && draft ? (
+                                  <div className="space-y-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                      <div className="space-y-1">
+                                      <label className="text-xs font-medium text-slate-300">Title</label>
+                                      <input
+                                        value={draft.title}
+                                        onChange={(e) => handleEditChange(task.id, 'title', e.target.value)}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400/60 transition-all"
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="text-xs font-medium text-slate-300">Group</label>
+                                      <input
+                                        value={draft.group}
+                                        onChange={(e) => handleEditChange(task.id, 'group', e.target.value)}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400/60 transition-all"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-xs font-medium text-slate-300">Description</label>
+                                    <textarea
+                                      value={draft.description}
+                                      onChange={(e) => handleEditChange(task.id, 'description', e.target.value)}
+                                      className="w-full min-h-[90px] rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400/60 transition-all"
+                                    />
+                                  </div>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                      <div className="space-y-1">
+                                        <label className="text-xs font-medium text-slate-300">Priority</label>
+                                        <div className="relative">
+                                          <button
+                                            type="button"
+                                            onClick={() => setOpenPriorityTaskId(current => current === task.id ? null : task.id)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400/60 transition-all text-left flex items-center justify-between"
+                                          >
+                                            <span>{draft.priority}</span>
+                                            <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${openPriorityTaskId === task.id ? 'rotate-180' : ''}`} />
+                                          </button>
+
+                                          {openPriorityTaskId === task.id && (
+                                            <div className="absolute left-0 right-0 top-full mt-1 z-[140] rounded-lg border border-slate-700 bg-slate-900/95 shadow-2xl overflow-hidden">
+                                              {(['High', 'Medium', 'Low'] as TaskItem['priority'][]).map((priority) => {
+                                                const isSelected = draft.priority === priority;
+                                                return (
+                                                  <button
+                                                    key={priority}
+                                                    type="button"
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    onClick={() => {
+                                                      handleEditChange(task.id, 'priority', priority);
+                                                      setOpenPriorityTaskId(null);
+                                                    }}
+                                                    className={`w-full text-left px-3 py-2 border-b border-slate-800/70 last:border-b-0 hover:bg-slate-800/80 transition-colors ${isSelected ? 'bg-purple-500/10' : ''}`}
+                                                  >
+                                                    <p className="text-xs font-medium text-slate-200">{priority}</p>
+                                                  </button>
+                                                );
+                                              })}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2 ml-auto">
+                                        <button
+                                          onClick={() => cancelEditing(task.id)}
+                                          className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+                                        >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        onClick={() => saveEditing(task.id)}
+                                        className="px-3 py-1.5 text-xs font-medium rounded-md bg-purple-600 hover:bg-purple-500 text-white border border-purple-500/50"
+                                      >
+                                        Save
+                                      </button>
+                                    </div>
+                                  </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <p className="text-sm text-slate-400 mb-3 leading-relaxed">{task.description}</p>
+                                    <div className="flex items-center gap-2 text-xs relative z-10">
+                                        <span className="bg-slate-800 px-2 py-1 rounded text-slate-400 border border-slate-700">{task.group}</span>
+                                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${PRIORITY_BADGES[task.priority]}`}>{task.priority}</span>
+                                        <span className="text-slate-600 font-mono">ID: {task.issueNumber ?? task.id}</span>
+                                    </div>
+                                  </>
+                                )}
                             </div>
                         );
                     })

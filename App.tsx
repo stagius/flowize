@@ -430,6 +430,17 @@ export default function App() {
         if (tasks.length === 0) setCurrentStep(2);
     };
 
+    const handleEditTask = (taskId: string, updates: Partial<Pick<TaskItem, 'title' | 'description' | 'group' | 'priority'>>) => {
+        setTasks(prev => prev.map(task => {
+            if (task.id !== taskId) return task;
+            if (task.status !== TaskStatus.FORMATTED) return task;
+            return {
+                ...task,
+                ...updates
+            };
+        }));
+    };
+
     const handleSaveSettings = (next: AppSettings) => {
         setSettings(normalizeSettings(next, defaultSettings));
     };
@@ -1177,7 +1188,7 @@ export default function App() {
     const renderContent = () => {
         switch (currentStep) {
             case 1: return <Step1_Input onTasksGenerated={handleTasksGenerated} existingTasks={tasks} model={settings.model} />;
-            case 2: return <Step2_Issues tasks={tasks} onPromoteToIssue={handlePromoteToIssue} onPromoteAll={handlePromoteAllIssues} syncingTaskIds={syncingTaskIds} onFetchRemote={handleFetchRemote} />;
+            case 2: return <Step2_Issues tasks={tasks} onPromoteToIssue={handlePromoteToIssue} onPromoteAll={handlePromoteAllIssues} syncingTaskIds={syncingTaskIds} onFetchRemote={handleFetchRemote} onEditTask={handleEditTask} />;
             case 3: return <Step3_Worktrees
                 tasks={tasks}
                 slots={slots}
