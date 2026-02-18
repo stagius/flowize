@@ -699,7 +699,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                                             </span>
                                                         )
                                                     )}
-                                                    <h3 className="font-bold text-slate-100 truncate">{assignedTask.title}</h3>
+                                                    <h3 className="font-bold text-slate-100 truncate min-w-0">{assignedTask.title}</h3>
                                                 </div>
                                                 <p className="text-xs text-slate-500 truncate">{assignedTask.description}</p>
                                                 {assignedTask.reviewFeedback && (
