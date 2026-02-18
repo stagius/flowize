@@ -520,7 +520,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
             )}
 
             {/* Backlog Column */}
-            <div className="xl:col-span-1 bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 flex flex-col overflow-hidden h-[400px] xl:h-full xl:max-h-[calc(100vh-12rem)]">
+            <div className="xl:col-span-1 bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 flex flex-col overflow-hidden h-full min-h-[460px] xl:max-h-[calc(100vh-12rem)]">
                 <div className="p-4 border-b border-slate-800 bg-slate-900/80 flex-shrink-0">
                     <h3 className="font-semibold text-slate-300 flex items-center gap-2">
                         <GitBranch className="w-4 h-4 text-orange-400" /> Issue Backlog
@@ -529,7 +529,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                         Assign issues to available worktree slots.
                     </p>
                 </div>
-                <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+                <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3 custom-scrollbar">
                     {backlog.length === 0 ? (
                         <div className="text-center text-slate-600 text-sm mt-10 p-4">
                             Backlog empty. <br />Sync issues from previous step.
@@ -573,7 +573,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
             </div>
 
             {/* Worktree Slots Area */}
-            <div className="xl:col-span-3 flex flex-col gap-4 h-full overflow-y-auto custom-scrollbar pr-1 xl:pr-2 max-h-[calc(100vh-12rem)] pb-10 xl:pb-0">
+            <div className="xl:col-span-3 flex flex-col gap-4 h-full min-h-[460px] overflow-y-auto custom-scrollbar pr-1 xl:pr-2 max-h-[calc(100vh-12rem)]">
                 {slots.map((slot) => {
                     const assignedTask = tasks.find(t => t.id === slot.taskId);
                     const isInitializing = assignedTask?.status === TaskStatus.WORKTREE_INITIALIZING;
