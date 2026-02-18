@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { TONE_STYLES } from '../../designSystem';
 
 export type DialogTone = 'info' | 'warning' | 'error';
 
@@ -19,24 +20,6 @@ export interface ConfirmDialogState {
   tone: DialogTone;
 }
 
-const toneStyles: Record<DialogTone, { panel: string; icon: string; confirmButton?: string }> = {
-  info: {
-    panel: 'border-sky-500/30 bg-sky-950/20',
-    icon: 'text-sky-300',
-    confirmButton: 'bg-sky-600 hover:bg-sky-500 border-sky-500/50'
-  },
-  warning: {
-    panel: 'border-amber-500/30 bg-amber-950/20',
-    icon: 'text-amber-300',
-    confirmButton: 'bg-amber-600 hover:bg-amber-500 border-amber-500/50'
-  },
-  error: {
-    panel: 'border-red-500/30 bg-red-950/20',
-    icon: 'text-red-300',
-    confirmButton: 'bg-red-600 hover:bg-red-500 border-red-500/50'
-  }
-};
-
 interface AlertDialogProps {
   dialog: AlertDialogState | null;
   onClose: () => void;
@@ -54,9 +37,9 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({ dialog, onClose, onAct
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative w-full max-w-lg rounded-xl border p-5 shadow-2xl ${toneStyles[dialog.tone].panel}`}>
+      <div className={`relative w-full max-w-lg rounded-xl border p-5 shadow-2xl ${TONE_STYLES[dialog.tone].border} ${TONE_STYLES[dialog.tone].bg}`}>
         <div className="flex items-start gap-3">
-          <AlertTriangle className={`w-5 h-5 mt-0.5 ${toneStyles[dialog.tone].icon}`} />
+          <AlertTriangle className={`w-5 h-5 mt-0.5 ${TONE_STYLES[dialog.tone].text}`} />
           <div className="min-w-0">
             <h3 className="text-base font-semibold text-slate-100">{dialog.title}</h3>
             <p className="mt-2 text-sm text-slate-300 whitespace-pre-wrap">{dialog.message}</p>
@@ -67,7 +50,7 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({ dialog, onClose, onAct
             <button
               onClick={onAction}
               disabled={actionBusy}
-              className={`px-3 py-1.5 rounded-lg border text-sm text-white disabled:opacity-70 disabled:cursor-not-allowed ${toneStyles[actionTone].confirmButton}`}
+              className={`px-3 py-1.5 rounded-lg border text-sm text-white disabled:opacity-70 disabled:cursor-not-allowed ${TONE_STYLES[actionTone].button}`}
             >
               {actionBusy ? 'Running...' : dialog.actionLabel}
             </button>
@@ -98,9 +81,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ dialog, onCancel, 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onCancel} />
-      <div className={`relative w-full max-w-lg rounded-xl border p-5 shadow-2xl ${toneStyles[dialog.tone].panel}`}>
+      <div className={`relative w-full max-w-lg rounded-xl border p-5 shadow-2xl ${TONE_STYLES[dialog.tone].border} ${TONE_STYLES[dialog.tone].bg}`}>
         <div className="flex items-start gap-3">
-          <AlertTriangle className={`w-5 h-5 mt-0.5 ${toneStyles[dialog.tone].icon}`} />
+          <AlertTriangle className={`w-5 h-5 mt-0.5 ${TONE_STYLES[dialog.tone].text}`} />
           <div className="min-w-0">
             <h3 className="text-base font-semibold text-slate-100">{dialog.title}</h3>
             <p className="mt-2 text-sm text-slate-300 whitespace-pre-wrap">{dialog.message}</p>
@@ -115,7 +98,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ dialog, onCancel, 
           </button>
           <button
             onClick={onConfirm}
-            className={`px-3 py-1.5 rounded-lg border text-sm text-white ${toneStyles[dialog.tone].confirmButton}`}
+            className={`px-3 py-1.5 rounded-lg border text-sm text-white ${TONE_STYLES[dialog.tone].button}`}
           >
             {dialog.confirmLabel}
           </button>

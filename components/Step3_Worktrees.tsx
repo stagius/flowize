@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { TaskItem, TaskStatus, WorktreeSlot, AppSettings } from '../types';
 import { cancelAgentJob, generateImplementationFromAgent, openWorktreeCmdWindow } from '../services/agentService';
 import { GitBranch, FolderGit2, Terminal, Loader2, CloudUpload, CheckCircle2, GitCommit, FileDiff, History, X, Command, Trash2, ScrollText, Copy, Check } from 'lucide-react';
+import { PRIORITY_BADGES, WORKTREE_STATUS_THEMES } from '../designSystem';
 
 interface Props {
     tasks: TaskItem[];
@@ -346,14 +347,6 @@ export const Step3_Worktrees: React.FC<Props> = ({
         }
     };
 
-    const styles: Record<string, any> = {
-        slate: { border: 'border-slate-800', bg: 'bg-slate-900/30', text: 'text-slate-500', iconBg: 'bg-slate-800/50', iconBorder: 'border-slate-700', bar: 'bg-slate-700' },
-        cyan: { border: 'border-cyan-500/30', bg: 'bg-cyan-950/10', text: 'text-cyan-400', iconBg: 'bg-cyan-500/10', iconBorder: 'border-cyan-500/20', bar: 'bg-cyan-500' },
-        yellow: { border: 'border-yellow-500/30', bg: 'bg-yellow-950/10', text: 'text-yellow-400', iconBg: 'bg-yellow-500/10', iconBorder: 'border-yellow-500/20', bar: 'bg-yellow-500' },
-        indigo: { border: 'border-indigo-500/30', bg: 'bg-indigo-950/10', text: 'text-indigo-400', iconBg: 'bg-indigo-500/10', iconBorder: 'border-indigo-500/20', bar: 'bg-indigo-500' },
-        emerald: { border: 'border-emerald-500/30', bg: 'bg-emerald-950/10', text: 'text-emerald-400', iconBg: 'bg-emerald-500/10', iconBorder: 'border-emerald-500/20', bar: 'bg-emerald-500' },
-    };
-
     const activeAgentSlot = activeAgentConsoleSlotId !== null ? slots.find(s => s.id === activeAgentConsoleSlotId) : undefined;
     const activeAgentTask = activeAgentSlot ? tasks.find(t => t.id === activeAgentSlot.taskId) : undefined;
     const activeAgentJobId = activeAgentTask ? runningAgentJobIdByTask[activeAgentTask.id] : undefined;
@@ -544,12 +537,13 @@ export const Step3_Worktrees: React.FC<Props> = ({
                     ) : (
                         backlog.map(task => (
                             <div key={task.id} className="p-3 border border-slate-800 rounded-xl hover:bg-slate-800/50 transition-colors bg-slate-900/30 group">
-                                <div className="flex justify-between items-center mb-2">
+                                <div className="flex justify-between items-center mb-2 gap-2">
                                     <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700 font-mono">
                                         #{task.id.substring(0, 4)}
                                     </span>
-                                    <span className={`w-2 h-2 rounded-full ${task.priority === 'High' ? 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]' : 'bg-sky-500'
-                                        }`}></span>
+                                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${PRIORITY_BADGES[task.priority]}`}>
+                                        {task.priority}
+                                    </span>
                                 </div>
                                 <p className="font-medium text-sm text-slate-200 mb-3">{task.title}</p>
 
@@ -586,7 +580,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                     const isPushing = pushingTask === assignedTask?.id;
 
                     const config = getStatusConfig(assignedTask, isPushing);
-                    const theme = styles[config.theme];
+                    const theme = WORKTREE_STATUS_THEMES[config.theme as keyof typeof WORKTREE_STATUS_THEMES];
                     const StatusIcon = config.icon;
 
                     const gitStatus = !assignedTask ? null :

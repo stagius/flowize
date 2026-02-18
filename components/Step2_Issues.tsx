@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TaskItem, TaskStatus } from '../types';
 import { Github, ArrowRight, Check, AlertCircle, Loader2, ExternalLink, CloudDownload } from 'lucide-react';
+import { PRIORITY_BADGES } from '../designSystem';
 
 interface Props {
   tasks: TaskItem[];
@@ -93,6 +94,9 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
                                         }`}></span>
                                         <h4 className="font-medium text-slate-200">{task.title}</h4>
                                     </div>
+                                    <span className={`hidden sm:inline-flex text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${PRIORITY_BADGES[task.priority]}`}>
+                                        {task.priority}
+                                    </span>
                                     <button 
                                         onClick={() => onPromoteToIssue(task.id)}
                                         disabled={isSyncing}
@@ -139,10 +143,10 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
                                 >
                                     #{task.issueNumber || '???'} <ExternalLink className="w-3 h-3" />
                                 </a>
-                                <span className="text-[10px] text-slate-500 capitalize">{task.priority}</span>
-                             </div>
-                         </div>
-                    </div>
+                                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${PRIORITY_BADGES[task.priority]}`}>{task.priority}</span>
+                              </div>
+                          </div>
+                     </div>
                 ))}
                 {createdIssues.length === 0 && (
                      <div className="text-center text-slate-600 text-sm mt-10">No issues synced yet.</div>

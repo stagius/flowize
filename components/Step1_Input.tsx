@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { TaskItem } from '../types';
 import { analyzeAndFormatTasks } from '../services/geminiService';
 import { Loader2, Plus, Sparkles, Trash2, AlignLeft } from 'lucide-react';
+import { PRIORITY_BADGES, SPACING, TYPOGRAPHY } from '../designSystem';
 
 interface Props {
   onTasksGenerated: (tasks: TaskItem[]) => void;
@@ -22,17 +23,17 @@ export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks }
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+    <div className={`grid grid-cols-1 md:grid-cols-2 ${SPACING.sectionGap} h-full`}>
       {/* Input Section */}
       <div className="bg-slate-900/50 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 flex flex-col relative group">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 rounded-2xl -z-10"></div>
         
         <div className="mb-4">
-          <h2 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+          <h2 className={`${TYPOGRAPHY.sectionTitleClass} flex items-center gap-2`}>
             <AlignLeft className="w-5 h-5 text-indigo-400" />
             Input Specifications
           </h2>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className={`${TYPOGRAPHY.sectionSubtleClass} mt-1`}>
             Paste raw bug reports, feature specs, or slack messages.
           </p>
         </div>
@@ -68,7 +69,7 @@ export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks }
       {/* Preview Section */}
       <div className="bg-slate-900/50 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 flex flex-col h-full overflow-hidden">
         <div className="mb-4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-slate-200">Processed Log</h2>
+          <h2 className={TYPOGRAPHY.sectionTitleClass}>Processed Log</h2>
           <span className="text-xs font-semibold bg-slate-800 text-slate-400 px-2 py-1 rounded-full border border-slate-700">
             {existingTasks.length} Items
           </span>
@@ -87,11 +88,7 @@ export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks }
               <div key={task.id} className="p-4 border border-slate-800 rounded-xl bg-slate-900/80 hover:border-slate-700 hover:bg-slate-800 transition-all group">
                  <div className="flex items-start justify-between gap-4">
                     <span className="font-medium text-slate-200 text-sm truncate">{task.title}</span>
-                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
-                        task.priority === 'High' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                        task.priority === 'Medium' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                        'bg-sky-500/10 text-sky-400 border-sky-500/20'
-                    }`}>{task.priority}</span>
+                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${PRIORITY_BADGES[task.priority]}`}>{task.priority}</span>
                  </div>
                  <p className="text-xs text-slate-400 line-clamp-2 mt-1.5 leading-relaxed">{task.description}</p>
                  <div className="mt-3 flex gap-2">
