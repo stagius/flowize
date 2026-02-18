@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogState, ConfirmDialog, ConfirmDialogState, Dialo
 import { ToastItem, ToastStack, ToastTone } from './components/ui/ToastStack';
 import { createGithubIssue, fetchGithubIssues, createBranch, getBSHA, commitFile, createPullRequest, mergePullRequest, fetchMergedPRs, fetchOpenPRs, fetchCommitStatus, fetchAuthenticatedUser, fetchPullRequestDetails } from './services/githubService';
 import { createWorktree, pruneWorktree, pushWorktreeBranch, forcePushWorktreeBranchWithLease } from './services/gitService';
-import { ChevronLeft, ChevronRight, GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github } from 'lucide-react';
+import { GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github } from 'lucide-react';
 
 type BridgeHealthState = {
     status: 'checking' | 'healthy' | 'unhealthy';
@@ -1208,18 +1208,7 @@ export default function App() {
             ? 'bg-indigo-500/10 text-indigo-400'
             : 'bg-red-500/10 text-red-500';
 
-    const activeStepIndex = STEPS.findIndex((step) => step.id === currentStep);
-    const activeStep = activeStepIndex >= 0 ? STEPS[activeStepIndex] : null;
-    const canGoToPreviousStep = activeStepIndex > 0;
-    const canGoToNextStep = activeStepIndex >= 0 && activeStepIndex < STEPS.length - 1;
-
-    const moveStep = (direction: -1 | 1) => {
-        if (activeStepIndex < 0) return;
-        const targetStep = STEPS[activeStepIndex + direction];
-        if (!targetStep) return;
-        setCurrentStep(targetStep.id);
-        setIsMobileMenuOpen(false);
-    };
+    const activeStep = STEPS.find((step) => step.id === currentStep);
 
     return (
         <div className="min-h-screen flex bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30">
@@ -1449,7 +1438,7 @@ export default function App() {
                     </div>
                 </header>
 
-                <main className="flex-1 p-4 pb-24 md:p-8 md:pb-28 lg:pb-8 overflow-y-auto overflow-x-hidden">
+                <main className="flex-1 p-4 md:p-8 md:pt-4 overflow-y-auto overflow-x-hidden">
                     <div className="mx-auto h-full flex flex-col">
                         {/* Page Header */}
                         <div className="mb-6 flex items-center justify-between">
@@ -1467,37 +1456,6 @@ export default function App() {
                         </div>
                     </div>
                 </main>
-                <div className="fixed inset-x-0 bottom-0 z-40 lg:hidden bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent px-3 pt-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-                    <div className="mx-auto flex max-w-xl items-center justify-between gap-2 rounded-2xl border border-slate-700/70 bg-slate-900/90 p-2 shadow-[0_-10px_30px_rgba(2,6,23,0.65)] backdrop-blur-xl">
-                        <button
-                            type="button"
-                            onClick={() => moveStep(-1)}
-                            disabled={!canGoToPreviousStep}
-                            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900/80 px-3 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800/80 disabled:cursor-not-allowed disabled:opacity-40"
-                            aria-label="Previous step"
-                        >
-                            <ChevronLeft className="h-4 w-4" />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setIsMobileMenuOpen(true)}
-                            className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/15 px-3 text-sm font-semibold text-indigo-100 transition-colors hover:bg-indigo-500/20"
-                        >
-                            <span className="block w-full truncate text-center">
-                                {activeStep ? `${activeStepIndex + 1}/${STEPS.length} - ${activeStep.label}` : 'Open Steps'}
-                            </span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => moveStep(1)}
-                            disabled={!canGoToNextStep}
-                            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900/80 px-3 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800/80 disabled:cursor-not-allowed disabled:opacity-40"
-                            aria-label="Next step"
-                        >
-                            <ChevronRight className="h-4 w-4" />
-                        </button>
-                    </div>
-                </div>
             </div>
 
         </div>

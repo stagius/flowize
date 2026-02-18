@@ -93,9 +93,9 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
         />
        )}
 
-       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden">
-          {/* Pending Column */}
-          <div className="lg:col-span-2 bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 flex flex-col overflow-hidden h-[500px] lg:h-auto">
+       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden max-h-[calc(100vh-16rem)]">
+           {/* Pending Column */}
+           <div className="lg:col-span-2 bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 flex flex-col overflow-hidden h-full min-h-[460px]">
              <div className="p-4 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
                 <h3 className="font-semibold text-slate-300 flex items-center gap-2">
                     <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
@@ -103,10 +103,10 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
                 </h3>
                 <span className="text-xs text-slate-500">{pendingTasks.length} tasks</span>
              </div>
-             <div className="overflow-y-auto p-4 space-y-3 flex-1 custom-scrollbar">
-                 {isFetching ? (
-                    <LoadingSkeleton rows={3} className="pt-1" />
-                 ) : pendingTasks.length === 0 ? (
+             <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                  {isFetching ? (
+                     <LoadingSkeleton rows={3} className="pt-1" />
+                  ) : pendingTasks.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-slate-600 text-sm gap-2">
                         <Check className="w-8 h-8 opacity-20" />
                         All caught up!
@@ -151,12 +151,12 @@ export const Step2_Issues: React.FC<Props> = ({ tasks, onPromoteToIssue, onPromo
              </div>
           </div>
 
-          {/* Created Column */}
-          <div className="bg-slate-900/30 rounded-2xl border border-slate-800 flex flex-col overflow-hidden h-[300px] lg:h-auto">
+           {/* Created Column */}
+           <div className="bg-slate-900/30 rounded-2xl border border-slate-800 flex flex-col overflow-hidden h-full min-h-[460px]">
              <div className="p-4 border-b border-slate-800 bg-slate-900/50">
                 <h3 className="font-semibold text-slate-400">Synced Issues</h3>
              </div>
-             <div className="overflow-y-auto p-4 space-y-3 flex-1 custom-scrollbar">
+             <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                 {isFetching && createdIssues.length === 0 && <LoadingSkeleton rows={2} />}
                 {!isFetching && createdIssues.slice().reverse().map(task => (
                     <div key={task.id} className="flex items-start gap-3 p-3 bg-slate-900/50 rounded-lg border border-slate-800/50 opacity-80 hover:opacity-100 transition-opacity">
