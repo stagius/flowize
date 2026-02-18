@@ -10,8 +10,6 @@ const MODEL_OPTIONS = [
   { value: 'gemini-3-flash-preview', label: 'gemini-3-flash-preview', description: 'Fast' },
   { value: 'gemini-2.5-flash', label: 'gemini-2.5-flash', description: 'Balanced' },
   { value: 'gemini-2.5-flash-lite', label: 'gemini-2.5-flash-lite', description: 'Lite' },
-  { value: 'gemini-2.0-flash-lite', label: 'gemini-2.0-flash-lite', description: 'Lite' },
-  { value: 'gemini-2.0-flash', label: 'gemini-2.0-flash', description: '' },
 ];
 
 interface Props {
