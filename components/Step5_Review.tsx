@@ -129,7 +129,7 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
                         className="h-9 bg-teal-600 hover:bg-teal-500 text-white px-4 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all shadow-[0_0_10px_rgba(20,184,166,0.2)] disabled:opacity-70 disabled:cursor-not-allowed"
                       >
                         {loadingId === task.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <GitPullRequest className="w-3.5 h-3.5" />}
-                        Approve & Open PR
+                        Approve code & Open PR
                       </button>
                     </div>
                 </div>
