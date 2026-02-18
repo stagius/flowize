@@ -39,11 +39,9 @@ export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks }
         
         <div className="mb-4">
           <h2 className={`${TYPOGRAPHY.sectionTitleClass} flex items-center gap-2`}>
-          <h2 className={`${TYPOGRAPHY.sectionTitleClass} flex items-center gap-2`}>
             <AlignLeft className="w-5 h-5 text-indigo-400" />
             Input Specifications
           </h2>
-          <p className={`${TYPOGRAPHY.sectionSubtleClass} mt-1`}>
           <p className={`${TYPOGRAPHY.sectionSubtleClass} mt-1`}>
             Paste raw bug reports, feature specs, or slack messages.
           </p>
