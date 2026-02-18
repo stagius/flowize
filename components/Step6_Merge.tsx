@@ -138,7 +138,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
                               disabled={mergingId === task.id || resolvingId === task.id}
                               className={`w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
                                   mergingId === task.id || resolvingId === task.id
-                                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                  ? 'bg-slate-800 text-slate-400 cursor-not-allowed'
                                   : task.mergeConflict
                                     ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-900/30'
                                     : 'bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-900/30'
@@ -169,7 +169,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
       <div className="flex-1 min-h-0 bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 overflow-hidden flex flex-col">
           <div className="p-4 border-b border-slate-800 bg-slate-900/80 flex justify-between items-center">
              <h3 className="font-bold text-slate-300 flex items-center gap-2">
-               <CheckCircle className="w-5 h-5 text-slate-500" /> Merged History
+               <CheckCircle className="w-5 h-5 text-slate-400" /> Merged History
              </h3>
              <button 
                 onClick={handleFetch}
@@ -188,7 +188,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
               )}
               {!isFetching && (
               <table className="w-full text-sm text-left">
-                  <thead className="bg-slate-950/50 text-slate-500 font-medium border-b border-slate-800">
+                  <thead className="bg-slate-950/50 text-slate-400 font-medium border-b border-slate-800">
                       <tr>
                           <th className="px-6 py-3">Task</th>
                           <th className="px-6 py-3">PR</th>
@@ -209,7 +209,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
                               return (
                               <tr key={task.id} className="hover:bg-slate-800/30 transition-colors">
                                   <td className="px-6 py-3 font-medium text-slate-200">{task.title}</td>
-                                  <td className="px-5 py-3 font-mono text-slate-500">
+                                  <td className="px-5 py-3 font-mono text-slate-400">
                                       {prUrl ? (
                                         <a 
                                             href={prUrl}

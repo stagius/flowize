@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId, useCallback } from 'react';
 import { AppSettings } from '../types';
 import { X, Save, Github, FolderOpen, GitBranch, Terminal, Key, ShieldCheck, AlertTriangle, Cpu, Lock, Loader2, CheckCircle2, XCircle, Search, Copy, RefreshCw, FolderOpenDot, ChevronDown } from 'lucide-react';
 import { fetchAuthenticatedUser, fetchUserRepositories, fetchRepositoryBranches, GithubAuthenticatedUser, GithubRepository, GithubBranch } from '../services/githubService';
+import { useFocusTrap } from './ui/hooks/useFocusTrap';
 
 const SPECFLOW_SKILL_RELATIVE_PATH = '.opencode/skills/specflow-worktree-automation/SKILL.md';
 
@@ -51,6 +52,24 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   const branchPickerRef = useRef<HTMLDivElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+  
+  // Accessibility: unique IDs for ARIA attributes
+  const modalTitleId = useId();
+  const repoListboxId = useId();
+  const branchListboxId = useId();
+  const modelListboxId = useId();
+  
+  // Focus trap for modal
+  const focusTrapRef = useFocusTrap<HTMLDivElement>({
+    isActive: isOpen,
+    onEscape: onClose,
+    restoreFocus: true,
+  });
+  
+  // Keyboard navigation state for dropdowns
+  const [repoActiveIndex, setRepoActiveIndex] = useState(-1);
+  const [branchActiveIndex, setBranchActiveIndex] = useState(-1);
+  const [modelActiveIndex, setModelActiveIndex] = useState(-1);
 
   // Sync state when modal opens
   useEffect(() => {
@@ -683,23 +702,31 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
       <div
         className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Modal Content */}
-      <div className={`relative bg-slate-900 border-slate-800 shadow-2xl overflow-hidden duration-200 ${isMobileView
-        ? 'h-full w-full max-w-md border-l animate-in slide-in-from-right'
-        : 'w-full max-w-5xl border rounded-2xl animate-in fade-in zoom-in-95'
-        }`}>
+      <div 
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={modalTitleId}
+        className={`relative bg-slate-900 border-slate-800 shadow-2xl overflow-hidden duration-200 ${isMobileView
+          ? 'h-full w-full max-w-md border-l animate-in slide-in-from-right'
+          : 'w-full max-w-5xl border rounded-2xl animate-in fade-in zoom-in-95'
+        }`}
+      >
         <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Terminal className="w-5 h-5 text-indigo-500" />
+          <h2 id={modalTitleId} className="text-xl font-bold text-white flex items-center gap-2">
+            <Terminal className="w-5 h-5 text-indigo-500" aria-hidden="true" />
             Workflow Configuration
           </h2>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-white transition-colors p-1 hover:bg-slate-800 rounded-lg"
+            aria-label="Close settings"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -707,7 +734,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
 
           {/* API Access Section */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
               API Access
             </h3>
             <div className={`border rounded-lg p-3 flex justify-between items-center ${hasApiKey ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'
@@ -718,7 +745,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-200">Gemini API Key</p>
-                  <p className="text-[10px] text-slate-500">Env Var: process.env.API_KEY</p>
+                  <p className="text-[10px] text-slate-400">Env Var: process.env.API_KEY</p>
                 </div>
               </div>
               <span className={`text-[10px] font-bold px-2 py-1 rounded border ${hasApiKey
@@ -733,7 +760,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-300">GitHub Personal Access Token</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                 <input
                   type="password"
                   value={formData.githubToken || ''}
@@ -742,10 +769,10 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   placeholder="ghp_xxxxxxxxxxxx"
                 />
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-400">
                 Required scopes: <strong>repo</strong> (Classic) or <strong>Contents:Read/Write, PullRequests:Read/Write</strong> (Fine-grained).
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-400">
                 Auto-loads from <code>.env.local</code> when <code>VITE_GITHUB_TOKEN</code> is set.
               </p>
 
@@ -753,7 +780,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-xs font-semibold text-slate-300">GitHub OAuth (local bridge)</p>
-                    <p className="text-[11px] text-slate-500">Uses bridge env vars instead of pasting tokens manually.</p>
+                    <p className="text-[11px] text-slate-400">Uses bridge env vars instead of pasting tokens manually.</p>
                   </div>
                   <div className="flex items-center gap-2 sm:justify-end">
                     {!isGithubConnected && (
@@ -797,47 +824,86 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
 
                 {githubRepos.length > 0 && (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-300">Repository</label>
+                    <label id={`${repoListboxId}-label`} className="text-xs font-medium text-slate-300">Repository</label>
                     <div className="relative" ref={repoPickerRef}>
-                      <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-500" />
+                      <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
                       <input
                         value={repoSearchValue}
-                        onChange={(e) => handleRepoSearchInput(e.target.value)}
+                        onChange={(e) => {
+                          handleRepoSearchInput(e.target.value);
+                          setRepoActiveIndex(-1);
+                        }}
                         onFocus={() => setIsRepoMenuOpen(true)}
                         onKeyDown={(e) => {
                           if (e.key === 'Escape') {
                             setIsRepoMenuOpen(false);
+                            setRepoActiveIndex(-1);
+                          } else if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            if (!isRepoMenuOpen) setIsRepoMenuOpen(true);
+                            setRepoActiveIndex((prev) => 
+                              prev < filteredGithubRepos.length - 1 ? prev + 1 : 0
+                            );
+                          } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            if (!isRepoMenuOpen) setIsRepoMenuOpen(true);
+                            setRepoActiveIndex((prev) => 
+                              prev > 0 ? prev - 1 : filteredGithubRepos.length - 1
+                            );
+                          } else if (e.key === 'Enter' && repoActiveIndex >= 0 && filteredGithubRepos[repoActiveIndex]) {
+                            e.preventDefault();
+                            handleSelectRepository(filteredGithubRepos[repoActiveIndex].full_name);
+                            setRepoActiveIndex(-1);
                           }
                         }}
                         placeholder="Search repos (owner/name)"
+                        role="combobox"
+                        aria-expanded={isRepoMenuOpen}
+                        aria-haspopup="listbox"
+                        aria-controls={repoListboxId}
+                        aria-autocomplete="list"
+                        aria-activedescendant={repoActiveIndex >= 0 ? `repo-option-${repoActiveIndex}` : undefined}
+                        aria-labelledby={`${repoListboxId}-label`}
                         className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
                       />
 
                       {isRepoMenuOpen && (
-                        <div className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-700 bg-slate-900/95 shadow-2xl max-h-[400px] overflow-y-auto">
+                        <ul 
+                          id={repoListboxId}
+                          role="listbox"
+                          aria-label="Repository options"
+                          className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-700 bg-slate-900/95 shadow-2xl max-h-[400px] overflow-y-auto"
+                        >
                           {filteredGithubRepos.length === 0 ? (
-                            <div className="px-3 py-2 text-xs text-slate-500">No repositories found.</div>
+                            <li className="px-3 py-2 text-xs text-slate-400" role="option" aria-disabled="true">No repositories found.</li>
                           ) : (
-                            filteredGithubRepos.map((repo) => {
+                            filteredGithubRepos.map((repo, index) => {
                               const isSelected = repo.full_name === `${formData.repoOwner}/${formData.repoName}`;
+                              const isActive = index === repoActiveIndex;
                               return (
-                                <button
+                                <li
                                   key={repo.id}
-                                  type="button"
+                                  id={`repo-option-${index}`}
+                                  role="option"
+                                  aria-selected={isSelected}
                                   onMouseDown={(e) => e.preventDefault()}
-                                  onClick={() => handleSelectRepository(repo.full_name)}
-                                  className={`w-full text-left px-3 py-2 border-b border-slate-800/70 last:border-b-0 hover:bg-slate-800/80 transition-colors ${isSelected ? 'bg-indigo-500/10' : ''}`}
+                                  onClick={() => {
+                                    handleSelectRepository(repo.full_name);
+                                    setRepoActiveIndex(-1);
+                                  }}
+                                  onMouseEnter={() => setRepoActiveIndex(index)}
+                                  className={`w-full text-left px-3 py-2 border-b border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-800/80' : 'hover:bg-slate-800/80'}`}
                                 >
                                   <p className="text-xs font-medium text-slate-200">{repo.full_name}</p>
-                                  <p className="text-[10px] text-slate-500">{repo.private ? 'private' : 'public'}</p>
-                                </button>
+                                  <p className="text-[10px] text-slate-400">{repo.private ? 'private' : 'public'}</p>
+                                </li>
                               );
                             })
                           )}
-                        </div>
+                        </ul>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-500">Loaded from your authenticated GitHub account (latest 100 repos).</p>
+                    <p className="text-[11px] text-slate-400">Loaded from your authenticated GitHub account (latest 100 repos).</p>
                   </div>
                 )}
               </div>
@@ -845,12 +911,50 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
 
             {/* Model Selection */}
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300">Gemini Model</label>
+              <label id={`${modelListboxId}-label`} className="text-sm font-medium text-slate-300">Gemini Model</label>
               <div className="relative" ref={modelPickerRef}>
-                <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" aria-hidden="true" />
                 <button
                   type="button"
                   onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape' && isModelMenuOpen) {
+                      e.preventDefault();
+                      setIsModelMenuOpen(false);
+                      setModelActiveIndex(-1);
+                    } else if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      if (!isModelMenuOpen) {
+                        setIsModelMenuOpen(true);
+                        setModelActiveIndex(0);
+                      } else {
+                        setModelActiveIndex((prev) => 
+                          prev < MODEL_OPTIONS.length - 1 ? prev + 1 : 0
+                        );
+                      }
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      if (!isModelMenuOpen) {
+                        setIsModelMenuOpen(true);
+                        setModelActiveIndex(MODEL_OPTIONS.length - 1);
+                      } else {
+                        setModelActiveIndex((prev) => 
+                          prev > 0 ? prev - 1 : MODEL_OPTIONS.length - 1
+                        );
+                      }
+                    } else if ((e.key === 'Enter' || e.key === ' ') && isModelMenuOpen && modelActiveIndex >= 0) {
+                      e.preventDefault();
+                      setFormData({ ...formData, model: MODEL_OPTIONS[modelActiveIndex].value });
+                      setIsModelMenuOpen(false);
+                      setModelActiveIndex(-1);
+                    }
+                  }}
+                  role="combobox"
+                  aria-expanded={isModelMenuOpen}
+                  aria-haspopup="listbox"
+                  aria-controls={modelListboxId}
+                  aria-labelledby={`${modelListboxId}-label`}
+                  aria-activedescendant={modelActiveIndex >= 0 ? `model-option-${modelActiveIndex}` : undefined}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-9 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-left flex items-center justify-between"
                 >
                   <span>
@@ -859,35 +963,45 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                       return selected ? `${selected.label}${selected.description ? ` (${selected.description})` : ''}` : (formData.model || 'gemini-3-pro');
                     })()}
                   </span>
-                  <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
                 </button>
 
                 {isModelMenuOpen && (
-                  <div className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-700 bg-slate-900/95 shadow-2xl max-h-[300px] overflow-y-auto">
-                    {MODEL_OPTIONS.map((model) => {
+                  <ul 
+                    id={modelListboxId}
+                    role="listbox"
+                    aria-label="Model options"
+                    className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-700 bg-slate-900/95 shadow-2xl max-h-[300px] overflow-y-auto"
+                  >
+                    {MODEL_OPTIONS.map((model, index) => {
                       const isSelected = model.value === (formData.model || 'gemini-3-pro');
+                      const isActive = index === modelActiveIndex;
                       return (
-                        <button
+                        <li
                           key={model.value}
-                          type="button"
+                          id={`model-option-${index}`}
+                          role="option"
+                          aria-selected={isSelected}
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => {
                             setFormData({ ...formData, model: model.value });
                             setIsModelMenuOpen(false);
+                            setModelActiveIndex(-1);
                           }}
-                          className={`w-full text-left px-3 py-2 border-b border-slate-800/70 last:border-b-0 hover:bg-slate-800/80 transition-colors ${isSelected ? 'bg-indigo-500/10' : ''}`}
+                          onMouseEnter={() => setModelActiveIndex(index)}
+                          className={`w-full text-left px-3 py-2 border-b border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-800/80' : 'hover:bg-slate-800/80'}`}
                         >
                           <p className="text-xs font-medium text-slate-200">{model.label}</p>
                           {model.description && (
-                            <p className="text-[10px] text-slate-500">{model.description}</p>
+                            <p className="text-[10px] text-slate-400">{model.description}</p>
                           )}
-                        </button>
+                        </li>
                       );
                     })}
-                  </div>
+                  </ul>
                 )}
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-400">
                 Select the Gemini model for AI task analysis.
               </p>
             </div>
@@ -906,13 +1020,13 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
 
           {/* Repo Details */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Repository Details</h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Repository Details</h3>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-300">Owner</label>
                 <div className="relative">
-                  <Github className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                  <Github className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     value={formData.repoOwner}
@@ -923,14 +1037,14 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   />
                 </div>
                 {repoControlledByOAuth && (
-                  <p className="text-[10px] text-slate-500">Owner is synced from selected GitHub repository.</p>
+                  <p className="text-[10px] text-slate-400">Owner is synced from selected GitHub repository.</p>
                 )}
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-300">Repository Name</label>
                 <div className="relative">
-                  <div className="absolute left-3 top-2.5 w-4 h-4 text-slate-500 flex items-center justify-center font-mono text-[10px] font-bold">/</div>
+                  <div className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 flex items-center justify-center font-mono text-[10px] font-bold">/</div>
                   <input
                     type="text"
                     value={formData.repoName}
@@ -941,60 +1055,99 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   />
                 </div>
                 {repoControlledByOAuth && (
-                  <p className="text-[10px] text-slate-500">Repository name is synced from selected GitHub repository.</p>
+                  <p className="text-[10px] text-slate-400">Repository name is synced from selected GitHub repository.</p>
                 )}
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300">Default Branch</label>
+              <label id={`${branchListboxId}-label`} className="text-sm font-medium text-slate-300">Default Branch</label>
               {canUseBranchDropdown ? (
                 <div className="relative" ref={branchPickerRef}>
-                  <GitBranch className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                  <GitBranch className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" aria-hidden="true" />
                   <input
                     type="text"
                     value={branchSearchValue}
-                    onChange={(e) => handleBranchSearchInput(e.target.value)}
+                    onChange={(e) => {
+                      handleBranchSearchInput(e.target.value);
+                      setBranchActiveIndex(-1);
+                    }}
                     onFocus={() => setIsBranchMenuOpen(true)}
                     onKeyDown={(e) => {
                       if (e.key === 'Escape') {
                         setIsBranchMenuOpen(false);
+                        setBranchActiveIndex(-1);
+                      } else if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        if (!isBranchMenuOpen) setIsBranchMenuOpen(true);
+                        setBranchActiveIndex((prev) => 
+                          prev < filteredGithubBranches.length - 1 ? prev + 1 : 0
+                        );
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (!isBranchMenuOpen) setIsBranchMenuOpen(true);
+                        setBranchActiveIndex((prev) => 
+                          prev > 0 ? prev - 1 : filteredGithubBranches.length - 1
+                        );
+                      } else if (e.key === 'Enter' && branchActiveIndex >= 0 && filteredGithubBranches[branchActiveIndex]) {
+                        e.preventDefault();
+                        handleSelectBranch(filteredGithubBranches[branchActiveIndex].name);
+                        setBranchActiveIndex(-1);
                       }
                     }}
+                    role="combobox"
+                    aria-expanded={isBranchMenuOpen}
+                    aria-haspopup="listbox"
+                    aria-controls={branchListboxId}
+                    aria-autocomplete="list"
+                    aria-activedescendant={branchActiveIndex >= 0 ? `branch-option-${branchActiveIndex}` : undefined}
+                    aria-labelledby={`${branchListboxId}-label`}
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
                     placeholder="Search branch"
                   />
 
                   {isBranchMenuOpen && (
-                    <div className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-700 bg-slate-900/95 shadow-2xl max-h-52 overflow-y-auto">
+                    <ul 
+                      id={branchListboxId}
+                      role="listbox"
+                      aria-label="Branch options"
+                      className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-700 bg-slate-900/95 shadow-2xl max-h-52 overflow-y-auto"
+                    >
                       {loadingBranches ? (
-                        <div className="px-3 py-2 text-xs text-indigo-300 flex items-center gap-1.5">
-                          <Loader2 className="w-3 h-3 animate-spin" /> Loading branches...
-                        </div>
+                        <li className="px-3 py-2 text-xs text-indigo-300 flex items-center gap-1.5" role="option" aria-disabled="true">
+                          <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> Loading branches...
+                        </li>
                       ) : filteredGithubBranches.length === 0 ? (
-                        <div className="px-3 py-2 text-xs text-slate-500">No branches found.</div>
+                        <li className="px-3 py-2 text-xs text-slate-400" role="option" aria-disabled="true">No branches found.</li>
                       ) : (
-                        filteredGithubBranches.map((branch) => {
+                        filteredGithubBranches.map((branch, index) => {
                           const isSelected = branch.name === formData.defaultBranch;
+                          const isActive = index === branchActiveIndex;
                           return (
-                            <button
+                            <li
                               key={branch.name}
-                              type="button"
+                              id={`branch-option-${index}`}
+                              role="option"
+                              aria-selected={isSelected}
                               onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => handleSelectBranch(branch.name)}
-                              className={`w-full text-left px-3 py-2 border-b border-slate-800/70 last:border-b-0 hover:bg-slate-800/80 transition-colors ${isSelected ? 'bg-indigo-500/10' : ''}`}
+                              onClick={() => {
+                                handleSelectBranch(branch.name);
+                                setBranchActiveIndex(-1);
+                              }}
+                              onMouseEnter={() => setBranchActiveIndex(index)}
+                              className={`w-full text-left px-3 py-2 border-b border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-800/80' : 'hover:bg-slate-800/80'}`}
                             >
                               <p className="text-xs font-medium text-slate-200">{branch.name}</p>
-                            </button>
+                            </li>
                           );
                         })
                       )}
-                    </div>
+                    </ul>
                   )}
                 </div>
               ) : (
                 <div className="relative">
-                  <GitBranch className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                  <GitBranch className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" aria-hidden="true" />
                   <input
                     type="text"
                     value={formData.defaultBranch}
@@ -1002,13 +1155,14 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                       setBranchSearchValue(e.target.value);
                       setFormData({ ...formData, defaultBranch: e.target.value });
                     }}
+                    aria-labelledby={`${branchListboxId}-label`}
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
                     placeholder="main"
                   />
                 </div>
               )}
               {canUseBranchDropdown && (
-                <p className="text-[10px] text-slate-500">Branch list is loaded from selected GitHub repository.</p>
+                <p className="text-[10px] text-slate-400">Branch list is loaded from selected GitHub repository.</p>
               )}
             </div>
           </div>
@@ -1017,14 +1171,14 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
 
           {/* Environment */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Local Environment</h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Local Environment</h3>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <div className="col-span-2 space-y-1.5">
                 <label className="text-sm font-medium text-slate-300">Worktree Root Path</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <FolderOpen className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                    <FolderOpen className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                     <input
                       type="text"
                       value={formData.worktreeRoot}
@@ -1054,7 +1208,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-300">Max Slots</label>
                 <div className="relative">
-                  <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                  <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                   <input
                     type="number"
                     min="1"
@@ -1066,7 +1220,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 </div>
               </div>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-400">
               New worktrees will be created as sibling folders (example: /flowize-wt-1).
             </p>
 
@@ -1079,10 +1233,10 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
                 placeholder={'cd "{worktreePath}" && opencode run {agentFlag} "Implement issue #{issueNumber} on branch {branch}. Use {issueDescriptionFile} as requirements and follow {skillFile}. Return code/output for this task." --print-logs'}
               />
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-400">
                 Used when you click Implement on a worktree task with an issue. Placeholders: {'{issueNumber}'}, {'{branch}'}, {'{title}'}, {'{worktreePath}'}, {'{agentWorkspace}'}, {'{issueDescriptionFile}'}, {'{skillFile}'}, {'{agentName}'}, {'{agentFlag}'}.
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-400">
                 Use a headless CLI command that prints to stdout (for example `opencode run ... --print-logs`). GUI chat commands open windows and will not stream implementation output back.
               </p>
             </div>
@@ -1096,7 +1250,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
                 placeholder="frontend"
               />
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-400">
                 If set, {'{agentFlag}'} expands to `--agent "name"` in the command template.
               </p>
             </div>
@@ -1123,7 +1277,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                     ) : 'Test bridge'}
                   </button>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-400">
                   Must be a running local HTTP bridge that accepts POST and allows browser origin access (CORS).
                 </p>
                 <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${bridgeHealth.status === 'healthy'
