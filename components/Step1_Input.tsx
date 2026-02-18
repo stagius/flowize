@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TaskItem, TaskStatus } from '../types';
 import { analyzeAndFormatTasks } from '../services/geminiService';
 import { Loader2, Plus, Sparkles, Trash2, AlignLeft, Sparkle } from 'lucide-react';
@@ -11,15 +11,31 @@ interface Props {
   model?: string;
 }
 
+const INPUT_STORAGE_KEY = 'flowize.input.v1';
+
+const getStoredInput = (): string => {
+  if (typeof window === 'undefined') return '';
+  try {
+    return window.localStorage.getItem(INPUT_STORAGE_KEY) || '';
+  } catch {
+    return '';
+  }
+};
+
 const isUnsynced = (task: TaskItem): boolean => {
   return task.status === TaskStatus.RAW || task.status === TaskStatus.FORMATTED;
 };
 
 export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks, model }) => {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(getStoredInput);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [showNewOnly, setShowNewOnly] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(INPUT_STORAGE_KEY, input);
+  }, [input]);
 
   const handleAnalyze = async () => {
     if (!input.trim()) return;
