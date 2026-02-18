@@ -28,3 +28,4 @@ dist-ssr
 
 # Ignore generated feature worktree content
 src/features/*
+.antigravity/
