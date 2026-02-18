@@ -181,6 +181,28 @@ const setupAgentWorkspace = async (settings: AppSettings, slotPath: string, task
     issueNumber: task.issueNumber,
     issueDescriptionFile
   });
+
+  // Add agent subdir to .gitignore
+  const gitignorePath = joinPath(slotPath, '.gitignore');
+  const gitignoreEntry = `${subdir}/`;
+  const updateGitignoreCommand =
+    `node -e "const fs=require('fs');const path=process.argv[1];const entry=process.argv[2];` +
+    `let content='';try{content=fs.readFileSync(path,'utf8');}catch{}` +
+    `const lines=content.split('\\n');` +
+    `if(!lines.some(l=>l.trim()===entry)){` +
+    `if(content && !content.endsWith('\\n'))content+='\\n';` +
+    `content+=entry+'\\n';` +
+    `fs.writeFileSync(path,content,'utf8');` +
+    `console.log('Added '+entry+' to .gitignore');` +
+    `}else{console.log(entry+' already in .gitignore');}` +
+    `" "${gitignorePath}" "${gitignoreEntry}"`;
+
+  console.log(`[GitService] Adding ${subdir} to .gitignore`);
+  await runBridgeCommand(settings, updateGitignoreCommand, {
+    worktreePath: slotPath,
+    branch: task.branchName
+  });
+
   console.log(`[GitService] Agent workspace ready at ${agentWorkspace}`);
 };
 
