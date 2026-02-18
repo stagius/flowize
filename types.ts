@@ -51,6 +51,7 @@ export interface AppSettings {
   antiGravityAgentEndpoint?: string;
   antiGravityAgentSubdir?: string;
   antiGravitySkillFile?: string;
+  model?: string;
 }
 
 export type StepId = 1 | 2 | 3 | 4 | 5;

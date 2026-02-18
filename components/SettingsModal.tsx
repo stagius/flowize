@@ -1,9 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppSettings } from '../types';
-import { X, Save, Github, FolderOpen, GitBranch, Terminal, Key, ShieldCheck, AlertTriangle, Cpu, Lock, Loader2, CheckCircle2, XCircle, Search, Copy, RefreshCw, FolderOpenDot } from 'lucide-react';
+import { X, Save, Github, FolderOpen, GitBranch, Terminal, Key, ShieldCheck, AlertTriangle, Cpu, Lock, Loader2, CheckCircle2, XCircle, Search, Copy, RefreshCw, FolderOpenDot, ChevronDown } from 'lucide-react';
 import { fetchAuthenticatedUser, fetchUserRepositories, fetchRepositoryBranches, GithubAuthenticatedUser, GithubRepository, GithubBranch } from '../services/githubService';
 
 const SPECFLOW_SKILL_RELATIVE_PATH = '.opencode/skills/specflow-worktree-automation/SKILL.md';
+
+const MODEL_OPTIONS = [
+  { value: 'gemini-3-flash-preview', label: 'gemini-3-flash-preview', description: 'Fast' },
+  { value: 'gemini-2.5-flash', label: 'gemini-2.5-flash', description: 'Balanced' },
+  { value: 'gemini-2.5-flash-lite', label: 'gemini-2.5-flash-lite', description: 'Lite' },
+  { value: 'gemini-2.0-flash-lite', label: 'gemini-2.0-flash-lite', description: 'Lite' },
+  { value: 'gemini-2.0-flash', label: 'gemini-2.0-flash', description: '' },
+];
 
 interface Props {
   isOpen: boolean;
@@ -41,6 +49,8 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   const fileInputRef = useRef<HTMLInputElement>(null);
   const repoPickerRef = useRef<HTMLDivElement>(null);
   const branchPickerRef = useRef<HTMLDivElement>(null);
+  const modelPickerRef = useRef<HTMLDivElement>(null);
+  const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
 
   // Sync state when modal opens
   useEffect(() => {
@@ -423,6 +433,23 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
       window.removeEventListener('mousedown', handleWindowMouseDown);
     };
   }, [isBranchMenuOpen]);
+
+  useEffect(() => {
+    if (!isModelMenuOpen) return;
+
+    const handleWindowMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (modelPickerRef.current && !modelPickerRef.current.contains(target)) {
+        setIsModelMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('mousedown', handleWindowMouseDown);
+    return () => {
+      window.removeEventListener('mousedown', handleWindowMouseDown);
+    };
+  }, [isModelMenuOpen]);
 
   useEffect(() => {
     if (!repoControlledByOAuth) {
@@ -814,6 +841,55 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Model Selection */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-300">Gemini Model</label>
+              <div className="relative" ref={modelPickerRef}>
+                <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                <button
+                  type="button"
+                  onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-9 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-left flex items-center justify-between"
+                >
+                  <span>
+                    {(() => {
+                      const selected = MODEL_OPTIONS.find(m => m.value === (formData.model || 'gemini-3-pro'));
+                      return selected ? `${selected.label}${selected.description ? ` (${selected.description})` : ''}` : (formData.model || 'gemini-3-pro');
+                    })()}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {isModelMenuOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-700 bg-slate-900/95 shadow-2xl max-h-[300px] overflow-y-auto">
+                    {MODEL_OPTIONS.map((model) => {
+                      const isSelected = model.value === (formData.model || 'gemini-3-pro');
+                      return (
+                        <button
+                          key={model.value}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setFormData({ ...formData, model: model.value });
+                            setIsModelMenuOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 border-b border-slate-800/70 last:border-b-0 hover:bg-slate-800/80 transition-colors ${isSelected ? 'bg-indigo-500/10' : ''}`}
+                        >
+                          <p className="text-xs font-medium text-slate-200">{model.label}</p>
+                          {model.description && (
+                            <p className="text-[10px] text-slate-500">{model.description}</p>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-slate-500">
+                Select the Gemini model for AI task analysis.
+              </p>
             </div>
 
             {!hasApiKey && (

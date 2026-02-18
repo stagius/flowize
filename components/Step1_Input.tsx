@@ -8,9 +8,10 @@ import { PRIORITY_BADGES, SPACING, TYPOGRAPHY } from '../designSystem';
 interface Props {
   onTasksGenerated: (tasks: TaskItem[]) => void;
   existingTasks: TaskItem[];
+  model?: string;
 }
 
-export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks }) => {
+export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks, model }) => {
   const [input, setInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -20,7 +21,7 @@ export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks }
     setIsAnalyzing(true);
     setAnalysisError(null);
     try {
-      const tasks = await analyzeAndFormatTasks(input);
+      const tasks = await analyzeAndFormatTasks(input, model);
       onTasksGenerated(tasks);
       setInput('');
     } catch (error) {

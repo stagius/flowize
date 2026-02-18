@@ -34,7 +34,8 @@ const createDefaultSettings = (envGithubToken: string, browserHost: string): App
     antiGravityAgentName: '',
     antiGravityAgentEndpoint: `http://${browserHost}:4141/run`,
     antiGravityAgentSubdir: '.antigravity',
-    antiGravitySkillFile: '.opencode/skills/specflow-worktree-automation/SKILL.md'
+    antiGravitySkillFile: '.opencode/skills/specflow-worktree-automation/SKILL.md',
+    model: 'gemini-3-flash-preview'
 });
 
 const normalizeSettings = (raw: Partial<AppSettings>, defaults: AppSettings): AppSettings => {
@@ -1163,7 +1164,7 @@ export default function App() {
 
     const renderContent = () => {
         switch (currentStep) {
-            case 1: return <Step1_Input onTasksGenerated={handleTasksGenerated} existingTasks={tasks} />;
+            case 1: return <Step1_Input onTasksGenerated={handleTasksGenerated} existingTasks={tasks} model={settings.model} />;
             case 2: return <Step2_Issues tasks={tasks} onPromoteToIssue={handlePromoteToIssue} onPromoteAll={handlePromoteAllIssues} syncingTaskIds={syncingTaskIds} onFetchRemote={handleFetchRemote} />;
             case 3: return <Step3_Worktrees
                 tasks={tasks}
