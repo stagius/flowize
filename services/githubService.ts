@@ -40,6 +40,15 @@ export interface GithubPullRequestDetails {
     };
 }
 
+export interface TokenValidationResult {
+    valid: boolean;
+    user?: GithubAuthenticatedUser;
+    scopes: string[];
+    hasRequiredScopes: boolean;
+    missingScopes: string[];
+    error?: string;
+}
+
 const getGithubToken = (settings: AppSettings): string => {
     const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
     return settings.githubToken || env?.VITE_GITHUB_TOKEN || env?.GITHUB_TOKEN || '';
@@ -96,6 +105,92 @@ const handleGithubError = async (response: Response, context: string) => {
 
     throw new Error(`GitHub API Error (${response.status}) during ${context}: ${fullMessage}`);
 };
+
+/**
+ * Parse GitHub OAuth scopes from response headers
+ */
+const parseScopes = (scopeHeader: string | null): string[] => {
+    if (!scopeHeader) return [];
+    return scopeHeader.split(',').map(s => s.trim()).filter(Boolean);
+};
+
+/**
+ * Required scopes for the application to function properly
+ */
+const REQUIRED_SCOPES = {
+    classic: ['repo'], // Classic tokens need 'repo' scope
+    fineGrained: ['contents', 'pull_requests', 'issues'] // Fine-grained tokens need these
+};
+
+/**
+ * Validate a GitHub token and check its scopes
+ */
+export const validateGithubToken = async (token: string): Promise<TokenValidationResult> => {
+    if (!token || !token.trim()) {
+        return {
+            valid: false,
+            scopes: [],
+            hasRequiredScopes: false,
+            missingScopes: [],
+            error: 'Token is empty'
+        };
+    }
+
+    try {
+        const response = await fetch('https://api.github.com/user', {
+            headers: {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                return {
+                    valid: false,
+                    scopes: [],
+                    hasRequiredScopes: false,
+                    missingScopes: [],
+                    error: 'Invalid token or token has been revoked'
+                };
+            }
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const user = await response.json() as GithubAuthenticatedUser;
+        const scopeHeader = response.headers.get('x-oauth-scopes');
+        const scopes = parseScopes(scopeHeader);
+
+        // Check if token has required scopes
+        // Classic tokens will have 'repo' scope
+        // Fine-grained tokens won't show in x-oauth-scopes header (limitation of GitHub API)
+        const hasClassicRepo = scopes.includes('repo');
+        const hasRequiredScopes = hasClassicRepo || scopes.length === 0; // Empty scopes likely means fine-grained
+        
+        let missingScopes: string[] = [];
+        if (!hasRequiredScopes && scopes.length > 0) {
+            // Classic token without repo scope
+            missingScopes = REQUIRED_SCOPES.classic.filter(s => !scopes.includes(s));
+        }
+
+        return {
+            valid: true,
+            user,
+            scopes,
+            hasRequiredScopes,
+            missingScopes
+        };
+    } catch (error) {
+        return {
+            valid: false,
+            scopes: [],
+            hasRequiredScopes: false,
+            missingScopes: [],
+            error: error instanceof Error ? error.message : String(error)
+        };
+    }
+};
+
 
 export const createGithubIssue = async (settings: AppSettings, task: TaskItem) => {
     const token = getGithubToken(settings);
