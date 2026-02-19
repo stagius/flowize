@@ -5,6 +5,7 @@ export interface GithubAuthenticatedUser {
     login: string;
     avatar_url?: string;
     name?: string;
+    email?: string;
 }
 
 export interface GithubRepository {
