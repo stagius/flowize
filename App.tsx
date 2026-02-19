@@ -473,6 +473,23 @@ export default function App() {
     const handleLogout = () => {
         setSettings(prev => ({ ...prev, githubToken: '' }));
         setGithubLogin('');
+        // Clear session storage to ensure fresh login on next session
+        if (typeof window !== 'undefined') {
+            window.sessionStorage.removeItem('flowize.session.active');
+            // Remove githubToken from localStorage settings
+            const stored = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+            if (stored) {
+                try {
+                    const settings = JSON.parse(stored);
+                    delete settings.githubToken;
+                    window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+                } catch {
+                    // If parsing fails, continue with logout
+                }
+            }
+            // Remove auth token from localStorage
+            window.localStorage.removeItem('flowize.auth.token.v1');
+        }
         showToast('Logged out successfully', 'info');
         // Refresh page to clear in-memory data and reset UI state
         window.location.href = '/';
@@ -1254,8 +1271,9 @@ export default function App() {
                 onFinishImplementation={handleFinishImplementation}
                 onCleanup={handleCleanupSlot}
                 settings={settings}
+                bridgeHealth={bridgeHealth}
             />;
-            case 4: return <Step5_Review tasks={tasks} onApprovePR={handleApprovePR} onRequestChanges={handleRequestChanges} onCheckStatus={handleCheckCIStatus} />;
+            case 4: return <Step5_Review tasks={tasks} onApprovePR={handleApprovePR} onRequestChanges={handleRequestChanges} onCheckStatus={handleCheckCIStatus} bridgeHealth={bridgeHealth} />;
             case 5: return <Step6_Merge tasks={tasks} onMerge={handleMerge} onResolveConflict={handleResolveMergeConflict} onFetchMerged={handleFetchMerged} settings={settings} />;
             default: return <div>Unknown Step</div>;
         }
