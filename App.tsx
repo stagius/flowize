@@ -441,9 +441,14 @@ export default function App() {
     // Only check settings.githubToken, not environment variable (force login on launch)
     const hasGithubToken = Boolean(settings.githubToken);
 
-    const handleLoginSuccess = (token: string) => {
+    const handleLoginSuccess = async (token: string) => {
         setSettings(prev => ({ ...prev, githubToken: token }));
-        showToast('Successfully authenticated with GitHub!', 'success');
+        try {
+            const user = await fetchAuthenticatedUser(token);
+            showToast(`Logged in as @${user.login}`, 'success');
+        } catch {
+            showToast('Successfully authenticated with GitHub!', 'success');
+        }
     };
 
     const handleLogout = () => {
