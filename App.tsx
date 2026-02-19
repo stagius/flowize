@@ -637,9 +637,9 @@ export default function App() {
             setTasks(newTasks);
 
             if (newTasks.length === 0) {
-                showToast('No open issues found. Task list cleared.', 'warning');
+                showToast('No open issues found. Task list cleared.', 'info');
             } else {
-                showToast(`Fetched ${newTasks.length} issues and replaced current list.`, 'warning');
+                showToast(`Fetched ${newTasks.length} issues and replaced current list.`, 'info');
             }
 
         } catch (error: any) {

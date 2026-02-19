@@ -205,15 +205,15 @@ export const Step2_Issues: React.FC<Props> = ({
                                       <button 
                                           onClick={() => onPromoteToIssue(task.id)}
                                           disabled={isSyncing}
-                                          className={`text-xs px-3 py-1.5 rounded font-semibold transition-all hover:scale-105 ${
+                                          className={`text-xs px-3 py-1.5 rounded-md font-semibold transition-all ${
                                               isSyncing 
                                               ? 'bg-purple-200 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 cursor-not-allowed' 
                                               : 'bg-purple-600 hover:bg-purple-500 text-white border border-purple-500/40 shadow-lg shadow-purple-500/20 dark:shadow-purple-900/20'
                                           }`}
                                       >
                                           <span className="inline-flex items-center gap-1.5">
-                                            <span className="sm:hidden">{isSyncing ? 'Creating...' : 'Create'}</span>
-                                            <span className="hidden sm:inline">{isSyncing ? 'Creating...' : 'Create Issue'}</span>
+                                            <span className="2xl:hidden">{isSyncing ? 'Creating...' : 'Create'}</span>
+                                            <span className="hidden 2xl:inline">{isSyncing ? 'Creating...' : 'Create Issue'}</span>
                                             {isSyncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
                                           </span>
                                       </button>
