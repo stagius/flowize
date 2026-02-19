@@ -19,10 +19,11 @@ interface Props {
   onSave: (settings: AppSettings) => void;
   onReset: () => void;
   onClearLocalSession: () => void;
+  onLogout: () => void;
   hasApiKey: boolean;
 }
 
-export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSettings, onSave, onReset, onClearLocalSession, hasApiKey }) => {
+export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSettings, onSave, onReset, onClearLocalSession, onLogout, hasApiKey }) => {
   const [formData, setFormData] = useState<AppSettings>(currentSettings);
   const [isMobileView, setIsMobileView] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -292,6 +293,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
     setBranchSearchValue(formData.defaultBranch || '');
     setSelectedGithubRepo('');
     setGithubAuthState({ status: 'idle', message: '' });
+    onLogout(); // Trigger app-level logout
   };
 
   const runBridgeShellCommand = async (command: string): Promise<void> => {
@@ -1392,7 +1394,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors hidden lg:block"
             >
               Cancel
             </button>

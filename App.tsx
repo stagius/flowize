@@ -7,11 +7,12 @@ import { Step3_Worktrees } from './components/Step3_Worktrees';
 import { Step5_Review } from './components/Step5_Review';
 import { Step6_Merge } from './components/Step6_Merge';
 import { SettingsModal } from './components/SettingsModal';
+import { LoginPage } from './components/LoginPage';
 import { AlertDialog, AlertDialogState, ConfirmDialog, ConfirmDialogState, DialogTone } from './components/ui/Dialogs';
 import { ToastItem, ToastStack, ToastTone } from './components/ui/ToastStack';
 import { createGithubIssue, fetchGithubIssues, createBranch, getBSHA, commitFile, createPullRequest, mergePullRequest, fetchMergedPRs, fetchOpenPRs, fetchCommitStatus, fetchAuthenticatedUser, fetchPullRequestDetails } from './services/githubService';
 import { createWorktree, pruneWorktree, pushWorktreeBranch, forcePushWorktreeBranchWithLease } from './services/gitService';
-import { GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github } from 'lucide-react';
+import { GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github, LogOut } from 'lucide-react';
 import { ThemeToggle } from './components/ui/ThemeToggle';
 import { useTheme } from './contexts/ThemeContext';
 
@@ -31,7 +32,7 @@ const createDefaultSettings = (envGithubToken: string, browserHost: string): App
     defaultBranch: 'master',
     worktreeRoot: 'z:/flowize',
     maxWorktrees: 3,
-    githubToken: envGithubToken,
+    githubToken: '', // Force user to login on launch
     antiGravityAgentCommand: 'cd "{worktreePath}" && opencode run {agentFlag} "Implement issue #{issueNumber} on branch {branch}. Use {issueDescriptionFile} as requirements and follow {skillFile}. Return code/output for this task." --print-logs',
     antiGravityAgentName: '',
     antiGravityAgentEndpoint: `http://${browserHost}:4141/run`,
@@ -229,7 +230,18 @@ export default function App() {
                 return defaultSettings;
             }
             const parsed = JSON.parse(stored) as Partial<AppSettings>;
-            return normalizeSettings(parsed, defaultSettings);
+            const normalized = normalizeSettings(parsed, defaultSettings);
+            
+            // Check if this is a new session (browser/tab just opened)
+            const hasActiveSession = window.sessionStorage.getItem('flowize.session.active');
+            if (!hasActiveSession) {
+                // New session - clear token to force login
+                window.sessionStorage.setItem('flowize.session.active', 'true');
+                return { ...normalized, githubToken: '' };
+            }
+            
+            // Existing session - keep token (user already logged in this session)
+            return normalized;
         } catch {
             return defaultSettings;
         }
@@ -426,7 +438,19 @@ export default function App() {
 
     // --- Actions ---
 
-    const hasGithubToken = Boolean(settings.githubToken || envGithubToken);
+    // Only check settings.githubToken, not environment variable (force login on launch)
+    const hasGithubToken = Boolean(settings.githubToken);
+
+    const handleLoginSuccess = (token: string) => {
+        setSettings(prev => ({ ...prev, githubToken: token }));
+        showToast('Successfully authenticated with GitHub!', 'success');
+    };
+
+    const handleLogout = () => {
+        setSettings(prev => ({ ...prev, githubToken: '' }));
+        setGithubLogin('');
+        showToast('Logged out successfully', 'info');
+    };
 
     const handleTasksGenerated = (newTasks: TaskItem[]) => {
         setTasks(prev => [...prev, ...newTasks]);
@@ -1232,6 +1256,19 @@ export default function App() {
 
     const activeStep = STEPS.find((step) => step.id === currentStep);
 
+    // Show login page if no GitHub token is configured
+    if (!hasGithubToken) {
+        return (
+            <>
+                <LoginPage 
+                    onLoginSuccess={handleLoginSuccess}
+                    bridgeEndpoint={settings.antiGravityAgentEndpoint}
+                />
+                <ToastStack toasts={toasts} />
+            </>
+        );
+    }
+
     return (
         <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 font-sans selection:bg-indigo-500/30">
             {/* Skip to main content link for keyboard users */}
@@ -1249,6 +1286,7 @@ export default function App() {
                 onSave={handleSaveSettings}
                 onReset={handleResetSettings}
                 onClearLocalSession={handleClearLocalSession}
+                onLogout={handleLogout}
                 hasApiKey={hasApiKey}
             />
 
@@ -1347,6 +1385,15 @@ export default function App() {
                                         {bridgeLabel}
                                     </span>
                                 </div>
+                                <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50">
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20"
+                                    >
+                                        <LogOut className="w-3 h-3" />
+                                        <span>Logout</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1412,6 +1459,15 @@ export default function App() {
                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${bridgeBadgeClass}`} title={bridgeHealth.endpoint || settings.antiGravityAgentEndpoint}>
                                 {bridgeLabel}
                             </span>
+                        </div>
+                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50">
+                            <button
+                                onClick={handleLogout}
+                                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20"
+                            >
+                                <LogOut className="w-3 h-3" />
+                                <span>Logout</span>
+                            </button>
                         </div>
                     </div>
                 </div>
