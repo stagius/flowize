@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TaskItem, TaskStatus } from '../types';
-import { GitPullRequest, CheckCircle2, FileCode, ExternalLink, GitCommit, Loader2, RefreshCw } from 'lucide-react';
+import { GitPullRequest, CheckCircle2, FileCode, ExternalLink, GitCommit, Loader2, RefreshCw, Server } from 'lucide-react';
 import { ErrorState, LoadingSkeleton } from './ui/AsyncStates';
 
 interface Props {
@@ -8,9 +8,10 @@ interface Props {
   onApprovePR: (taskId: string) => Promise<void>;
   onRequestChanges: (taskId: string, feedback: string) => void;
   onCheckStatus: () => Promise<void>;
+  bridgeHealth?: { status: 'checking' | 'healthy' | 'unhealthy'; endpoint?: string };
 }
 
-export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestChanges, onCheckStatus }) => {
+export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestChanges, onCheckStatus, bridgeHealth }) => {
   const pendingReview = tasks.filter(t => t.status === TaskStatus.IMPLEMENTED || t.status === TaskStatus.PUSHED);
   const activePRs = tasks.filter(t => t.status === TaskStatus.PR_CREATED || t.status === TaskStatus.PR_MERGED);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -80,6 +81,29 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-teal-50 dark:bg-teal-500/5">
           <h3 className="font-bold text-teal-700 dark:text-teal-400 flex items-center gap-2">
             <FileCode className="w-5 h-5 text-teal-600 dark:text-teal-400" /> Code Review ({pendingReview.length})
+            {/* Bridge Required Notice */}
+            <span className={`px-2 py-0.5 rounded inline-flex items-center gap-1 ${
+              bridgeHealth?.status === 'healthy'
+                ? 'bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30'
+                : bridgeHealth?.status === 'unhealthy'
+                  ? 'bg-red-50 dark:bg-red-950/20 border border-red-200/50 dark:border-red-800/30'
+                  : 'bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200/50 dark:border-yellow-800/30'
+            }`}>
+              <Server className={`w-3 h-3 flex-shrink-0 ${
+                bridgeHealth?.status === 'healthy'
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : bridgeHealth?.status === 'unhealthy'
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-yellow-600 dark:text-yellow-400'
+              }`} />
+              <span className={`text-[10px] ${
+                bridgeHealth?.status === 'healthy'
+                  ? 'text-emerald-700 dark:text-emerald-300'
+                  : bridgeHealth?.status === 'unhealthy'
+                    ? 'text-red-700 dark:text-red-300'
+                    : 'text-yellow-700 dark:text-yellow-300'
+              }`}>Bridge required</span>
+            </span>
           </h3>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">

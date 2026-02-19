@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useId } from 'react';
 import { TaskItem, TaskStatus, WorktreeSlot, AppSettings } from '../types';
 import { cancelAgentJob, generateImplementationFromAgent, openWorktreeCmdWindow } from '../services/agentService';
-import { GitBranch, FolderGit2, Terminal, Loader2, CloudUpload, CheckCircle2, GitCommit, FileDiff, History, X, Command, Trash2, ScrollText, Copy, Check } from 'lucide-react';
+import { GitBranch, FolderGit2, Terminal, Loader2, CloudUpload, CheckCircle2, GitCommit, FileDiff, History, X, Command, Trash2, ScrollText, Copy, Check, Server } from 'lucide-react';
 import { PRIORITY_BADGES, WORKTREE_STATUS_THEMES } from '../designSystem';
 import { useFocusTrap } from './ui/hooks/useFocusTrap';
 
@@ -20,6 +20,7 @@ interface Props {
     onFinishImplementation: (taskId: string) => Promise<void>;
     onCleanup: (slotId: number) => Promise<void>;
     settings?: AppSettings;
+    bridgeHealth?: { status: 'checking' | 'healthy' | 'unhealthy'; endpoint?: string };
 }
 
 interface TerminalLine {
@@ -34,7 +35,8 @@ export const Step3_Worktrees: React.FC<Props> = ({
     onImplement,
     onFinishImplementation,
     onCleanup,
-    settings
+    settings,
+    bridgeHealth
 }) => {
     const backlog = tasks.filter(t => t.status === TaskStatus.ISSUE_CREATED);
     const [loadingTask, setLoadingTask] = useState<string | null>(null);
@@ -590,6 +592,29 @@ export const Step3_Worktrees: React.FC<Props> = ({
                 <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/80 flex-shrink-0">
                     <h3 className="font-semibold text-slate-900 dark:text-slate-300 flex items-center gap-2">
                         <GitBranch className="w-4 h-4 text-orange-600 dark:text-orange-400" /> Issue Backlog
+                        {/* Bridge Required Notice */}
+                        <span className={`px-2 py-0.5 rounded inline-flex items-center gap-1 ${
+                            bridgeHealth?.status === 'healthy'
+                                ? 'bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30'
+                                : bridgeHealth?.status === 'unhealthy'
+                                    ? 'bg-red-50 dark:bg-red-950/20 border border-red-200/50 dark:border-red-800/30'
+                                    : 'bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200/50 dark:border-yellow-800/30'
+                        }`}>
+                            <Server className={`w-3 h-3 flex-shrink-0 ${
+                                bridgeHealth?.status === 'healthy'
+                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                    : bridgeHealth?.status === 'unhealthy'
+                                        ? 'text-red-600 dark:text-red-400'
+                                        : 'text-yellow-600 dark:text-yellow-400'
+                            }`} />
+                            <span className={`text-[10px] ${
+                                bridgeHealth?.status === 'healthy'
+                                    ? 'text-emerald-700 dark:text-emerald-300'
+                                    : bridgeHealth?.status === 'unhealthy'
+                                        ? 'text-red-700 dark:text-red-300'
+                                        : 'text-yellow-700 dark:text-yellow-300'
+                            }`}>Bridge required</span>
+                        </span>
                     </h3>
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                         Assign issues to available worktree slots.
