@@ -474,6 +474,8 @@ export default function App() {
         setSettings(prev => ({ ...prev, githubToken: '' }));
         setGithubLogin('');
         showToast('Logged out successfully', 'info');
+        // Refresh page to clear in-memory data and reset UI state
+        window.location.href = '/';
     };
 
     const handleTasksGenerated = (newTasks: TaskItem[]) => {
