@@ -158,7 +158,7 @@ export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks, 
               }).map((task) => {
                 const isNew = isUnsynced(task);
                 return (
-                  <div key={task.id} className={`p-3 md:p-4 border rounded-xl transition-all group relative ${isNew ? 'bg-cyan-100/50 dark:bg-cyan-950/30 border-cyan-500/60 dark:border-cyan-500/40 hover:border-cyan-600/80 dark:hover:border-cyan-400/60 hover:bg-cyan-100/70 dark:hover:bg-cyan-900/40' : 'bg-slate-50 dark:bg-slate-900/80 border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                  <div key={task.id} className={`mt-4 p-3 md:p-4 border rounded-xl transition-all group relative ${isNew ? 'bg-cyan-100/50 dark:bg-cyan-950/30 border-cyan-500/60 dark:border-cyan-500/40 hover:border-cyan-600/80 dark:hover:border-cyan-400/60 hover:bg-cyan-100/70 dark:hover:bg-cyan-900/40' : 'bg-slate-50 dark:bg-slate-900/80 border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                     {isNew && (
                       <div className="absolute -top-1.5 -right-1.5">
                         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-600 dark:bg-cyan-500 text-white shadow-lg shadow-cyan-600/30 dark:shadow-cyan-500/30">
