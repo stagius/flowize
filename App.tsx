@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogState, ConfirmDialog, ConfirmDialogState, Dialo
 import { ToastItem, ToastStack, ToastTone } from './components/ui/ToastStack';
 import { createGithubIssue, fetchGithubIssues, createBranch, getBSHA, commitFile, createPullRequest, mergePullRequest, fetchMergedPRs, fetchOpenPRs, fetchCommitStatus, fetchAuthenticatedUser, fetchPullRequestDetails } from './services/githubService';
 import { createWorktree, pruneWorktree, pushWorktreeBranch, forcePushWorktreeBranchWithLease } from './services/gitService';
-import { GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github, LogOut } from 'lucide-react';
+import { GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ThemeToggle } from './components/ui/ThemeToggle';
 import { useTheme } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -27,6 +27,7 @@ const SETTINGS_STORAGE_KEY = 'flowize.settings.v1';
 const TASKS_STORAGE_KEY = 'flowize.tasks.v1';
 const SLOTS_STORAGE_KEY = 'flowize.slots.v1';
 const STEP_STORAGE_KEY = 'flowize.current-step.v1';
+const SIDEBAR_COLLAPSED_KEY = 'flowize.sidebar-collapsed.v1';
 
 const createDefaultSettings = (envGithubToken: string, envBridgeEndpoint?: string): AppSettings => ({
     repoOwner: 'stagius',
@@ -121,6 +122,17 @@ export default function App() {
     });
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+        if (typeof window === 'undefined') {
+            return false;
+        }
+        try {
+            const stored = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+            return stored === 'true';
+        } catch {
+            return false;
+        }
+    });
     const [syncingTaskIds, setSyncingTaskIds] = useState<Set<string>>(new Set());
     const [alertDialog, setAlertDialog] = useState<AlertDialogState | null>(null);
     const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
@@ -253,6 +265,11 @@ export default function App() {
         if (typeof window === 'undefined') return;
         window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
     }, [settings]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(isSidebarCollapsed));
+    }, [isSidebarCollapsed]);
 
     // Initialize slots
     const [slots, setSlots] = useState<WorktreeSlot[]>(() => {
@@ -1404,15 +1421,15 @@ export default function App() {
             )}
 
             {/* Desktop Sidebar Navigation */}
-            <aside className="w-80 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-gradient-to-b from-white/80 to-slate-50/80 dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl flex flex-col justify-between hidden lg:flex sticky top-0 h-screen">
-                <div>
-                    <div className="h-20 flex items-center justify-start px-6 border-b border-slate-200 dark:border-slate-800/80">
-                        <div className="bg-indigo-500/10 p-2 rounded-lg text-indigo-600 dark:text-indigo-400">
-                            <GitGraph className="w-6 h-6" />
+            <aside className={`flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-gradient-to-b from-white/80 to-slate-50/80 dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl flex flex-col justify-between hidden lg:flex sticky top-0 h-screen transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20' : 'w-80'}`}>
+                <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                    <div className="h-16 flex items-center justify-start px-6 border-b border-slate-200 dark:border-slate-800/80">
+                        <div className={`bg-indigo-500/10 p-2 rounded-lg text-indigo-600 dark:text-indigo-400 ${isSidebarCollapsed ? 'mx-auto' : ''}`}>
+                            <GitGraph className={`${isSidebarCollapsed ? 'w-5 h-5' : 'w-6 h-6'}`} />
                         </div>
-                        <div className="ml-3">
-                            <p className="font-bold text-lg tracking-tight text-slate-900 dark:text-slate-100">Flowize</p>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Workflow Navigator</p>
+                        <div className={`ml-3 transition-opacity duration-200 ${isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+                            <p className="font-bold text-lg tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap">Flowize</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">Workflow Navigator</p>
                         </div>
                     </div>
 
@@ -1427,52 +1444,94 @@ export default function App() {
                                     onClick={() => setCurrentStep(step.id)}
                                     aria-current={isActive ? 'step' : undefined}
                                     aria-label={`${step.label}${isActive ? ', current step' : ''}`}
-                                    className={`relative w-full flex items-center min-h-[52px] px-4 py-3 rounded-xl border transition-all duration-200 group ${isActive
+                                    className={`relative w-full flex items-center px-4 py-3 rounded-xl border transition-all duration-200 group ${
+                                        isSidebarCollapsed ? 'justify-center h-[48px]' : 'min-h-[52px]'
+                                    } ${isActive
                                         ? `${step.bg} ${step.color} ${step.border}`
                                         : 'border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-slate-200 dark:hover:border-slate-700/70 hover:text-slate-900 dark:hover:text-slate-300'
                                         }`}
+                                    title={isSidebarCollapsed ? step.label : undefined}
                                 >
-                                    <Icon className={`w-5 h-5 ${isActive ? step.color : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-300'}`} aria-hidden="true" />
-                                    <span className="ml-3 font-medium text-sm">{step.label}</span>
-                                    {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_8px_currentColor]" aria-hidden="true"></div>}
+                                    <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? step.color : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-300'}`} aria-hidden="true" />
+                                    <span className={`font-medium text-sm transition-all duration-200 ${isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden ml-0' : 'opacity-100 ml-3'}`}>{step.label}</span>
+                                    {isActive && !isSidebarCollapsed && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_8px_currentColor]" aria-hidden="true"></div>}
                                 </button>
                             );
                         })}
                     </nav>
                 </div>
 
+                {/* Toggle Button */}
+                <div className="px-4 pb-2">
+                    <button
+                        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                        className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 ${isSidebarCollapsed ? 'justify-center' : ''}`}
+                        aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                    >
+                        {isSidebarCollapsed ? (
+                            <ChevronRight className="w-4 h-4" />
+                        ) : (
+                            <>
+                                <ChevronLeft className="w-4 h-4" />
+                                <span className="text-sm font-medium">Collapse</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+
                 <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-                    <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-3 text-xs space-y-2">
-                        <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
-                            <span>System Status</span>
-                            <Activity className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                            <span className="text-emerald-500 font-medium">Online</span>
-                        </div>
-                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
-                            <span className="flex items-center gap-1.5"><Key className="w-3 h-3" /> API Key</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                                {hasApiKey ? 'CONFIGURED' : 'MISSING'}
-                            </span>
-                        </div>
-                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
-                            <span className="flex items-center gap-1.5"><Server className="w-3 h-3" /> Bridge</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${bridgeBadgeClass}`} title={bridgeHealth.endpoint || settings.antiGravityAgentEndpoint}>
-                                {bridgeLabel}
-                            </span>
-                        </div>
-                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50">
+                    {isSidebarCollapsed ? (
+                        <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-3 flex flex-col items-center gap-2">
+                            <Activity className="w-4 h-4 text-emerald-600 dark:text-emerald-400" title="System Status: Online" />
+                            <Key 
+                                className={`w-4 h-4 ${hasApiKey ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`} 
+                                title={hasApiKey ? 'API Key: Configured' : 'API Key: Missing'} 
+                            />
+                            <Server 
+                                className={`w-4 h-4 ${bridgeHealth.status === 'healthy' ? 'text-emerald-600 dark:text-emerald-400' : bridgeHealth.status === 'unhealthy' ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`} 
+                                title={`Bridge: ${bridgeLabel}`} 
+                            />
                             <button
                                 onClick={handleLogout}
-                                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20"
+                                className="w-8 h-8 flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20 mt-1"
+                                title="Logout"
                             >
-                                <LogOut className="w-3 h-3" />
-                                <span>Logout</span>
+                                <LogOut className="w-3.5 h-3.5" />
                             </button>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-3 text-xs space-y-2">
+                            <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                <span>System Status</span>
+                                <Activity className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                <span className="text-emerald-500 font-medium">Online</span>
+                            </div>
+                            <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                <span className="flex items-center gap-1.5"><Key className="w-3 h-3" /> API Key</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                                    {hasApiKey ? 'CONFIGURED' : 'MISSING'}
+                                </span>
+                            </div>
+                            <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                <span className="flex items-center gap-1.5"><Server className="w-3 h-3" /> Bridge</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded ${bridgeBadgeClass}`} title={bridgeHealth.endpoint || settings.antiGravityAgentEndpoint}>
+                                    {bridgeLabel}
+                                </span>
+                            </div>
+                            <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50">
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20"
+                                >
+                                    <LogOut className="w-3 h-3" />
+                                    <span>Logout</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </aside>
 
