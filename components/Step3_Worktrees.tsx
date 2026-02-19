@@ -43,6 +43,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
     const [openingAgentWorkspaceSlot, setOpeningAgentWorkspaceSlot] = useState<number | null>(null);
     const [openingFullAgentSlot, setOpeningFullAgentSlot] = useState<number | null>(null);
     const [copiedCmdTaskId, setCopiedCmdTaskId] = useState<string | null>(null);
+    const [copiedPathSlotId, setCopiedPathSlotId] = useState<number | null>(null);
 
     // Terminal State
     const [activeTerminalSlotId, setActiveTerminalSlotId] = useState<number | null>(null);
@@ -405,6 +406,18 @@ export const Step3_Worktrees: React.FC<Props> = ({
         }
     };
 
+    const handleCopyWorktreePath = async (slotId: number, path: string) => {
+        try {
+            await navigator.clipboard.writeText(path);
+            setCopiedPathSlotId(slotId);
+            setTimeout(() => {
+                setCopiedPathSlotId((current) => current === slotId ? null : current);
+            }, 1500);
+        } catch {
+            // Ignore clipboard errors in unsupported contexts.
+        }
+    };
+
     return (
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 h-full relative">
 
@@ -683,9 +696,19 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                         </div>
                                     )}
 
-                                    <p className="text-[10px] text-slate-600 dark:text-slate-400 font-mono mt-3 bg-slate-200 dark:bg-slate-900 px-2 py-1 rounded border border-slate-300 dark:border-slate-800 truncate w-full max-w-[150px] mx-auto opacity-70">
-                                        {slot.path}
-                                    </p>
+                                    <button
+                                        onClick={() => handleCopyWorktreePath(slot.id, slot.path)}
+                                        className="text-[10px] text-slate-600 dark:text-slate-400 font-mono mt-3 bg-slate-200 dark:bg-slate-900 px-2 py-1 rounded-md border border-slate-300 dark:border-slate-800 truncate w-full max-w-[150px] mx-auto opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-600 transition-all flex items-center justify-center gap-1.5 group"
+                                        aria-label="Copy worktree path to clipboard"
+                                        title={copiedPathSlotId === slot.id ? "Copied!" : "Click to copy path"}
+                                    >
+                                        <span className="truncate">{slot.path}</span>
+                                        {copiedPathSlotId === slot.id ? (
+                                            <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400 flex-shrink-0" aria-hidden="true" />
+                                        ) : (
+                                            <Copy className="w-3 h-3 transition-opacity flex-shrink-0" aria-hidden="true" />
+                                        )}
+                                    </button>
 
                                     {assignedTask && (
                                         <div className={`mt-3 flex items-center gap-2 text-[10px] font-mono ${theme.text}`}>
