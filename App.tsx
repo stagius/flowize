@@ -26,7 +26,7 @@ const TASKS_STORAGE_KEY = 'flowize.tasks.v1';
 const SLOTS_STORAGE_KEY = 'flowize.slots.v1';
 const STEP_STORAGE_KEY = 'flowize.current-step.v1';
 
-const createDefaultSettings = (envGithubToken: string, browserHost: string): AppSettings => ({
+const createDefaultSettings = (envGithubToken: string, envBridgeEndpoint?: string): AppSettings => ({
     repoOwner: 'stagius',
     repoName: 'flowize',
     defaultBranch: 'master',
@@ -35,7 +35,7 @@ const createDefaultSettings = (envGithubToken: string, browserHost: string): App
     githubToken: '', // Force user to login on launch
     antiGravityAgentCommand: 'cd "{worktreePath}" && opencode run {agentFlag} "Implement issue #{issueNumber} on branch {branch}. Use {issueDescriptionFile} as requirements and follow {skillFile}. Return code/output for this task." --print-logs',
     antiGravityAgentName: '',
-    antiGravityAgentEndpoint: `http://${browserHost}:4141/run`,
+    antiGravityAgentEndpoint: envBridgeEndpoint || 'http://127.0.0.1:4141/run',
     antiGravityAgentSubdir: '.antigravity',
     antiGravitySkillFile: '.opencode/skills/specflow-worktree-automation/SKILL.md',
     model: 'gemini-3-flash-preview'
@@ -58,8 +58,8 @@ export default function App() {
     const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
     const envGithubToken = env?.VITE_GITHUB_TOKEN || env?.GITHUB_TOKEN || '';
     const envApiKey = env?.VITE_API_KEY || env?.API_KEY || '';
-    const browserHost = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
-    const defaultSettings = createDefaultSettings(envGithubToken, browserHost);
+    const envBridgeEndpoint = env?.VITE_BRIDGE_ENDPOINT;
+    const defaultSettings = createDefaultSettings(envGithubToken, envBridgeEndpoint);
 
     const [currentStep, setCurrentStep] = useState<number>(() => {
         if (typeof window === 'undefined') {
