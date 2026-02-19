@@ -15,6 +15,8 @@ import { createWorktree, pruneWorktree, pushWorktreeBranch, forcePushWorktreeBra
 import { GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github, LogOut } from 'lucide-react';
 import { ThemeToggle } from './components/ui/ThemeToggle';
 import { useTheme } from './contexts/ThemeContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { AuthGuard } from './components/AuthGuard';
 
 type BridgeHealthState = {
     status: 'checking' | 'healthy' | 'unhealthy';
@@ -1261,21 +1263,17 @@ export default function App() {
 
     const activeStep = STEPS.find((step) => step.id === currentStep);
 
-    // Show login page if no GitHub token is configured
-    if (!hasGithubToken) {
-        return (
-            <>
-                <LoginPage 
-                    onLoginSuccess={handleLoginSuccess}
-                    bridgeEndpoint={settings.antiGravityAgentEndpoint}
-                />
-                <ToastStack toasts={toasts} />
-            </>
-        );
-    }
-
     return (
-        <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 font-sans selection:bg-indigo-500/30">
+        <AuthProvider 
+            initialToken={settings.githubToken}
+            onLoginSuccess={handleLoginSuccess}
+            onLogout={handleLogout}
+        >
+            <AuthGuard 
+                bridgeEndpoint={settings.antiGravityAgentEndpoint}
+                toasts={<ToastStack toasts={toasts} />}
+            >
+                <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 font-sans selection:bg-indigo-500/30">
             {/* Skip to main content link for keyboard users */}
             <a 
                 href="#main-content" 
@@ -1583,5 +1581,7 @@ export default function App() {
             </div>
 
         </div>
+            </AuthGuard>
+        </AuthProvider>
     );
 }
