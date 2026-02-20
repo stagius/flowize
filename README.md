@@ -6,6 +6,28 @@
 
 Flowize is a React + TypeScript interface for running a parallel GitHub workflow from raw task input to merged pull request. It helps you organize work across issue intake, worktree assignment, implementation, review, and merge tracking in one UI.
 
+## Quick Start
+
+```bash
+# 1. Clone and install
+git clone <your-fork-url>
+cd flowize
+npm install
+
+# 2. Create .env.local
+echo "VITE_API_KEY=your_gemini_api_key" > .env.local
+
+# 3. Start the app (terminal 1)
+npm run dev
+
+# 4. Start the local bridge (terminal 2)
+npm run bridge:start
+
+# 5. Open http://localhost:3000
+```
+
+On first launch, you'll be prompted to log in with GitHub. Click "Connect with GitHub" or manually paste a Personal Access Token in Settings.
+
 ## What it does
 
 - Parses raw requirements into structured tasks with title, description, group, and priority using Gemini.
@@ -30,6 +52,16 @@ Flowize is a React + TypeScript interface for running a parallel GitHub workflow
 - A Gemini API key (required for AI generation)
 - A GitHub Personal Access Token (required for GitHub sync actions)
 
+## Platform Support
+
+Flowize works on **Windows, macOS, and Linux**. The local bridge automatically detects your platform and opens the appropriate terminal:
+
+| Platform | Terminal |
+|----------|----------|
+| Windows | Command Prompt (cmd.exe) |
+| macOS | Terminal.app |
+| Linux | gnome-terminal, konsole, xfce4-terminal, mate-terminal, or xterm |
+
 ## Getting started
 
 1. Install dependencies:
@@ -38,7 +70,6 @@ Flowize is a React + TypeScript interface for running a parallel GitHub workflow
 
 ```env
 VITE_API_KEY=your_gemini_api_key
-VITE_GITHUB_TOKEN=your_github_token
 GITHUB_OAUTH_CLIENT_ID=your_github_oauth_client_id
 GITHUB_OAUTH_CLIENT_SECRET=your_github_oauth_client_secret
 GITHUB_OAUTH_SCOPE=read:user repo
@@ -81,7 +112,6 @@ No database is required. Token and selected repo remain local in app settings.
 ### Environment variables
 
 - `VITE_API_KEY`: Gemini API key used for AI task analysis and implementation generation.
-- `VITE_GITHUB_TOKEN`: GitHub token used for GitHub API operations in the app.
 - `GITHUB_OAUTH_CLIENT_ID`: GitHub OAuth app client ID.
 - `GITHUB_OAUTH_CLIENT_SECRET`: GitHub OAuth app client secret.
 - `GITHUB_OAUTH_SCOPE`: OAuth scope requested during GitHub auth (for example, `read:user repo`).
@@ -125,6 +155,35 @@ Recommended GitHub token scopes:
 - `services/githubService.ts` - GitHub API integration
 - `services/gitService.ts` - Real worktree operations through the local bridge endpoint
 - `types.ts` - Shared workflow types/status enums
+
+## Troubleshooting
+
+### Bridge shows "OFFLINE"
+- Ensure `npm run bridge:start` is running in a separate terminal
+- Check that the port 4141 is not blocked by firewall
+- Verify the bridge endpoint in Settings matches `http://127.0.0.1:4141/run`
+
+### Terminal doesn't open on Linux
+- Install a supported terminal emulator:
+  - Ubuntu/Debian: `sudo apt install gnome-terminal`
+  - Fedora: `sudo dnf install gnome-terminal`
+  - Arch: `sudo pacman -S gnome-terminal`
+- Alternatively, install `konsole`, `xfce4-terminal`, or `xterm`
+
+### Worktree creation fails
+- Ensure the worktree root path exists and is writable
+- Check that the path doesn't contain special characters
+- Verify git is installed and accessible from command line
+
+### Session data lost on refresh
+- Session data is auto-saved to localStorage
+- Check if browser storage is disabled or full
+- Try clearing browser data and refreshing
+
+### GitHub token invalid
+- Ensure token has `repo` scope (classic) or required permissions (fine-grained)
+- Check if token has expired
+- Re-authenticate using "Connect with GitHub" in Settings
 
 ## Contributing
 

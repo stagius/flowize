@@ -33,7 +33,7 @@ npm run specflow:backfill-branches
 npm run specflow:worktrees
 
 # 4b) Provision worktrees + prepare an Anti-Gravity agent workspace
-npm run specflow:worktrees -- --agent --agent-subdir .antigravity
+npm run specflow:worktrees -- --agent --agent-subdir .agent-workspace
 
 # 4c) Provision worktrees + launch a local Anti-Gravity sub-agent per worktree
 npm run specflow:worktrees -- --agent --agent-command "antigravity run --worktree {worktreePath} --skill {skillFile} --input {issueDescriptionFile}"
@@ -66,6 +66,6 @@ npm run specflow:cleanup -- --pr 456
 - `specflow:issues` creates GitHub issues and links a development branch so the issue Development panel is populated.
 - `specflow:worktrees` still comments on the issue with `Development branch: ...` and `Worktree: ...`.
 - State is persisted in `.specflow/backlog.json`.
-- With `--agent`, each created worktree gets an agent subfolder (default: `.antigravity`) plus an `issue-description.md` file sourced from the GitHub issue body.
+- With `--agent`, each created worktree gets an agent subfolder (default: `.agent-workspace`) plus an `issue-description.md` file sourced from the GitHub issue body.
 - `--agent-command` runs once per newly created worktree using placeholders: `{issueNumber}`, `{branch}`, `{title}`, `{worktreePath}`, `{agentWorkspace}`, `{issueDescriptionFile}`, `{briefFile}`, `{skillFile}`.
 - You can also set environment variables: `ANTI_GRAVITY_AGENT_COMMAND`, `ANTI_GRAVITY_AGENT_SUBDIR`, `ANTI_GRAVITY_SKILL_FILE`.

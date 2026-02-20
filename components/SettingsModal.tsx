@@ -86,12 +86,14 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   const branchListboxId = useId();
   const modelListboxId = useId();
 
+
   // Focus trap for modal
   const focusTrapRef = useFocusTrap<HTMLDivElement>({
     isActive: isOpen,
     onEscape: handleClose,
     restoreFocus: true,
   });
+
 
   // Keyboard navigation state for dropdowns
   const [repoActiveIndex, setRepoActiveIndex] = useState(-1);
@@ -190,7 +192,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   };
 
   const handleConnectGithub = async () => {
-    const endpoint = formData.antiGravityAgentEndpoint?.trim();
+    const endpoint = formData.agentEndpoint?.trim();
     if (!endpoint) {
       setGithubAuthState({ status: 'error', message: 'Set Agent Bridge Endpoint before starting GitHub OAuth.' });
       return;
@@ -325,7 +327,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   };
 
   const runBridgeShellCommand = async (command: string): Promise<void> => {
-    const endpoint = formData.antiGravityAgentEndpoint?.trim();
+    const endpoint = formData.agentEndpoint?.trim();
     if (!endpoint) {
       throw new Error('Agent Bridge Endpoint is not configured.');
     }
@@ -587,7 +589,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   };
 
   const handleTestBridge = async () => {
-    const endpoint = formData.antiGravityAgentEndpoint?.trim();
+    const endpoint = formData.agentEndpoint?.trim();
     if (!endpoint) {
       setBridgeTest({ status: 'error', message: 'Set Agent Bridge Endpoint first.' });
       setBridgeRecovery({ status: 'idle', message: '' });
@@ -697,7 +699,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
       return;
     }
 
-    const endpoint = formData.antiGravityAgentEndpoint?.trim();
+    const endpoint = formData.agentEndpoint?.trim();
     if (!endpoint) {
       setBridgeHealth({ status: 'unhealthy', message: 'Set Agent Bridge Endpoint to enable health checks.' });
       return;
@@ -720,7 +722,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
       disposed = true;
       window.clearInterval(timer);
     };
-  }, [isOpen, formData.antiGravityAgentEndpoint]);
+  }, [isOpen, formData.agentEndpoint]);
 
   if (!isOpen) return null;
 
@@ -1254,11 +1256,11 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
               </p>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Anti-Gravity Agent Command</label>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Command</label>
                 <input
                   type="text"
-                  value={formData.antiGravityAgentCommand || ''}
-                  onChange={e => setFormData({ ...formData, antiGravityAgentCommand: e.target.value })}
+                  value={formData.agentCommand || ''}
+                  onChange={e => setFormData({ ...formData, agentCommand: e.target.value })}
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
                   placeholder={'cd "{worktreePath}" && opencode run {agentFlag} "Implement issue #{issueNumber} on branch {branch}. Use {issueDescriptionFile} as requirements and follow {skillFile}. Return code/output for this task." --print-logs'}
                 />
@@ -1274,8 +1276,8 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">OpenCode Agent Name (optional)</label>
                 <input
                   type="text"
-                  value={formData.antiGravityAgentName || ''}
-                  onChange={e => setFormData({ ...formData, antiGravityAgentName: e.target.value })}
+                  value={formData.agentName || ''}
+                  onChange={e => setFormData({ ...formData, agentName: e.target.value })}
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
                   placeholder="frontend"
                 />
@@ -1290,8 +1292,8 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      value={formData.antiGravityAgentEndpoint || ''}
-                      onChange={e => setFormData({ ...formData, antiGravityAgentEndpoint: e.target.value })}
+                      value={formData.agentEndpoint || ''}
+                      onChange={e => setFormData({ ...formData, agentEndpoint: e.target.value })}
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
                       placeholder="http://127.0.0.1:4141/run"
                     />
@@ -1373,14 +1375,17 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Subfolder</label>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Workspace Folder</label>
                   <input
                     type="text"
-                    value={formData.antiGravityAgentSubdir || ''}
-                    onChange={e => setFormData({ ...formData, antiGravityAgentSubdir: e.target.value })}
+                    value={formData.agentSubdir || ''}
+                    onChange={e => setFormData({ ...formData, agentSubdir: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
-                    placeholder=".antigravity"
+                    placeholder=".agent-workspace"
                   />
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                    Subdirectory created in each worktree to store agent files like issue descriptions.
+                  </p>
                 </div>
               </div>
 
@@ -1388,8 +1393,8 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Skill File Path</label>
                 <input
                   type="text"
-                  value={formData.antiGravitySkillFile || ''}
-                  onChange={e => setFormData({ ...formData, antiGravitySkillFile: e.target.value })}
+                  value={formData.agentSkillFile || ''}
+                  onChange={e => setFormData({ ...formData, agentSkillFile: e.target.value })}
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
                   placeholder=".opencode/skills/specflow-worktree-automation/SKILL.md"
                 />

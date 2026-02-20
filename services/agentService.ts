@@ -39,7 +39,7 @@ export interface OpenWorktreeCmdOptions {
   launchAntigravity?: boolean;
 }
 
-const DEFAULT_AGENT_SUBDIR = '.antigravity';
+const DEFAULT_AGENT_SUBDIR = '.agent-workspace';
 const DEFAULT_SKILL_FILE = '.opencode/skills/specflow-worktree-automation/SKILL.md';
 const AGENT_POLL_INTERVAL_MS = 800;
 const AGENT_POLL_MAX_ATTEMPTS = 900;
@@ -278,7 +278,7 @@ const pollAsyncJob = async (
 
     if (idleSinceMs >= AGENT_STALE_OUTPUT_TIMEOUT_MS) {
       let cancelNote = '';
-      if (settings?.antiGravityAgentEndpoint) {
+      if (settings?.agentEndpoint) {
         try {
           await cancelAgentJob(settings, jobId);
           cancelNote = ' Cancellation requested automatically.';
@@ -298,7 +298,7 @@ const pollAsyncJob = async (
   }
 
   let cancelNote = '';
-  if (settings?.antiGravityAgentEndpoint) {
+  if (settings?.agentEndpoint) {
     try {
       await cancelAgentJob(settings, jobId);
       cancelNote = ' Cancellation requested automatically.';
@@ -317,7 +317,7 @@ export const generateImplementationFromAgent = async (
   settings?: AppSettings,
   onProgress?: (progress: AgentProgress) => void
 ): Promise<AgentImplementationResult> => {
-  const commandTemplate = settings?.antiGravityAgentCommand?.trim();
+  const commandTemplate = settings?.agentCommand?.trim();
   if (!task.issueNumber || !task.branchName) {
     return {
       success: false,
@@ -327,10 +327,10 @@ export const generateImplementationFromAgent = async (
     };
   }
 
-  const subdir = settings?.antiGravityAgentSubdir?.trim() || DEFAULT_AGENT_SUBDIR;
+  const subdir = settings?.agentSubdir?.trim() || DEFAULT_AGENT_SUBDIR;
   const agentWorkspace = joinPath(slot.path, subdir);
   const issueDescriptionFile = joinPath(joinPath(slot.path, subdir), 'issue-description.md');
-  const configuredSkillFile = settings?.antiGravitySkillFile?.trim() || DEFAULT_SKILL_FILE;
+  const configuredSkillFile = settings?.agentSkillFile?.trim() || DEFAULT_SKILL_FILE;
   const sourceSkillFile = resolvePathForWorktree(slot.path, configuredSkillFile);
   const skillFile = joinPath(agentWorkspace, 'SKILL.md');
   const issueDescriptionContent = buildIssueDescription(task);
@@ -368,8 +368,8 @@ export const generateImplementationFromAgent = async (
     title: task.title,
     worktreePath: shellWorktreePath,
     agentWorkspace: shellAgentWorkspace,
-    agentName: settings?.antiGravityAgentName?.trim() || '',
-    agentFlag: settings?.antiGravityAgentName?.trim() ? `--agent "${settings?.antiGravityAgentName?.trim()}"` : '',
+    agentName: settings?.agentName?.trim() || '',
+    agentFlag: settings?.agentName?.trim() ? `--agent "${settings?.agentName?.trim()}"` : '',
     issueDescriptionFile: shellIssueDescriptionFile,
     briefFile: shellIssueDescriptionFile,
     skillFile: shellSkillFile
@@ -379,12 +379,12 @@ export const generateImplementationFromAgent = async (
     return {
       success: false,
       command,
-      logs: 'Anti-Gravity agent command is not configured in settings.',
-      implementation: 'Configure `Anti-Gravity Agent Command` to run the sub-agent for this issue.'
+      logs: 'Agent Command is not configured in settings.',
+      implementation: 'Configure `Agent Command` to run the sub-agent for this issue.'
     };
   }
 
-  const endpoint = settings?.antiGravityAgentEndpoint?.trim();
+  const endpoint = settings?.agentEndpoint?.trim();
   if (!endpoint) {
     return {
       success: false,
@@ -500,7 +500,7 @@ export const openWorktreeCmdWindow = async (
   slot: WorktreeSlot,
   options?: OpenWorktreeCmdOptions
 ): Promise<void> => {
-  const endpoint = settings?.antiGravityAgentEndpoint?.trim();
+  const endpoint = settings?.agentEndpoint?.trim();
   if (!endpoint) {
     throw new Error('No local bridge endpoint configured.');
   }
@@ -511,7 +511,7 @@ export const openWorktreeCmdWindow = async (
     : slot.path;
   const title = options?.title || `Flowize WT-${slot.id}`;
   const task = options?.task;
-  const commandTemplate = settings?.antiGravityAgentCommand?.trim();
+  const commandTemplate = settings?.agentCommand?.trim();
   const canBuildTemplatedAgentCommand =
     !!task &&
     !!commandTemplate &&
@@ -519,10 +519,10 @@ export const openWorktreeCmdWindow = async (
     !!task.branchName;
 
   const worktreeForCommand = toShellPath(slot.path);
-  const agentSubdir = settings?.antiGravityAgentSubdir?.trim() || DEFAULT_AGENT_SUBDIR;
+  const agentSubdir = settings?.agentSubdir?.trim() || DEFAULT_AGENT_SUBDIR;
   const agentWorkspace = joinPath(slot.path, agentSubdir);
   const issueDescriptionFile = joinPath(agentWorkspace, 'issue-description.md');
-  const configuredSkillFile = settings?.antiGravitySkillFile?.trim() || DEFAULT_SKILL_FILE;
+  const configuredSkillFile = settings?.agentSkillFile?.trim() || DEFAULT_SKILL_FILE;
   const sourceSkillFile = resolvePathForWorktree(slot.path, configuredSkillFile);
   const skillFile = joinPath(agentWorkspace, 'SKILL.md');
   const issueDescriptionContent = task ? buildIssueDescription(task) : '';
@@ -555,8 +555,8 @@ export const openWorktreeCmdWindow = async (
       title: task?.title || '',
       worktreePath: worktreeForCommand,
       agentWorkspace: toShellPath(agentWorkspace),
-      agentName: settings?.antiGravityAgentName?.trim() || '',
-      agentFlag: settings?.antiGravityAgentName?.trim() ? `--agent "${settings?.antiGravityAgentName?.trim()}"` : '',
+      agentName: settings?.agentName?.trim() || '',
+      agentFlag: settings?.agentName?.trim() ? `--agent "${settings?.agentName?.trim()}"` : '',
       issueDescriptionFile: toShellPath(issueDescriptionFile),
       briefFile: toShellPath(issueDescriptionFile),
       skillFile: toShellPath(skillFile)
@@ -659,7 +659,7 @@ export const openWorktreeCmdWindow = async (
 };
 
 export const cancelAgentJob = async (settings: AppSettings | undefined, jobId: string): Promise<void> => {
-  const endpoint = settings?.antiGravityAgentEndpoint?.trim();
+  const endpoint = settings?.agentEndpoint?.trim();
   if (!endpoint || !jobId) {
     return;
   }

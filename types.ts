@@ -46,11 +46,11 @@ export interface AppSettings {
   worktreeRoot: string;
   maxWorktrees: number;
   githubToken?: string;
-  antiGravityAgentCommand?: string;
-  antiGravityAgentName?: string;
-  antiGravityAgentEndpoint?: string;
-  antiGravityAgentSubdir?: string;
-  antiGravitySkillFile?: string;
+  agentCommand?: string;
+  agentName?: string;
+  agentEndpoint?: string;
+  agentSubdir?: string;
+  agentSkillFile?: string;
   model?: string;
 }
 

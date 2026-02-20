@@ -6,7 +6,7 @@ import { AppSettings, TaskItem, WorktreeSlot } from '../types';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const DEFAULT_AGENT_SUBDIR = '.antigravity';
+const DEFAULT_AGENT_SUBDIR = '.agent-workspace';
 const DEFAULT_SKILL_FILE = '.opencode/skills/specflow-worktree-automation/SKILL.md';
 
 const normalizeWorktreePath = (value: string): string => {
@@ -115,7 +115,7 @@ const buildIssueDescription = (task: TaskItem): string => {
 };
 
 const copyBaseContextToWorktree = async (settings: AppSettings, slotPath: string, branchName?: string): Promise<void> => {
-  if (!settings.antiGravityAgentEndpoint) {
+  if (!settings.agentEndpoint) {
     return;
   }
 
@@ -140,14 +140,14 @@ const copyBaseContextToWorktree = async (settings: AppSettings, slotPath: string
 };
 
 const setupAgentWorkspace = async (settings: AppSettings, slotPath: string, task: TaskItem): Promise<void> => {
-  if (!settings.antiGravityAgentEndpoint) {
+  if (!settings.agentEndpoint) {
     return;
   }
 
-  const subdir = settings.antiGravityAgentSubdir?.trim() || DEFAULT_AGENT_SUBDIR;
+  const subdir = settings.agentSubdir?.trim() || DEFAULT_AGENT_SUBDIR;
   const agentWorkspace = joinPath(slotPath, subdir);
   const issueDescriptionFile = joinPath(agentWorkspace, 'issue-description.md');
-  const configuredSkillFile = settings.antiGravitySkillFile?.trim() || DEFAULT_SKILL_FILE;
+  const configuredSkillFile = settings.agentSkillFile?.trim() || DEFAULT_SKILL_FILE;
   const sourceSkillFile = resolvePathForWorktree(slotPath, configuredSkillFile);
   const skillFile = joinPath(agentWorkspace, 'SKILL.md');
   const issueDescriptionContent = buildIssueDescription(task);
@@ -233,7 +233,7 @@ const getBridgeCandidates = (endpoint: string): string[] => {
 };
 
 const runBridgeCommand = async (settings: AppSettings, command: string, context: Record<string, unknown> = {}) => {
-  const endpoint = settings.antiGravityAgentEndpoint?.trim();
+  const endpoint = settings.agentEndpoint?.trim();
   if (!endpoint) {
     return null;
   }
@@ -365,20 +365,20 @@ const openWorktreeCmdWindow = async (
   branchName?: string,
   startupCommand?: string
 ): Promise<void> => {
-  if (!settings.antiGravityAgentEndpoint) {
+  if (!settings.agentEndpoint) {
     return;
   }
 
   try {
-    await runBridgeCommand(settings, 'flowize-open-windows-cmd', {
-      action: 'open-windows-cmd',
+    await runBridgeCommand(settings, 'open-terminal', {
+      action: 'open-terminal',
       worktreePath: slot.path,
       title: `Flowize WT-${slot.id}`,
       startupCommand: startupCommand || (branchName ? 'git status && git branch --show-current' : 'git status'),
       branch: branchName
     });
   } catch (error) {
-    console.warn(`[GitService] Unable to open CMD for ${slot.path}: ${getErrorMessage(error)}`);
+    console.warn(`[GitService] Unable to open terminal for ${slot.path}: ${getErrorMessage(error)}`);
   }
 };
 
@@ -389,7 +389,7 @@ const buildWorktreeStartupCommand = async (
 ): Promise<string | undefined> => {
   void task;
   void slot;
-  const agentName = settings.antiGravityAgentName?.trim().replace(/"/g, '');
+  const agentName = settings.agentName?.trim().replace(/"/g, '');
   return agentName ? `opencode --agent "${agentName}"` : 'opencode';
 };
 
@@ -398,7 +398,7 @@ export const createWorktree = async (settings: AppSettings, task: TaskItem, slot
 
   // 1. Fetch latest refs
   console.log(`> git fetch origin`);
-  if (settings.antiGravityAgentEndpoint) {
+  if (settings.agentEndpoint) {
     await runBridgeCommand(settings, 'git fetch origin', {
       worktreePath: slot.path,
       branch: task.branchName
@@ -487,23 +487,23 @@ export const pruneWorktree = async (slot: WorktreeSlot, branchName?: string, set
   console.log(`[GitService] Cleaning up worktree at ${slot.path}`);
 
   if (branchName) {
-      console.log(`> git push origin ${branchName}`);
-      if (settings?.antiGravityAgentEndpoint) {
-        try {
-          await runBridgeCommand(settings, `git push origin "${branchName}"`, {
-            worktreePath: slot.path,
-            branch: branchName
-          });
-        } catch (error) {
-          console.warn(`[GitService] push skipped during cleanup: ${getErrorMessage(error)}`);
-        }
-      } else {
-        throw new Error('No local bridge endpoint configured. Real git push during cleanup requires Agent Bridge Endpoint.');
+    console.log(`> git push origin ${branchName}`);
+    if (settings?.agentEndpoint) {
+      try {
+        await runBridgeCommand(settings, `git push origin "${branchName}"`, {
+          worktreePath: slot.path,
+          branch: branchName
+        });
+      } catch (error) {
+        console.warn(`[GitService] push skipped during cleanup: ${getErrorMessage(error)}`);
       }
+    } else {
+      throw new Error('No local bridge endpoint configured. Real git push during cleanup requires Agent Bridge Endpoint.');
+    }
   }
 
   console.log(`> git worktree remove --force ${slot.path}`);
-  if (settings?.antiGravityAgentEndpoint) {
+  if (settings?.agentEndpoint) {
     const removeCommand = `git worktree remove --force "${slot.path}"`;
     const retryDelays = [0, 800, 1800, 3500];
     let removed = false;
@@ -546,7 +546,7 @@ export const pruneWorktree = async (slot: WorktreeSlot, branchName?: string, set
   }
 
   console.log(`> git worktree prune`);
-  if (settings?.antiGravityAgentEndpoint) {
+  if (settings?.agentEndpoint) {
     try {
       await runBridgeCommand(settings, 'git worktree prune', {
         worktreePath: slot.path,
@@ -570,7 +570,7 @@ export const pushWorktreeBranch = async (slot: WorktreeSlot, branchName: string,
     throw new Error('Branch name is required to push worktree changes.');
   }
 
-  if (!settings?.antiGravityAgentEndpoint) {
+  if (!settings?.agentEndpoint) {
     throw new Error('No local bridge endpoint configured. Worktree branch push requires Agent Bridge Endpoint.');
   }
 
@@ -667,7 +667,7 @@ export const forcePushWorktreeBranchWithLease = async (slot: WorktreeSlot, branc
     throw new Error('Branch name is required to push worktree changes.');
   }
 
-  if (!settings?.antiGravityAgentEndpoint) {
+  if (!settings?.agentEndpoint) {
     throw new Error('No local bridge endpoint configured. Worktree branch push requires Agent Bridge Endpoint.');
   }
 

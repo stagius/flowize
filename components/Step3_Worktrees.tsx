@@ -1,9 +1,134 @@
-import React, { useState, useEffect, useRef, useId } from 'react';
+import React, { useState, useEffect, useRef, useId, useCallback } from 'react';
 import { TaskItem, TaskStatus, WorktreeSlot, AppSettings } from '../types';
 import { cancelAgentJob, generateImplementationFromAgent, openWorktreeCmdWindow } from '../services/agentService';
 import { GitBranch, FolderGit2, Terminal, Loader2, CloudUpload, CheckCircle2, GitCommit, FileDiff, History, X, Command, Trash2, ScrollText, Copy, Check, Server } from 'lucide-react';
 import { PRIORITY_BADGES, WORKTREE_STATUS_THEMES } from '../designSystem';
 import { useFocusTrap } from './ui/hooks/useFocusTrap';
+
+const CODE_SNIPPETS = [
+    `// Implementing feature...
+async function processData(input: string) {
+  const validated = validateInput(input);
+  const transformed = transformData(validated);
+  
+  const result = await fetch('/api/transform', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: transformed })
+  });
+  
+  if (!result.ok) {
+    throw new Error(\`Failed: \${result.statusText}\`);
+  }
+  
+  return result.json();
+}`,
+    `// Processing task...
+export const validateInput = (data: unknown): ValidationResult => {
+  const schema = z.object({
+    id: z.string().uuid(),
+    name: z.string().min(1).max(100),
+    email: z.string().email(),
+    metadata: z.record(z.unknown()).optional()
+  });
+  
+  try {
+    const parsed = schema.parse(data);
+    return { success: true, data: parsed };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+};`,
+    `// Writing implementation...
+const handleSubmit = async (values: FormValues) => {
+  setIsLoading(true);
+  setError(null);
+  
+  try {
+    const result = await saveToDatabase(values);
+    await invalidateCache(['items', result.id]);
+    toast.success('Saved successfully!');
+    navigate(\`/items/\${result.id}\`);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Unknown error');
+    toast.error('Failed to save');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+useEffect(() => {
+  if (isOpen) fetchData();
+}, [isOpen]);`,
+    `// Creating handler...
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const page = parseInt(searchParams.get('page') || '1');
+  const limit = parseInt(searchParams.get('limit') || '10');
+  
+  const [items, total] = await Promise.all([
+    db.item.findMany({ skip: (page - 1) * limit, take: limit }),
+    db.item.count()
+  ]);
+  
+  return Response.json({
+    data: items,
+    pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+  });
+}`
+];
+
+const MAX_VISIBLE_LINES = 8;
+
+const TypewriterText: React.FC = () => {
+    const [displayText, setDisplayText] = useState('');
+    const [snippetIndex, setSnippetIndex] = useState(0);
+    const [charIndex, setCharIndex] = useState(0);
+
+    const currentSnippet = CODE_SNIPPETS[snippetIndex];
+
+    useEffect(() => {
+        const speed = Math.random() * 20 + 10;
+        const timer = setTimeout(() => {
+            if (charIndex < currentSnippet.length) {
+                const nextChar = currentSnippet[charIndex];
+                setDisplayText((prev) => {
+                    const newText = prev + nextChar;
+                    const lines = newText.split('\n');
+                    if (lines.length > 50) {
+                        return lines.slice(-50).join('\n');
+                    }
+                    return newText;
+                });
+                setCharIndex((prev) => prev + 1);
+            } else {
+                setDisplayText((prev) => prev + '\n\n');
+                setCharIndex(0);
+                setSnippetIndex((prev) => (prev + 1) % CODE_SNIPPETS.length);
+            }
+        }, speed);
+
+        return () => clearTimeout(timer);
+    }, [charIndex, currentSnippet]);
+
+    const allLines = displayText.split('\n');
+    const visibleLines = allLines.length > MAX_VISIBLE_LINES
+        ? allLines.slice(-MAX_VISIBLE_LINES)
+        : allLines;
+
+    return (
+        <div className="text-left w-full px-4 opacity-60 h-32">
+            {visibleLines.map((line, i) => (
+                <div key={i} className="leading-relaxed whitespace-pre">
+                    <span className="text-slate-500 dark:text-slate-500">{line}</span>
+                    {i === visibleLines.length - 1 && (
+                        <span className="inline-block w-2 h-4 bg-indigo-500/70 ml-0.5 align-middle animate-[blink_1s_step-end_infinite]" />
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+};
 
 interface Props {
     tasks: TaskItem[];
@@ -188,14 +313,14 @@ export const Step3_Worktrees: React.FC<Props> = ({
     };
 
     const buildAgentCommandForTask = (task: TaskItem, slot: WorktreeSlot): string => {
-        const template = settings?.antiGravityAgentCommand?.trim();
+        const template = settings?.agentCommand?.trim();
         if (!template || !task.issueNumber || !task.branchName) return '';
 
-        const subdir = settings?.antiGravityAgentSubdir?.trim() || '.antigravity';
+        const subdir = settings?.agentSubdir?.trim() || '.agent-workspace';
         const agentWorkspace = joinPath(slot.path, subdir.replace(/^[\\/]+/, ''));
         const issueDescriptionFile = joinPath(agentWorkspace, 'issue-description.md');
         const skillFile = joinPath(agentWorkspace, 'SKILL.md');
-        const agentName = settings?.antiGravityAgentName?.trim() || '';
+        const agentName = settings?.agentName?.trim() || '';
 
         return template
             .replace(/\{issueNumber\}/g, String(task.issueNumber))
@@ -229,8 +354,8 @@ export const Step3_Worktrees: React.FC<Props> = ({
     const handleOpenAgentWorkspaceCmd = async (slot: WorktreeSlot, task?: TaskItem) => {
         copyAgentCommandForTask(task, slot);
         setOpeningAgentWorkspaceSlot(slot.id);
-        const workspaceSubdir = settings?.antiGravityAgentSubdir?.trim() || '.antigravity';
-        const agentName = settings?.antiGravityAgentName?.trim();
+        const workspaceSubdir = settings?.agentSubdir?.trim() || '.agent-workspace';
+        const agentName = settings?.agentName?.trim();
         const startupCommand = agentName ? `opencode --agent "${agentName}"` : 'opencode';
 
         try {
@@ -850,18 +975,6 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                                         {/* Mobile: Agent actions Group */}
                                                         <div className="flex gap-2 flex-1 sm:contents">
                                                             <button
-                                                                onClick={() => handleOpenAgentWorkspaceCmd(slot, assignedTask)}
-                                                                disabled={openingAgentWorkspaceSlot === slot.id}
-                                                                aria-busy={openingAgentWorkspaceSlot === slot.id}
-                                                                aria-label="Open terminal in workspace"
-                                                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors shadow-lg shadow-indigo-900/20"
-                                                            >
-                                                                {openingAgentWorkspaceSlot === slot.id ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Terminal className="w-4 h-4" aria-hidden="true" />}
-                                                                <span className="hidden sm:inline">cmd</span>
-                                                                <span className="sm:hidden">CMD</span>
-                                                            </button>
-
-                                                            <button
                                                                 onClick={() => handleOpenFullAgentIde(slot)}
                                                                 disabled={openingFullAgentSlot === slot.id}
                                                                 aria-busy={openingFullAgentSlot === slot.id}
@@ -904,11 +1017,32 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                         </div>
 
                                         {/* Code Editor View */}
-                                        <div className="flex-1 bg-slate-100 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden relative group min-h-[150px] md:min-h-[250px]">
+                                        <div
+                                            onClick={assignedTask.status === TaskStatus.WORKTREE_ACTIVE && openingAgentWorkspaceSlot !== slot.id ? () => handleOpenAgentWorkspaceCmd(slot, assignedTask) : undefined}
+                                            className={`flex-1 bg-slate-100 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden relative group h-48 group ${assignedTask.status === TaskStatus.WORKTREE_ACTIVE && openingAgentWorkspaceSlot !== slot.id
+                                                ? 'cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-600 hover:ring-2 hover:ring-indigo-400/30 dark:hover:ring-indigo-600/30 transition-all'
+                                                : ''
+                                                }`}
+                                        >
                                             <div className="absolute top-0 left-0 right-0 h-6 bg-slate-200 dark:bg-slate-900 border-b border-slate-300 dark:border-slate-800 flex items-center px-2 gap-1.5">
                                                 <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50"></div>
                                                 <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
                                                 <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                                                {assignedTask.status === TaskStatus.WORKTREE_ACTIVE && (
+                                                    <div className="ml-auto flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500">
+                                                        {openingAgentWorkspaceSlot === slot.id ? (
+                                                            <>
+                                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                                                <span>Opening...</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Terminal className="w-3 h-3 group-hover:text-indigo-400" />
+                                                                <span className="group-hover:text-indigo-400 group-hover:font-semibold">Click to open</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="pt-8 pb-2 px-3 h-full overflow-y-auto font-mono text-xs text-slate-900 dark:text-slate-300">
                                                 {assignedTask.status === TaskStatus.IMPLEMENTED || assignedTask.status === TaskStatus.PUSHED ? (
@@ -921,8 +1055,8 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                                         <span className="text-indigo-600 dark:text-indigo-400 animate-pulse">Writing code...</span>
                                                     </div>
                                                 ) : (
-                                                    <div className="h-full flex flex-col items-center justify-center text-slate-600 dark:text-slate-700 gap-2">
-                                                        <span className="opacity-50"># Waiting for implementation...</span>
+                                                    <div className="h-full flex flex-col items-start justify-start pt-2 text-slate-600 dark:text-slate-700 font-mono overflow-hidden">
+                                                        <TypewriterText />
                                                     </div>
                                                 )}
                                             </div>

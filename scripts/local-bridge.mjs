@@ -147,27 +147,40 @@ const oauthMessagePage = ({ success, origin, token, scope, error }) => {
 </html>`;
 };
 
-const openWindowsCmd = async (
+const openTerminal = async (
   worktreePath,
   title = 'Flowize Worktree',
   startupCommand = 'git status',
   closeAfterStartup = false,
   launchAntigravity = false
 ) => {
-  if (process.platform !== 'win32') {
-    return { success: false, error: 'open-windows-cmd is only supported on Windows' };
-  }
-
   if (!worktreePath) {
     return { success: false, error: 'Missing worktreePath' };
   }
+
+  if (!existsSync(worktreePath)) {
+    return { success: false, error: `Worktree path does not exist: ${worktreePath}` };
+  }
+
+  const bootCommand = typeof startupCommand === 'string' && startupCommand.trim().length > 0
+    ? startupCommand.replace(/[\r\n]+/g, ' ').trim()
+    : 'git status';
+
+  if (process.platform === 'win32') {
+    return openWindowsTerminal(worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity);
+  }
+
+  if (process.platform === 'darwin') {
+    return openMacOSTerminal(worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity);
+  }
+
+  return openLinuxTerminal(worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity);
+};
+
+const openWindowsTerminal = async (worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity) => {
   const normalizedPath = /^[a-zA-Z]:\//.test(worktreePath)
     ? worktreePath.replace(/\//g, '\\')
     : worktreePath;
-
-  if (!existsSync(normalizedPath) && !existsSync(worktreePath)) {
-    return { success: false, error: `Worktree path does not exist: ${worktreePath}` };
-  }
 
   const shell = process.env.ComSpec || 'cmd.exe';
   const escapedPath = normalizedPath.replace(/"/g, '');
@@ -175,12 +188,8 @@ const openWindowsCmd = async (
     .replace(/[\r\n]/g, ' ')
     .replace(/["&|<>^]/g, '')
     .trim() || 'Flowize Worktree';
-  const bootCommand = typeof startupCommand === 'string' && startupCommand.trim().length > 0
-    ? startupCommand.replace(/[\r\n]+/g, ' ').trim()
-    : 'git status';
 
   if (launchAntigravity) {
-    // Launch via cmd/start so Windows PATH command shims resolve reliably.
     const ideChild = spawn(shell, [
       '/d',
       '/c',
@@ -234,9 +243,6 @@ const openWindowsCmd = async (
   ].join('\r\n');
   writeFileSync(startupScriptPath, startupScript, 'utf8');
 
-  // Use `start` so Windows launches a brand-new console window instead of
-  // attaching to the bridge process session. Pass args as an array so cmd
-  // parsing stays predictable across paths with spaces.
   const child = spawn(shell, [
     '/d',
     '/c',
@@ -281,7 +287,120 @@ const openWindowsCmd = async (
   });
 };
 
-const startAsyncJob = async (command, worktreePath) => {
+const openMacOSTerminal = async (worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity) => {
+  const escapedPath = worktreePath.replace(/"/g, '\\"');
+  const escapedTitle = title.replace(/"/g, '\\"').replace(/[\r\n]/g, ' ').trim() || 'Flowize Worktree';
+
+  if (launchAntigravity) {
+    const child = spawn('open', ['-a', 'Terminal', worktreePath], {
+      cwd: worktreePath,
+      detached: true,
+      stdio: 'ignore',
+      env: process.env
+    });
+    child.unref();
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const antigravityChild = spawn('osascript', ['-e', `
+      tell application "Terminal"
+        do script "cd '${escapedPath}' && antigravity --new-window ." in front window
+      end tell
+    `], {
+      cwd: worktreePath,
+      detached: true,
+      stdio: 'ignore',
+      env: process.env
+    });
+    antigravityChild.unref();
+
+    return { success: true };
+  }
+
+  const script = `cd "${escapedPath}" && clear && echo "=== ${escapedTitle} ===" && echo "" && ${bootCommand}${closeAfterStartup ? '' : ' && exec $SHELL'}`;
+
+  const child = spawn('osascript', ['-e', `
+    tell application "Terminal"
+      activate
+      do script "${script.replace(/"/g, '\\"')}"
+    end tell
+  `], {
+    cwd: worktreePath,
+    detached: true,
+    stdio: 'ignore',
+    env: process.env
+  });
+  child.unref();
+
+  return await new Promise((resolve) => {
+    let settled = false;
+    const finish = (payload) => {
+      if (settled) return;
+      settled = true;
+      resolve(payload);
+    };
+
+    child.once('error', (error) => {
+      finish({ success: false, error: error.message });
+    });
+
+    setTimeout(() => finish({ success: true }), 250);
+  });
+};
+
+const openLinuxTerminal = async (worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity) => {
+  const escapedPath = worktreePath.replace(/"/g, '\\"');
+  const escapedTitle = title.replace(/"/g, '\\"').replace(/[\r\n]/g, ' ').trim() || 'Flowize Worktree';
+
+  const terminals = [
+    { cmd: 'gnome-terminal', args: (script) => ['--title', escapedTitle, '--', 'bash', '-c', script] },
+    { cmd: 'konsole', args: (script) => ['--title', escapedTitle, '-e', 'bash', '-c', script] },
+    { cmd: 'xfce4-terminal', args: (script) => ['--title', escapedTitle, '-e', `bash -c "${script}"`] },
+    { cmd: 'mate-terminal', args: (script) => ['--title', escapedTitle, '-e', `bash -c "${script}"`] },
+    { cmd: 'xterm', args: (script) => ['-T', escapedTitle, '-e', 'bash', '-c', script] },
+  ];
+
+  if (launchAntigravity) {
+    bootCommand = `antigravity --new-window .`;
+  }
+
+  const script = `cd "${escapedPath}" && echo "=== ${escapedTitle} ===" && echo "" && ${bootCommand}${closeAfterStartup ? '' : ' && exec bash'}`;
+
+  for (const terminal of terminals) {
+    try {
+      const child = spawn(terminal.cmd, terminal.args(script), {
+        cwd: worktreePath,
+        detached: true,
+        stdio: 'ignore',
+        env: process.env
+      });
+      child.unref();
+
+      return await new Promise((resolve) => {
+        let settled = false;
+        const finish = (payload) => {
+          if (settled) return;
+          settled = true;
+          resolve(payload);
+        };
+
+        child.once('error', () => {
+          finish(null);
+        });
+
+        setTimeout(() => finish({ success: true }), 250);
+      });
+    } catch {
+      continue;
+    }
+  }
+
+  return { success: false, error: 'No supported terminal emulator found. Install gnome-terminal, konsole, xfce4-terminal, or xterm.' };
+};
+
+const openWindowsCmd = openWindowsTerminal;
+
+const startAsyncJob = async (command) => {
   const jobId = randomUUID();
   const job = {
     id: jobId,
@@ -606,7 +725,7 @@ const server = createServer(async (req, res) => {
     const body = await parseJson(req);
     const action = typeof body.action === 'string' ? body.action.trim() : '';
 
-    if (action === 'open-windows-cmd') {
+    if (action === 'open-terminal' || action === 'open-windows-cmd' || action === 'flowize-open-windows-cmd') {
       const worktreePath = typeof body.worktreePath === 'string' ? body.worktreePath.trim() : '';
       const title = typeof body.title === 'string' ? body.title.trim() : 'Flowize Worktree';
       const startupCommand = typeof body.startupCommand === 'string' ? body.startupCommand.trim() : 'git status';
@@ -614,7 +733,7 @@ const server = createServer(async (req, res) => {
       const launchAntigravity = body.launchAntigravity === true;
 
       try {
-        const result = await openWindowsCmd(worktreePath, title, startupCommand, closeAfterStartup, launchAntigravity);
+        const result = await openTerminal(worktreePath, title, startupCommand, closeAfterStartup, launchAntigravity);
         writeJson(res, result.success ? 200 : 400, result, origin);
       } catch (error) {
         writeJson(res, 500, {
