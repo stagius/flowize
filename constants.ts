@@ -1,9 +1,9 @@
-import { 
-  ClipboardList, 
-  Github, 
-  GitBranch, 
-  Code2, 
-  GitPullRequest, 
+import {
+  ClipboardList,
+  Github,
+  GitBranch,
+  Code2,
+  GitPullRequest,
   CheckCircle2,
   AlertCircle,
   Clock,
