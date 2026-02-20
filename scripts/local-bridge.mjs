@@ -281,7 +281,7 @@ const openWindowsCmd = async (
   });
 };
 
-const startAsyncJob = async (command) => {
+const startAsyncJob = async (command, worktreePath) => {
   const jobId = randomUUID();
   const job = {
     id: jobId,
@@ -317,7 +317,7 @@ const startAsyncJob = async (command) => {
   };
 
   const child = spawn(command, {
-    cwd: WORKDIR,
+    cwd: worktreePath || WORKDIR,
     shell: true,
     windowsHide: true,
     env: process.env
@@ -395,10 +395,10 @@ const parseJson = (req) => {
   });
 };
 
-const runShellCommand = (command) => {
+const runShellCommand = (command, worktreePath) => {
   return new Promise((resolve) => {
     exec(command, {
-      cwd: WORKDIR,
+      cwd: worktreePath || WORKDIR,
       windowsHide: true,
       maxBuffer: 4 * 1024 * 1024,
       timeout: SYNC_MAX_RUNTIME_MS
@@ -626,6 +626,7 @@ const server = createServer(async (req, res) => {
     }
 
     const command = typeof body.command === 'string' ? body.command.trim() : '';
+    const worktreePath = typeof body.worktreePath === 'string' ? body.worktreePath.trim() : '';
 
     if (!command) {
       writeJson(res, 400, { success: false, error: 'Missing command' }, origin);
@@ -633,12 +634,12 @@ const server = createServer(async (req, res) => {
     }
 
     if (body.async === true) {
-      const created = await startAsyncJob(command);
+      const created = await startAsyncJob(command, worktreePath);
       writeJson(res, 202, { success: true, jobId: created.jobId, done: false }, origin);
       return;
     }
 
-    const result = await runShellCommand(command);
+    const result = await runShellCommand(command, worktreePath);
     writeJson(res, result.success ? 200 : 500, result, origin);
   } catch (error) {
     writeJson(res, 500, {

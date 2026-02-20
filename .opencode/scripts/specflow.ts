@@ -547,7 +547,7 @@ function createWorktrees(state: IntakeState, worktreeRoot: string, agentConfig: 
       ? `git worktree add "${worktreePath}" "${branch}"`
       : remoteBranchExists
         ? `git fetch origin "${branch}" && git worktree add "${worktreePath}" --track -b "${branch}" "origin/${branch}"`
-        : `git worktree add "${worktreePath}" -b "${branch}" "${defaultBranch}"`;
+        : `git fetch origin "${defaultBranch}" && git worktree add "${worktreePath}" -b "${branch}" "origin/${defaultBranch}"`;
 
     run(worktreeCommand, { silent: true });
 
