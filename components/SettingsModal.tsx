@@ -3,6 +3,7 @@ import { AppSettings } from '../types';
 import { X, Save, Github, FolderOpen, GitBranch, Terminal, Key, ShieldCheck, AlertTriangle, Cpu, Lock, Loader2, CheckCircle2, XCircle, Search, Copy, RefreshCw, FolderOpenDot, ChevronDown } from 'lucide-react';
 import { fetchAuthenticatedUser, fetchUserRepositories, fetchRepositoryBranches, GithubAuthenticatedUser, GithubRepository, GithubBranch } from '../services/githubService';
 import { useFocusTrap } from './ui/hooks/useFocusTrap';
+import { ConfirmDialog } from './ui/Dialogs';
 
 const SPECFLOW_SKILL_RELATIVE_PATH = '.opencode/skills/specflow-worktree-automation/SKILL.md';
 
@@ -51,20 +52,47 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   const branchPickerRef = useRef<HTMLDivElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
-  
+
+  // Confirmation dialog state for unsaved changes
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
+
+  // Check if form has unsaved changes
+  const isFormDirty = useCallback(() => {
+    return JSON.stringify(formData) !== JSON.stringify(currentSettings);
+  }, [formData, currentSettings]);
+
+  // Handle close with dirty check
+  const handleClose = useCallback(() => {
+    if (isFormDirty()) {
+      setShowConfirmClose(true);
+    } else {
+      onClose();
+    }
+  }, [isFormDirty, onClose]);
+
+  // Handle confirmation dialog actions
+  const handleConfirmDiscard = () => {
+    setShowConfirmClose(false);
+    onClose();
+  };
+
+  const handleCancelClose = () => {
+    setShowConfirmClose(false);
+  };
+
   // Accessibility: unique IDs for ARIA attributes
   const modalTitleId = useId();
   const repoListboxId = useId();
   const branchListboxId = useId();
   const modelListboxId = useId();
-  
+
   // Focus trap for modal
   const focusTrapRef = useFocusTrap<HTMLDivElement>({
     isActive: isOpen,
-    onEscape: onClose,
+    onEscape: handleClose,
     restoreFocus: true,
   });
-  
+
   // Keyboard navigation state for dropdowns
   const [repoActiveIndex, setRepoActiveIndex] = useState(-1);
   const [branchActiveIndex, setBranchActiveIndex] = useState(-1);
@@ -701,28 +729,28 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-slate-950/80 dark:bg-slate-950/80 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
+        onClick={handleClose}
         aria-hidden="true"
       />
 
       {/* Modal Content */}
-      <div 
+      <div
         ref={focusTrapRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={modalTitleId}
-        className={`relative bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden duration-200 ${isMobileView
+        className={`relative bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden duration-200 flex flex-col ${isMobileView
           ? 'h-full w-full max-w-md border-l animate-in slide-in-from-right'
-          : 'w-full max-w-5xl border rounded-2xl animate-in fade-in zoom-in-95'
-        }`}
+          : 'w-full max-w-5xl border rounded-2xl animate-in fade-in zoom-in-95 max-h-[90vh]'
+          }`}
       >
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 flex-shrink-0">
           <h2 id={modalTitleId} className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Terminal className="w-5 h-5 text-indigo-500" aria-hidden="true" />
             Workflow Configuration
           </h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
             aria-label="Close settings"
           >
@@ -730,644 +758,648 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className={`p-6 space-y-6 overflow-y-auto custom-scrollbar ${isMobileView ? 'h-[calc(100vh-89px)] pb-[max(1.25rem,env(safe-area-inset-bottom))]' : 'max-h-[85vh] xl:max-h-[80vh]'}`}>
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className={`p-6 space-y-6 overflow-y-auto custom-scrollbar flex-1 ${isMobileView ? 'pb-4' : ''}`}>
 
-          {/* API Access Section */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
-              API Access
-            </h3>
-            <div className={`border rounded-lg p-3 flex justify-between items-center ${hasApiKey ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'
-              }`}>
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${hasApiKey ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                  {hasApiKey ? <ShieldCheck className="w-4 h-4" /> : <Key className="w-4 h-4" />}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-200">Gemini API Key</p>
-                  <p className="text-[10px] text-slate-600 dark:text-slate-400">Env Var: process.env.API_KEY</p>
-                </div>
-              </div>
-              <span className={`text-[10px] font-bold px-2 py-1 rounded border ${hasApiKey
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                : 'bg-red-500/10 text-red-400 border-red-500/20'
+            {/* API Access Section */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                API Access
+              </h3>
+              <div className={`border rounded-lg p-3 flex justify-between items-center ${hasApiKey ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'
                 }`}>
-                {hasApiKey ? 'CONNECTED' : 'MISSING'}
-              </span>
-            </div>
-
-            {/* GitHub Token */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">GitHub Personal Access Token</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
-                <input
-                  type="password"
-                  value={formData.githubToken || ''}
-                  onChange={e => setFormData({ ...formData, githubToken: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
-                  placeholder="ghp_xxxxxxxxxxxx"
-                />
-              </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                Required scopes: <strong>repo</strong> (Classic) or <strong>Contents:Read/Write, PullRequests:Read/Write</strong> (Fine-grained).
-              </p>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                Auto-loads from <code>.env.local</code> when <code>VITE_GITHUB_TOKEN</code> is set.
-              </p>
-
-              <div className="mt-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/60 p-3 space-y-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-900 dark:text-slate-300">GitHub OAuth (local bridge)</p>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400">Uses bridge env vars instead of pasting tokens manually.</p>
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${hasApiKey ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                    {hasApiKey ? <ShieldCheck className="w-4 h-4" /> : <Key className="w-4 h-4" />}
                   </div>
-                  <div className="flex items-center gap-2 sm:justify-end">
-                    {!isGithubConnected && (
-                      <button
-                        type="button"
-                        onClick={handleConnectGithub}
-                        disabled={githubAuthState.status === 'connecting'}
-                        className="px-3 py-1.5 text-xs font-medium rounded-md bg-indigo-600 hover:bg-indigo-500 text-white whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
-                      >
-                        <Github className="w-3.5 h-3.5" />
-                        {githubAuthState.status === 'connecting' ? 'Connecting...' : 'Connect with GitHub'}
-                      </button>
-                    )}
-                    {formData.githubToken && (
-                      <button
-                        type="button"
-                        onClick={handleDisconnectGithub}
-                        className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 whitespace-nowrap"
-                      >
-                        Disconnect
-                      </button>
-                    )}
+                  <div>
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-200">Gemini API Key</p>
+                    <p className="text-[10px] text-slate-600 dark:text-slate-400">Env Var: process.env.API_KEY</p>
                   </div>
                 </div>
+                <span className={`text-[10px] font-bold px-2 py-1 rounded border ${hasApiKey
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  : 'bg-red-500/10 text-red-400 border-red-500/20'
+                  }`}>
+                  {hasApiKey ? 'CONNECTED' : 'MISSING'}
+                </span>
+              </div>
 
-                {githubUser && (
-                  <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                    Connected as <strong>{githubUser.login}</strong>
-                  </p>
-                )}
+              {/* GitHub Token */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">GitHub Personal Access Token</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
+                  <input
+                    type="password"
+                    value={formData.githubToken || ''}
+                    onChange={e => setFormData({ ...formData, githubToken: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
+                    placeholder="ghp_xxxxxxxxxxxx"
+                  />
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Required scopes: <strong>repo</strong> (Classic) or <strong>Contents:Read/Write, PullRequests:Read/Write</strong> (Fine-grained).
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Auto-loads from <code>.env.local</code> when <code>VITE_GITHUB_TOKEN</code> is set.
+                </p>
 
-                {loadingGithubData && (
-                  <p className="text-xs text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Loading GitHub profile and repositories...
-                  </p>
-                )}
-
-                {githubAuthState.status === 'error' && (
-                  <p className="text-xs text-red-700 dark:text-red-300">{githubAuthState.message}</p>
-                )}
-
-                {githubRepos.length > 0 && (
-                  <div className="space-y-1.5">
-                    <label id={`${repoListboxId}-label`} className="text-xs font-medium text-slate-700 dark:text-slate-300">Repository</label>
-                    <div className="relative" ref={repoPickerRef}>
-                      <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-600 dark:text-slate-400" aria-hidden="true" />
-                      <input
-                        value={repoSearchValue}
-                        onChange={(e) => {
-                          handleRepoSearchInput(e.target.value);
-                          setRepoActiveIndex(-1);
-                        }}
-                        onFocus={() => setIsRepoMenuOpen(true)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Escape') {
-                            setIsRepoMenuOpen(false);
-                            setRepoActiveIndex(-1);
-                          } else if (e.key === 'ArrowDown') {
-                            e.preventDefault();
-                            if (!isRepoMenuOpen) setIsRepoMenuOpen(true);
-                            setRepoActiveIndex((prev) => 
-                              prev < filteredGithubRepos.length - 1 ? prev + 1 : 0
-                            );
-                          } else if (e.key === 'ArrowUp') {
-                            e.preventDefault();
-                            if (!isRepoMenuOpen) setIsRepoMenuOpen(true);
-                            setRepoActiveIndex((prev) => 
-                              prev > 0 ? prev - 1 : filteredGithubRepos.length - 1
-                            );
-                          } else if (e.key === 'Enter' && repoActiveIndex >= 0 && filteredGithubRepos[repoActiveIndex]) {
-                            e.preventDefault();
-                            handleSelectRepository(filteredGithubRepos[repoActiveIndex].full_name);
-                            setRepoActiveIndex(-1);
-                          }
-                        }}
-                        placeholder="Search repos (owner/name)"
-                        role="combobox"
-                        aria-expanded={isRepoMenuOpen}
-                        aria-haspopup="listbox"
-                        aria-controls={repoListboxId}
-                        aria-autocomplete="list"
-                        aria-activedescendant={repoActiveIndex >= 0 ? `repo-option-${repoActiveIndex}` : undefined}
-                        aria-labelledby={`${repoListboxId}-label`}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
-                      />
-
-                      {isRepoMenuOpen && (
-                        <ul 
-                          id={repoListboxId}
-                          role="listbox"
-                          aria-label="Repository options"
-                          className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 shadow-2xl max-h-[400px] overflow-y-auto"
+                <div className="mt-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/60 p-3 space-y-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-900 dark:text-slate-300">GitHub OAuth (local bridge)</p>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400">Uses bridge env vars instead of pasting tokens manually.</p>
+                    </div>
+                    <div className="flex items-center gap-2 sm:justify-end">
+                      {!isGithubConnected && (
+                        <button
+                          type="button"
+                          onClick={handleConnectGithub}
+                          disabled={githubAuthState.status === 'connecting'}
+                          className="px-3 py-1.5 text-xs font-medium rounded-md bg-indigo-600 hover:bg-indigo-500 text-white whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
                         >
-                          {filteredGithubRepos.length === 0 ? (
-                            <li className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400" role="option" aria-disabled="true">No repositories found.</li>
-                          ) : (
-                            filteredGithubRepos.map((repo, index) => {
-                              const isSelected = repo.full_name === `${formData.repoOwner}/${formData.repoName}`;
-                              const isActive = index === repoActiveIndex;
-                              return (
-                                <li
-                                  key={repo.id}
-                                  id={`repo-option-${index}`}
-                                  role="option"
-                                  aria-selected={isSelected}
-                                  onMouseDown={(e) => e.preventDefault()}
-                                  onClick={() => {
-                                    handleSelectRepository(repo.full_name);
-                                    setRepoActiveIndex(-1);
-                                  }}
-                                  onMouseEnter={() => setRepoActiveIndex(index)}
-                                  className={`w-full text-left px-3 py-2 border-b border-slate-200 dark:border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-100 dark:bg-slate-800/80' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'}`}
-                                >
-                                  <p className="text-xs font-medium text-slate-900 dark:text-slate-200">{repo.full_name}</p>
-                                  <p className="text-[10px] text-slate-500 dark:text-slate-400">{repo.private ? 'private' : 'public'}</p>
-                                </li>
-                              );
-                            })
-                          )}
-                        </ul>
+                          <Github className="w-3.5 h-3.5" />
+                          {githubAuthState.status === 'connecting' ? 'Connecting...' : 'Connect with GitHub'}
+                        </button>
+                      )}
+                      {formData.githubToken && (
+                        <button
+                          type="button"
+                          onClick={handleDisconnectGithub}
+                          className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 whitespace-nowrap"
+                        >
+                          Disconnect
+                        </button>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400">Loaded from your authenticated GitHub account (latest 100 repos).</p>
                   </div>
-                )}
-              </div>
-            </div>
 
-            {/* Model Selection */}
-            <div className="space-y-1.5">
-              <label id={`${modelListboxId}-label`} className="text-sm font-medium text-slate-700 dark:text-slate-300">Gemini Model</label>
-              <div className="relative" ref={modelPickerRef}>
-                <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
-                <button
-                  type="button"
-                  onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape' && isModelMenuOpen) {
-                      e.preventDefault();
-                      setIsModelMenuOpen(false);
-                      setModelActiveIndex(-1);
-                    } else if (e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      if (!isModelMenuOpen) {
-                        setIsModelMenuOpen(true);
-                        setModelActiveIndex(0);
-                      } else {
-                        setModelActiveIndex((prev) => 
-                          prev < MODEL_OPTIONS.length - 1 ? prev + 1 : 0
-                        );
-                      }
-                    } else if (e.key === 'ArrowUp') {
-                      e.preventDefault();
-                      if (!isModelMenuOpen) {
-                        setIsModelMenuOpen(true);
-                        setModelActiveIndex(MODEL_OPTIONS.length - 1);
-                      } else {
-                        setModelActiveIndex((prev) => 
-                          prev > 0 ? prev - 1 : MODEL_OPTIONS.length - 1
-                        );
-                      }
-                    } else if ((e.key === 'Enter' || e.key === ' ') && isModelMenuOpen && modelActiveIndex >= 0) {
-                      e.preventDefault();
-                      setFormData({ ...formData, model: MODEL_OPTIONS[modelActiveIndex].value });
-                      setIsModelMenuOpen(false);
-                      setModelActiveIndex(-1);
-                    }
-                  }}
-                  role="combobox"
-                  aria-expanded={isModelMenuOpen}
-                  aria-haspopup="listbox"
-                  aria-controls={modelListboxId}
-                  aria-labelledby={`${modelListboxId}-label`}
-                  aria-activedescendant={modelActiveIndex >= 0 ? `model-option-${modelActiveIndex}` : undefined}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-9 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-left flex items-center justify-between"
-                >
-                  <span>
-                    {(() => {
-                      const selected = MODEL_OPTIONS.find(m => m.value === (formData.model || 'gemini-3-pro'));
-                      return selected ? `${selected.label}${selected.description ? ` (${selected.description})` : ''}` : (formData.model || 'gemini-3-pro');
-                    })()}
-                  </span>
-                  <ChevronDown className={`w-4 h-4 text-slate-600 dark:text-slate-400 transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
-                </button>
+                  {githubUser && (
+                    <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                      Connected as <strong>{githubUser.login}</strong>
+                    </p>
+                  )}
 
-                {isModelMenuOpen && (
-                  <ul 
-                    id={modelListboxId}
-                    role="listbox"
-                    aria-label="Model options"
-                    className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 shadow-2xl max-h-[300px] overflow-y-auto"
-                  >
-                    {MODEL_OPTIONS.map((model, index) => {
-                      const isSelected = model.value === (formData.model || 'gemini-3-pro');
-                      const isActive = index === modelActiveIndex;
-                      return (
-                        <li
-                          key={model.value}
-                          id={`model-option-${index}`}
-                          role="option"
-                          aria-selected={isSelected}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            setFormData({ ...formData, model: model.value });
-                            setIsModelMenuOpen(false);
-                            setModelActiveIndex(-1);
+                  {loadingGithubData && (
+                    <p className="text-xs text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Loading GitHub profile and repositories...
+                    </p>
+                  )}
+
+                  {githubAuthState.status === 'error' && (
+                    <p className="text-xs text-red-700 dark:text-red-300">{githubAuthState.message}</p>
+                  )}
+
+                  {githubRepos.length > 0 && (
+                    <div className="space-y-1.5">
+                      <label id={`${repoListboxId}-label`} className="text-xs font-medium text-slate-700 dark:text-slate-300">Repository</label>
+                      <div className="relative" ref={repoPickerRef}>
+                        <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-600 dark:text-slate-400" aria-hidden="true" />
+                        <input
+                          value={repoSearchValue}
+                          onChange={(e) => {
+                            handleRepoSearchInput(e.target.value);
+                            setRepoActiveIndex(-1);
                           }}
-                          onMouseEnter={() => setModelActiveIndex(index)}
-                          className={`w-full text-left px-3 py-2 border-b border-slate-200 dark:border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-100 dark:bg-slate-800/80' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'}`}
-                        >
-                          <p className="text-xs font-medium text-slate-900 dark:text-slate-200">{model.label}</p>
-                          {model.description && (
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400">{model.description}</p>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                Select the Gemini model for AI task analysis.
-              </p>
-            </div>
+                          onFocus={() => setIsRepoMenuOpen(true)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              setIsRepoMenuOpen(false);
+                              setRepoActiveIndex(-1);
+                            } else if (e.key === 'ArrowDown') {
+                              e.preventDefault();
+                              if (!isRepoMenuOpen) setIsRepoMenuOpen(true);
+                              setRepoActiveIndex((prev) =>
+                                prev < filteredGithubRepos.length - 1 ? prev + 1 : 0
+                              );
+                            } else if (e.key === 'ArrowUp') {
+                              e.preventDefault();
+                              if (!isRepoMenuOpen) setIsRepoMenuOpen(true);
+                              setRepoActiveIndex((prev) =>
+                                prev > 0 ? prev - 1 : filteredGithubRepos.length - 1
+                              );
+                            } else if (e.key === 'Enter' && repoActiveIndex >= 0 && filteredGithubRepos[repoActiveIndex]) {
+                              e.preventDefault();
+                              handleSelectRepository(filteredGithubRepos[repoActiveIndex].full_name);
+                              setRepoActiveIndex(-1);
+                            }
+                          }}
+                          placeholder="Search repos (owner/name)"
+                          role="combobox"
+                          aria-expanded={isRepoMenuOpen}
+                          aria-haspopup="listbox"
+                          aria-controls={repoListboxId}
+                          aria-autocomplete="list"
+                          aria-activedescendant={repoActiveIndex >= 0 ? `repo-option-${repoActiveIndex}` : undefined}
+                          aria-labelledby={`${repoListboxId}-label`}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
+                        />
 
-            {!hasApiKey && (
-              <div className="flex items-start gap-2 text-xs text-yellow-500/90 bg-yellow-500/5 border border-yellow-500/10 p-3 rounded-lg">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <p>
-                  To enable AI features, you must set the <code>API_KEY</code> environment variable in your project configuration. The UI does not accept direct key input for security.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="w-full h-px bg-slate-200 dark:bg-slate-800"></div>
-
-          {/* Repo Details */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider">Repository Details</h3>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Owner</label>
-                <div className="relative">
-                  <Github className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
-                  <input
-                    type="text"
-                    value={formData.repoOwner}
-                    onChange={e => setFormData({ ...formData, repoOwner: e.target.value })}
-                    disabled={repoControlledByOAuth}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600 disabled:opacity-70 disabled:cursor-not-allowed"
-                    placeholder="acme-inc"
-                  />
+                        {isRepoMenuOpen && (
+                          <ul
+                            id={repoListboxId}
+                            role="listbox"
+                            aria-label="Repository options"
+                            className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 shadow-2xl max-h-[400px] overflow-y-auto"
+                          >
+                            {filteredGithubRepos.length === 0 ? (
+                              <li className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400" role="option" aria-disabled="true">No repositories found.</li>
+                            ) : (
+                              filteredGithubRepos.map((repo, index) => {
+                                const isSelected = repo.full_name === `${formData.repoOwner}/${formData.repoName}`;
+                                const isActive = index === repoActiveIndex;
+                                return (
+                                  <li
+                                    key={repo.id}
+                                    id={`repo-option-${index}`}
+                                    role="option"
+                                    aria-selected={isSelected}
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => {
+                                      handleSelectRepository(repo.full_name);
+                                      setRepoActiveIndex(-1);
+                                    }}
+                                    onMouseEnter={() => setRepoActiveIndex(index)}
+                                    className={`w-full text-left px-3 py-2 border-b border-slate-200 dark:border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-100 dark:bg-slate-800/80' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'}`}
+                                  >
+                                    <p className="text-xs font-medium text-slate-900 dark:text-slate-200">{repo.full_name}</p>
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">{repo.private ? 'private' : 'public'}</p>
+                                  </li>
+                                );
+                              })
+                            )}
+                          </ul>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400">Loaded from your authenticated GitHub account (latest 100 repos).</p>
+                    </div>
+                  )}
                 </div>
-                {repoControlledByOAuth && (
-                  <p className="text-[10px] text-slate-600 dark:text-slate-400">Owner is synced from selected GitHub repository.</p>
-                )}
               </div>
 
+              {/* Model Selection */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Repository Name</label>
-                <div className="relative">
-                  <div className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400 flex items-center justify-center font-mono text-[10px] font-bold">/</div>
-                  <input
-                    type="text"
-                    value={formData.repoName}
-                    onChange={e => setFormData({ ...formData, repoName: e.target.value })}
-                    disabled={repoControlledByOAuth}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600 disabled:opacity-70 disabled:cursor-not-allowed"
-                    placeholder="my-project"
-                  />
-                </div>
-                {repoControlledByOAuth && (
-                  <p className="text-[10px] text-slate-600 dark:text-slate-400">Repository name is synced from selected GitHub repository.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label id={`${branchListboxId}-label`} className="text-sm font-medium text-slate-700 dark:text-slate-300">Default Branch</label>
-              {canUseBranchDropdown ? (
-                <div className="relative" ref={branchPickerRef}>
-                  <GitBranch className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
-                  <input
-                    type="text"
-                    value={branchSearchValue}
-                    onChange={(e) => {
-                      handleBranchSearchInput(e.target.value);
-                      setBranchActiveIndex(-1);
-                    }}
-                    onFocus={() => setIsBranchMenuOpen(true)}
+                <label id={`${modelListboxId}-label`} className="text-sm font-medium text-slate-700 dark:text-slate-300">Gemini Model</label>
+                <div className="relative" ref={modelPickerRef}>
+                  <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
+                  <button
+                    type="button"
+                    onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Escape') {
-                        setIsBranchMenuOpen(false);
-                        setBranchActiveIndex(-1);
+                      if (e.key === 'Escape' && isModelMenuOpen) {
+                        e.preventDefault();
+                        setIsModelMenuOpen(false);
+                        setModelActiveIndex(-1);
                       } else if (e.key === 'ArrowDown') {
                         e.preventDefault();
-                        if (!isBranchMenuOpen) setIsBranchMenuOpen(true);
-                        setBranchActiveIndex((prev) => 
-                          prev < filteredGithubBranches.length - 1 ? prev + 1 : 0
-                        );
+                        if (!isModelMenuOpen) {
+                          setIsModelMenuOpen(true);
+                          setModelActiveIndex(0);
+                        } else {
+                          setModelActiveIndex((prev) =>
+                            prev < MODEL_OPTIONS.length - 1 ? prev + 1 : 0
+                          );
+                        }
                       } else if (e.key === 'ArrowUp') {
                         e.preventDefault();
-                        if (!isBranchMenuOpen) setIsBranchMenuOpen(true);
-                        setBranchActiveIndex((prev) => 
-                          prev > 0 ? prev - 1 : filteredGithubBranches.length - 1
-                        );
-                      } else if (e.key === 'Enter' && branchActiveIndex >= 0 && filteredGithubBranches[branchActiveIndex]) {
+                        if (!isModelMenuOpen) {
+                          setIsModelMenuOpen(true);
+                          setModelActiveIndex(MODEL_OPTIONS.length - 1);
+                        } else {
+                          setModelActiveIndex((prev) =>
+                            prev > 0 ? prev - 1 : MODEL_OPTIONS.length - 1
+                          );
+                        }
+                      } else if ((e.key === 'Enter' || e.key === ' ') && isModelMenuOpen && modelActiveIndex >= 0) {
                         e.preventDefault();
-                        handleSelectBranch(filteredGithubBranches[branchActiveIndex].name);
-                        setBranchActiveIndex(-1);
+                        setFormData({ ...formData, model: MODEL_OPTIONS[modelActiveIndex].value });
+                        setIsModelMenuOpen(false);
+                        setModelActiveIndex(-1);
                       }
                     }}
                     role="combobox"
-                    aria-expanded={isBranchMenuOpen}
+                    aria-expanded={isModelMenuOpen}
                     aria-haspopup="listbox"
-                    aria-controls={branchListboxId}
-                    aria-autocomplete="list"
-                    aria-activedescendant={branchActiveIndex >= 0 ? `branch-option-${branchActiveIndex}` : undefined}
-                    aria-labelledby={`${branchListboxId}-label`}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
-                    placeholder="Search branch"
-                  />
+                    aria-controls={modelListboxId}
+                    aria-labelledby={`${modelListboxId}-label`}
+                    aria-activedescendant={modelActiveIndex >= 0 ? `model-option-${modelActiveIndex}` : undefined}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-9 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-left flex items-center justify-between"
+                  >
+                    <span>
+                      {(() => {
+                        const selected = MODEL_OPTIONS.find(m => m.value === (formData.model || 'gemini-3-pro'));
+                        return selected ? `${selected.label}${selected.description ? ` (${selected.description})` : ''}` : (formData.model || 'gemini-3-pro');
+                      })()}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-slate-600 dark:text-slate-400 transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                  </button>
 
-                  {isBranchMenuOpen && (
-                    <ul 
-                      id={branchListboxId}
+                  {isModelMenuOpen && (
+                    <ul
+                      id={modelListboxId}
                       role="listbox"
-                      aria-label="Branch options"
-                      className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 shadow-2xl max-h-52 overflow-y-auto"
+                      aria-label="Model options"
+                      className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 shadow-2xl max-h-[300px] overflow-y-auto"
                     >
-                      {loadingBranches ? (
-                        <li className="px-3 py-2 text-xs text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5" role="option" aria-disabled="true">
-                          <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> Loading branches...
-                        </li>
-                      ) : filteredGithubBranches.length === 0 ? (
-                        <li className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400" role="option" aria-disabled="true">No branches found.</li>
-                      ) : (
-                        filteredGithubBranches.map((branch, index) => {
-                          const isSelected = branch.name === formData.defaultBranch;
-                          const isActive = index === branchActiveIndex;
-                          return (
-                            <li
-                              key={branch.name}
-                              id={`branch-option-${index}`}
-                              role="option"
-                              aria-selected={isSelected}
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
-                                handleSelectBranch(branch.name);
-                                setBranchActiveIndex(-1);
-                              }}
-                              onMouseEnter={() => setBranchActiveIndex(index)}
-                              className={`w-full text-left px-3 py-2 border-b border-slate-200 dark:border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-100 dark:bg-slate-800/80' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'}`}
-                            >
-                              <p className="text-xs font-medium text-slate-900 dark:text-slate-200">{branch.name}</p>
-                            </li>
-                          );
-                        })
-                      )}
+                      {MODEL_OPTIONS.map((model, index) => {
+                        const isSelected = model.value === (formData.model || 'gemini-3-pro');
+                        const isActive = index === modelActiveIndex;
+                        return (
+                          <li
+                            key={model.value}
+                            id={`model-option-${index}`}
+                            role="option"
+                            aria-selected={isSelected}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setFormData({ ...formData, model: model.value });
+                              setIsModelMenuOpen(false);
+                              setModelActiveIndex(-1);
+                            }}
+                            onMouseEnter={() => setModelActiveIndex(index)}
+                            className={`w-full text-left px-3 py-2 border-b border-slate-200 dark:border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-100 dark:bg-slate-800/80' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'}`}
+                          >
+                            <p className="text-xs font-medium text-slate-900 dark:text-slate-200">{model.label}</p>
+                            {model.description && (
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400">{model.description}</p>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </div>
-              ) : (
-                <div className="relative">
-                  <GitBranch className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
-                  <input
-                    type="text"
-                    value={formData.defaultBranch}
-                    onChange={e => {
-                      setBranchSearchValue(e.target.value);
-                      setFormData({ ...formData, defaultBranch: e.target.value });
-                    }}
-                    aria-labelledby={`${branchListboxId}-label`}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
-                    placeholder="main"
-                  />
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Select the Gemini model for AI task analysis.
+                </p>
+              </div>
+
+              {!hasApiKey && (
+                <div className="flex items-start gap-2 text-xs text-yellow-500/90 bg-yellow-500/5 border border-yellow-500/10 p-3 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <p>
+                    To enable AI features, you must set the <code>API_KEY</code> environment variable in your project configuration. The UI does not accept direct key input for security.
+                  </p>
                 </div>
               )}
-              {canUseBranchDropdown && (
-                <p className="text-[10px] text-slate-600 dark:text-slate-400">Branch list is loaded from selected GitHub repository.</p>
-              )}
             </div>
-          </div>
 
-          <div className="w-full h-px bg-slate-200 dark:bg-slate-800"></div>
+            <div className="w-full h-px bg-slate-200 dark:bg-slate-800"></div>
 
-          {/* Environment */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider">Local Environment</h3>
+            {/* Repo Details */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider">Repository Details</h3>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-              <div className="col-span-2 space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Worktree Root Path</label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <FolderOpen className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Owner</label>
+                  <div className="relative">
+                    <Github className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
                     <input
                       type="text"
-                      value={formData.worktreeRoot}
-                      onChange={e => setFormData({ ...formData, worktreeRoot: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
-                      placeholder="/home/dev/projects"
+                      value={formData.repoOwner}
+                      onChange={e => setFormData({ ...formData, repoOwner: e.target.value })}
+                      disabled={repoControlledByOAuth}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600 disabled:opacity-70 disabled:cursor-not-allowed"
+                      placeholder="acme-inc"
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleBrowse}
-                    className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white text-sm font-medium rounded-lg shadow-lg shadow-slate-900/20 flex items-center gap-2 transition-all"
-                  >
-                    <FolderOpenDot className="w-4 h-4" />
-                    Browse
-                  </button>
+                  {repoControlledByOAuth && (
+                    <p className="text-[10px] text-slate-600 dark:text-slate-400">Owner is synced from selected GitHub repository.</p>
+                  )}
                 </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Repository Name</label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400 flex items-center justify-center font-mono text-[10px] font-bold">/</div>
+                    <input
+                      type="text"
+                      value={formData.repoName}
+                      onChange={e => setFormData({ ...formData, repoName: e.target.value })}
+                      disabled={repoControlledByOAuth}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600 disabled:opacity-70 disabled:cursor-not-allowed"
+                      placeholder="my-project"
+                    />
+                  </div>
+                  {repoControlledByOAuth && (
+                    <p className="text-[10px] text-slate-600 dark:text-slate-400">Repository name is synced from selected GitHub repository.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label id={`${branchListboxId}-label`} className="text-sm font-medium text-slate-700 dark:text-slate-300">Default Branch</label>
+                {canUseBranchDropdown ? (
+                  <div className="relative" ref={branchPickerRef}>
+                    <GitBranch className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
+                    <input
+                      type="text"
+                      value={branchSearchValue}
+                      onChange={(e) => {
+                        handleBranchSearchInput(e.target.value);
+                        setBranchActiveIndex(-1);
+                      }}
+                      onFocus={() => setIsBranchMenuOpen(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          setIsBranchMenuOpen(false);
+                          setBranchActiveIndex(-1);
+                        } else if (e.key === 'ArrowDown') {
+                          e.preventDefault();
+                          if (!isBranchMenuOpen) setIsBranchMenuOpen(true);
+                          setBranchActiveIndex((prev) =>
+                            prev < filteredGithubBranches.length - 1 ? prev + 1 : 0
+                          );
+                        } else if (e.key === 'ArrowUp') {
+                          e.preventDefault();
+                          if (!isBranchMenuOpen) setIsBranchMenuOpen(true);
+                          setBranchActiveIndex((prev) =>
+                            prev > 0 ? prev - 1 : filteredGithubBranches.length - 1
+                          );
+                        } else if (e.key === 'Enter' && branchActiveIndex >= 0 && filteredGithubBranches[branchActiveIndex]) {
+                          e.preventDefault();
+                          handleSelectBranch(filteredGithubBranches[branchActiveIndex].name);
+                          setBranchActiveIndex(-1);
+                        }
+                      }}
+                      role="combobox"
+                      aria-expanded={isBranchMenuOpen}
+                      aria-haspopup="listbox"
+                      aria-controls={branchListboxId}
+                      aria-autocomplete="list"
+                      aria-activedescendant={branchActiveIndex >= 0 ? `branch-option-${branchActiveIndex}` : undefined}
+                      aria-labelledby={`${branchListboxId}-label`}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
+                      placeholder="Search branch"
+                    />
+
+                    {isBranchMenuOpen && (
+                      <ul
+                        id={branchListboxId}
+                        role="listbox"
+                        aria-label="Branch options"
+                        className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 shadow-2xl max-h-52 overflow-y-auto"
+                      >
+                        {loadingBranches ? (
+                          <li className="px-3 py-2 text-xs text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5" role="option" aria-disabled="true">
+                            <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> Loading branches...
+                          </li>
+                        ) : filteredGithubBranches.length === 0 ? (
+                          <li className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400" role="option" aria-disabled="true">No branches found.</li>
+                        ) : (
+                          filteredGithubBranches.map((branch, index) => {
+                            const isSelected = branch.name === formData.defaultBranch;
+                            const isActive = index === branchActiveIndex;
+                            return (
+                              <li
+                                key={branch.name}
+                                id={`branch-option-${index}`}
+                                role="option"
+                                aria-selected={isSelected}
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  handleSelectBranch(branch.name);
+                                  setBranchActiveIndex(-1);
+                                }}
+                                onMouseEnter={() => setBranchActiveIndex(index)}
+                                className={`w-full text-left px-3 py-2 border-b border-slate-200 dark:border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-100 dark:bg-slate-800/80' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'}`}
+                              >
+                                <p className="text-xs font-medium text-slate-900 dark:text-slate-200">{branch.name}</p>
+                              </li>
+                            );
+                          })
+                        )}
+                      </ul>
+                    )}
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <GitBranch className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
+                    <input
+                      type="text"
+                      value={formData.defaultBranch}
+                      onChange={e => {
+                        setBranchSearchValue(e.target.value);
+                        setFormData({ ...formData, defaultBranch: e.target.value });
+                      }}
+                      aria-labelledby={`${branchListboxId}-label`}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
+                      placeholder="main"
+                    />
+                  </div>
+                )}
+                {canUseBranchDropdown && (
+                  <p className="text-[10px] text-slate-600 dark:text-slate-400">Branch list is loaded from selected GitHub repository.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="w-full h-px bg-slate-200 dark:bg-slate-800"></div>
+
+            {/* Environment */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider">Local Environment</h3>
+
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Worktree Root Path</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <FolderOpen className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
+                      <input
+                        type="text"
+                        value={formData.worktreeRoot}
+                        onChange={e => setFormData({ ...formData, worktreeRoot: e.target.value })}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
+                        placeholder="/home/dev/projects"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleBrowse}
+                      className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white text-sm font-medium rounded-lg shadow-lg shadow-slate-900/20 flex items-center gap-2 transition-all"
+                    >
+                      <FolderOpenDot className="w-4 h-4" />
+                      Browse
+                    </button>
+                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    {...{ webkitdirectory: "", directory: "" } as any}
+                    onChange={handleFolderSelect}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Max Slots</label>
+                  <div className="relative">
+                    <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={formData.maxWorktrees}
+                      onChange={e => setFormData({ ...formData, maxWorktrees: Math.max(1, Math.min(10, parseInt(e.target.value) || 1)) })}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                New worktrees will be created as sibling folders (example: /flowize-wt-1).
+              </p>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Anti-Gravity Agent Command</label>
                 <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  {...{ webkitdirectory: "", directory: "" } as any}
-                  onChange={handleFolderSelect}
+                  type="text"
+                  value={formData.antiGravityAgentCommand || ''}
+                  onChange={e => setFormData({ ...formData, antiGravityAgentCommand: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
+                  placeholder={'cd "{worktreePath}" && opencode run {agentFlag} "Implement issue #{issueNumber} on branch {branch}. Use {issueDescriptionFile} as requirements and follow {skillFile}. Return code/output for this task." --print-logs'}
                 />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Max Slots</label>
-                <div className="relative">
-                  <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
-                  <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={formData.maxWorktrees}
-                    onChange={e => setFormData({ ...formData, maxWorktrees: Math.max(1, Math.min(10, parseInt(e.target.value) || 1)) })}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400">
-              New worktrees will be created as sibling folders (example: /flowize-wt-1).
-            </p>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Anti-Gravity Agent Command</label>
-              <input
-                type="text"
-                value={formData.antiGravityAgentCommand || ''}
-                onChange={e => setFormData({ ...formData, antiGravityAgentCommand: e.target.value })}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
-                placeholder={'cd "{worktreePath}" && opencode run {agentFlag} "Implement issue #{issueNumber} on branch {branch}. Use {issueDescriptionFile} as requirements and follow {skillFile}. Return code/output for this task." --print-logs'}
-              />
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                Used when you click Implement on a worktree task with an issue. Placeholders: {'{issueNumber}'}, {'{branch}'}, {'{title}'}, {'{worktreePath}'}, {'{agentWorkspace}'}, {'{issueDescriptionFile}'}, {'{skillFile}'}, {'{agentName}'}, {'{agentFlag}'}.
-              </p>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                Use a headless CLI command that prints to stdout (for example `opencode run ... --print-logs`). GUI chat commands open windows and will not stream implementation output back.
-              </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">OpenCode Agent Name (optional)</label>
-              <input
-                type="text"
-                value={formData.antiGravityAgentName || ''}
-                onChange={e => setFormData({ ...formData, antiGravityAgentName: e.target.value })}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
-                placeholder="frontend"
-              />
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                If set, {'{agentFlag}'} expands to `--agent "name"` in the command template.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Bridge Endpoint</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={formData.antiGravityAgentEndpoint || ''}
-                    onChange={e => setFormData({ ...formData, antiGravityAgentEndpoint: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
-                    placeholder="http://127.0.0.1:4141/run"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleTestBridge}
-                    disabled={bridgeTest.status === 'testing'}
-                    className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed"
-                  >
-                    {bridgeTest.status === 'testing' ? (
-                      <span className="inline-flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Testing</span>
-                    ) : 'Test bridge'}
-                  </button>
-                </div>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Must be a running local HTTP bridge that accepts POST and allows browser origin access (CORS).
+                  Used when you click Implement on a worktree task with an issue. Placeholders: {'{issueNumber}'}, {'{branch}'}, {'{title}'}, {'{worktreePath}'}, {'{agentWorkspace}'}, {'{issueDescriptionFile}'}, {'{skillFile}'}, {'{agentName}'}, {'{agentFlag}'}.
                 </p>
-                <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${bridgeHealth.status === 'healthy'
-                  ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                  : bridgeHealth.status === 'checking'
-                    ? 'bg-indigo-500/5 border-indigo-500/20 text-indigo-700 dark:text-indigo-300'
-                    : 'bg-red-500/5 border-red-500/20 text-red-700 dark:text-red-300'
-                  }`}>
-                  {bridgeHealth.status === 'healthy'
-                    ? <CheckCircle2 className="w-4 h-4 mt-0.5" />
-                    : bridgeHealth.status === 'checking'
-                      ? <Loader2 className="w-4 h-4 mt-0.5 animate-spin" />
-                      : <XCircle className="w-4 h-4 mt-0.5" />}
-                  <span>{bridgeHealth.message}</span>
-                </div>
-                {bridgeTest.status !== 'idle' && (
-                  <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${bridgeTest.status === 'ok'
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Use a headless CLI command that prints to stdout (for example `opencode run ... --print-logs`). GUI chat commands open windows and will not stream implementation output back.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">OpenCode Agent Name (optional)</label>
+                <input
+                  type="text"
+                  value={formData.antiGravityAgentName || ''}
+                  onChange={e => setFormData({ ...formData, antiGravityAgentName: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
+                  placeholder="frontend"
+                />
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  If set, {'{agentFlag}'} expands to `--agent "name"` in the command template.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Bridge Endpoint</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={formData.antiGravityAgentEndpoint || ''}
+                      onChange={e => setFormData({ ...formData, antiGravityAgentEndpoint: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
+                      placeholder="http://127.0.0.1:4141/run"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleTestBridge}
+                      disabled={bridgeTest.status === 'testing'}
+                      className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                      {bridgeTest.status === 'testing' ? (
+                        <span className="inline-flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Testing</span>
+                      ) : 'Test bridge'}
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                    Must be a running local HTTP bridge that accepts POST and allows browser origin access (CORS).
+                  </p>
+                  <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${bridgeHealth.status === 'healthy'
                     ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                    : bridgeTest.status === 'testing'
+                    : bridgeHealth.status === 'checking'
                       ? 'bg-indigo-500/5 border-indigo-500/20 text-indigo-700 dark:text-indigo-300'
                       : 'bg-red-500/5 border-red-500/20 text-red-700 dark:text-red-300'
                     }`}>
-                    {bridgeTest.status === 'ok' ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : bridgeTest.status === 'testing' ? <Loader2 className="w-4 h-4 mt-0.5 animate-spin" /> : <XCircle className="w-4 h-4 mt-0.5" />}
-                    <span>{bridgeTest.message}</span>
+                    {bridgeHealth.status === 'healthy'
+                      ? <CheckCircle2 className="w-4 h-4 mt-0.5" />
+                      : bridgeHealth.status === 'checking'
+                        ? <Loader2 className="w-4 h-4 mt-0.5 animate-spin" />
+                        : <XCircle className="w-4 h-4 mt-0.5" />}
+                    <span>{bridgeHealth.message}</span>
                   </div>
-                )}
-                {shouldShowBridgeRecovery && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-amber-600 dark:text-amber-300/90">
-                      Browser security cannot start a terminal directly. Auto-start only works when a bridge endpoint is already reachable.
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={handleCopyBridgeStartCommand}
-                        className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap"
-                      >
-                        <span className="inline-flex items-center gap-1.5"><Copy className="w-3 h-3" /> Copy Start Command</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleTestBridge}
-                        disabled={bridgeTest.status === 'testing'}
-                        className="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 rounded-lg border border-indigo-500/30 text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed"
-                      >
-                        {bridgeTest.status === 'testing' ? (
-                          <span className="inline-flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Re-testing...</span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Re-test Bridge</span>
-                        )}
-                      </button>
-                    </div>
-                    {bridgeRecovery.status !== 'idle' && (
-                      <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${bridgeRecovery.status === 'ok'
-                        ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                  {bridgeTest.status !== 'idle' && (
+                    <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${bridgeTest.status === 'ok'
+                      ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                      : bridgeTest.status === 'testing'
+                        ? 'bg-indigo-500/5 border-indigo-500/20 text-indigo-700 dark:text-indigo-300'
                         : 'bg-red-500/5 border-red-500/20 text-red-700 dark:text-red-300'
-                        }`}>
-                        {bridgeRecovery.status === 'ok' ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : <XCircle className="w-4 h-4 mt-0.5" />}
-                        <span>{bridgeRecovery.message}</span>
+                      }`}>
+                      {bridgeTest.status === 'ok' ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : bridgeTest.status === 'testing' ? <Loader2 className="w-4 h-4 mt-0.5 animate-spin" /> : <XCircle className="w-4 h-4 mt-0.5" />}
+                      <span>{bridgeTest.message}</span>
+                    </div>
+                  )}
+                  {shouldShowBridgeRecovery && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-amber-600 dark:text-amber-300/90">
+                        Browser security cannot start a terminal directly. Auto-start only works when a bridge endpoint is already reachable.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={handleCopyBridgeStartCommand}
+                          className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap"
+                        >
+                          <span className="inline-flex items-center gap-1.5"><Copy className="w-3 h-3" /> Copy Start Command</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleTestBridge}
+                          disabled={bridgeTest.status === 'testing'}
+                          className="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 rounded-lg border border-indigo-500/30 text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                          {bridgeTest.status === 'testing' ? (
+                            <span className="inline-flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Re-testing...</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Re-test Bridge</span>
+                          )}
+                        </button>
                       </div>
-                    )}
-                  </div>
-                )}
+                      {bridgeRecovery.status !== 'idle' && (
+                        <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${bridgeRecovery.status === 'ok'
+                          ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-red-500/5 border-red-500/20 text-red-700 dark:text-red-300'
+                          }`}>
+                          {bridgeRecovery.status === 'ok' ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : <XCircle className="w-4 h-4 mt-0.5" />}
+                          <span>{bridgeRecovery.message}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Subfolder</label>
+                  <input
+                    type="text"
+                    value={formData.antiGravityAgentSubdir || ''}
+                    onChange={e => setFormData({ ...formData, antiGravityAgentSubdir: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
+                    placeholder=".antigravity"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Subfolder</label>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Skill File Path</label>
                 <input
                   type="text"
-                  value={formData.antiGravityAgentSubdir || ''}
-                  onChange={e => setFormData({ ...formData, antiGravityAgentSubdir: e.target.value })}
+                  value={formData.antiGravitySkillFile || ''}
+                  onChange={e => setFormData({ ...formData, antiGravitySkillFile: e.target.value })}
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
-                  placeholder=".antigravity"
+                  placeholder=".opencode/skills/specflow-worktree-automation/SKILL.md"
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Skill File Path</label>
-              <input
-                type="text"
-                value={formData.antiGravitySkillFile || ''}
-                onChange={e => setFormData({ ...formData, antiGravitySkillFile: e.target.value })}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
-                placeholder=".opencode/skills/specflow-worktree-automation/SKILL.md"
-              />
-            </div>
           </div>
 
-          <div className="pt-2 flex justify-end gap-3">
+          {/* Fixed Footer with Action Buttons */}
+          <div className={`border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-6 py-3 flex justify-end gap-3 flex-shrink-0`}>
             <button
               type="button"
               onClick={() => {
@@ -1393,14 +1425,14 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
             </button>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors hidden lg:block"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg shadow-lg shadow-indigo-900/20 flex items-center gap-2 transition-all"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg shadow-md shadow-indigo-900/20 flex items-center gap-2 transition-all"
             >
               <Save className="w-4 h-4" />
               Save
@@ -1409,6 +1441,19 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
 
         </form>
       </div>
+
+      {/* Confirmation dialog for unsaved changes */}
+      <ConfirmDialog
+        dialog={showConfirmClose ? {
+          title: 'Unsaved Changes',
+          message: 'You have unsaved changes in your settings. Are you sure you want to discard them?',
+          confirmLabel: 'Discard Changes',
+          cancelLabel: 'Keep Editing',
+          tone: 'warning'
+        } : null}
+        onCancel={handleCancelClose}
+        onConfirm={handleConfirmDiscard}
+      />
     </div>
   );
 };

@@ -12,22 +12,22 @@ export interface ToastItem {
 
 const toastStyles: Record<ToastTone, { wrapper: string; icon: React.ReactNode; ariaRole: 'status' | 'alert' }> = {
   info: {
-    wrapper: `border-sky-200 bg-sky-50 text-sky-900 dark:${TONE_STYLES.info.border} dark:${TONE_STYLES.info.bg} dark:text-sky-100`,
+    wrapper: `border-sky-200 bg-sky-50 dark:border-sky-500/30 dark:bg-sky-950/30`,
     icon: <Info className="w-4 h-4 text-sky-600 dark:text-sky-300" aria-hidden="true" />,
     ariaRole: 'status'
   },
   success: {
-    wrapper: `border-emerald-200 bg-emerald-50 text-emerald-900 dark:${TONE_STYLES.success.border} dark:${TONE_STYLES.success.bg} dark:text-emerald-100`,
+    wrapper: `border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-950/30`,
     icon: <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-300" aria-hidden="true" />,
     ariaRole: 'status'
   },
   warning: {
-    wrapper: `border-amber-200 bg-amber-50 text-amber-900 dark:${TONE_STYLES.warning.border} dark:${TONE_STYLES.warning.bg} dark:text-amber-100`,
+    wrapper: `border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-950/30`,
     icon: <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-300" aria-hidden="true" />,
     ariaRole: 'alert'
   },
   error: {
-    wrapper: `border-red-200 bg-red-50 text-red-900 dark:${TONE_STYLES.error.border} dark:${TONE_STYLES.error.bg} dark:text-red-100`,
+    wrapper: `border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-950/30`,
     icon: <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-300" aria-hidden="true" />,
     ariaRole: 'alert'
   }
@@ -38,6 +38,13 @@ interface ToastStackProps {
 }
 
 export const ToastStack: React.FC<ToastStackProps> = ({ toasts }) => {
+  const textColors: Record<ToastTone, string> = {
+    info: 'text-sky-900 dark:text-sky-100',
+    success: 'text-emerald-900 dark:text-emerald-100',
+    warning: 'text-amber-900 dark:text-amber-100',
+    error: 'text-red-900 dark:text-red-100'
+  };
+
   return (
     <div 
       className="fixed z-[130] top-4 right-4 space-y-2 max-w-lg w-[calc(100vw-2rem)] pointer-events-none"
@@ -54,7 +61,7 @@ export const ToastStack: React.FC<ToastStackProps> = ({ toasts }) => {
             className={`pointer-events-auto border rounded-lg px-3 py-2 shadow-lg backdrop-blur-sm flex items-start gap-2 ${style.wrapper}`}
           >
             {style.icon}
-            <p className="text-sm leading-relaxed">{toast.message}</p>
+            <p className={`text-sm leading-relaxed ${textColors[toast.tone]}`}>{toast.message}</p>
           </div>
         );
       })}

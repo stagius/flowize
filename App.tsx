@@ -517,6 +517,7 @@ export default function App() {
 
     const handleSaveSettings = (next: AppSettings) => {
         setSettings(normalizeSettings(next, defaultSettings));
+        showToast('Settings saved successfully.', 'success');
     };
 
     const handleResetSettings = () => {
