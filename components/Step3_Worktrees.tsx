@@ -4,6 +4,7 @@ import { cancelAgentJob, generateImplementationFromAgent, openWorktreeCmdWindow 
 import { GitBranch, FolderGit2, Terminal, Loader2, CloudUpload, CheckCircle2, GitCommit, FileDiff, History, X, Command, Trash2, ScrollText, Copy, Check, Server } from 'lucide-react';
 import { PRIORITY_BADGES, WORKTREE_STATUS_THEMES } from '../designSystem';
 import { useFocusTrap } from './ui/hooks/useFocusTrap';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useDraggable, useDroppable, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 
 const CODE_SNIPPETS = [
     `// Implementing feature...
@@ -130,6 +131,90 @@ const TypewriterText: React.FC = () => {
     );
 };
 
+interface DraggableIssueCardProps {
+    task: TaskItem;
+    slots: WorktreeSlot[];
+    onAssignToSlot: (taskId: string, slotId: number) => void;
+}
+
+const DraggableIssueCard: React.FC<DraggableIssueCardProps> = ({ task, slots, onAssignToSlot }) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+        id: task.id,
+    });
+
+    const style = transform ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        opacity: isDragging ? 0.5 : 1,
+    } : undefined;
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`p-3 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800/50 transition-colors bg-white dark:bg-slate-900/30 group ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+            {...listeners}
+            {...attributes}
+        >
+            <div className="flex justify-between items-center mb-2 gap-2">
+                <span className="text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 font-mono">
+                    #{task.issueNumber ?? task.id}
+                </span>
+                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${PRIORITY_BADGES[task.priority]}`}>
+                    {task.priority}
+                </span>
+            </div>
+            <p className="font-medium text-sm text-slate-900 dark:text-slate-200 mb-3">{task.title}</p>
+
+            {/* Assignment Actions */}
+            <div className="flex flex-wrap gap-1">
+                {slots.map(slot => (
+                    <button
+                        key={slot.id}
+                        disabled={!!slot.taskId}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onAssignToSlot(task.id, slot.id);
+                        }}
+                        className={`text-[10px] py-1 px-2 rounded border transition-all ${slot.taskId
+                            ? 'bg-slate-100 dark:bg-slate-900/50 text-slate-600 dark:text-slate-700 border-slate-200 dark:border-slate-800 cursor-not-allowed hidden'
+                            : 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20 hover:bg-indigo-500/20 hover:border-indigo-500/40'
+                            }`}
+                    >
+                        WT-{slot.id}
+                    </button>
+                ))}
+                {slots.every(s => s.taskId) && (
+                    <span className="text-[10px] text-slate-500 dark:text-slate-600 italic">No slots available</span>
+                )}
+            </div>
+        </div>
+    );
+};
+
+interface DroppableSlotWrapperProps {
+    slotId: number;
+    isOccupied: boolean;
+    children: React.ReactNode;
+}
+
+const DroppableSlotWrapper: React.FC<DroppableSlotWrapperProps> = ({ slotId, isOccupied, children }) => {
+    const { isOver, setNodeRef } = useDroppable({
+        id: slotId.toString(),
+        disabled: isOccupied,
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`flex-1 p-3 md:p-4 relative flex flex-col min-w-0 transition-all ${
+                isOver && !isOccupied ? 'bg-indigo-500/10 ring-2 ring-indigo-500/50 ring-inset' : ''
+            }`}
+        >
+            {children}
+        </div>
+    );
+};
+
 interface Props {
     tasks: TaskItem[];
     slots: WorktreeSlot[];
@@ -182,6 +267,16 @@ export const Step3_Worktrees: React.FC<Props> = ({
     const [liveAgentLogs, setLiveAgentLogs] = useState<Record<string, string>>({});
     const [terminalHistory, setTerminalHistory] = useState<TerminalLine[]>([]);
     const terminalEndRef = useRef<HTMLDivElement>(null);
+
+    // Drag and Drop State
+    const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // 8px threshold to distinguish drag from click
+            },
+        })
+    );
 
     // Accessibility IDs
     const terminalModalTitleId = useId();
@@ -545,7 +640,38 @@ export const Step3_Worktrees: React.FC<Props> = ({
         }
     };
 
+    // Drag and Drop Handlers
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveTaskId(event.active.id as string);
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        setActiveTaskId(null);
+
+        if (!over) return;
+
+        const taskId = active.id as string;
+        const slotId = parseInt(over.id as string);
+
+        // Check if slot is available
+        const slot = slots.find(s => s.id === slotId);
+        if (slot && !slot.taskId) {
+            onAssignToSlot(taskId, slotId);
+        }
+    };
+
+    const handleDragCancel = () => {
+        setActiveTaskId(null);
+    };
+
     return (
+        <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+        >
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 h-full relative">
 
             {/* Terminal Modal Overlay */}
@@ -755,37 +881,12 @@ export const Step3_Worktrees: React.FC<Props> = ({
                         </div>
                     ) : (
                         backlog.map(task => (
-                            <div key={task.id} className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800/50 transition-colors bg-white dark:bg-slate-900/30 group">
-                                <div className="flex justify-between items-center mb-2 gap-2">
-                                    <span className="text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 font-mono">
-                                        #{task.issueNumber ?? task.id}
-                                    </span>
-                                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${PRIORITY_BADGES[task.priority]}`}>
-                                        {task.priority}
-                                    </span>
-                                </div>
-                                <p className="font-medium text-sm text-slate-900 dark:text-slate-200 mb-3">{task.title}</p>
-
-                                {/* Assignment Actions */}
-                                <div className="flex flex-wrap gap-1">
-                                    {slots.map(slot => (
-                                        <button
-                                            key={slot.id}
-                                            disabled={!!slot.taskId}
-                                            onClick={() => onAssignToSlot(task.id, slot.id)}
-                                            className={`text-[10px] py-1 px-2 rounded border transition-all ${slot.taskId
-                                                ? 'bg-slate-100 dark:bg-slate-900/50 text-slate-600 dark:text-slate-700 border-slate-200 dark:border-slate-800 cursor-not-allowed hidden'
-                                                : 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20 hover:bg-indigo-500/20 hover:border-indigo-500/40'
-                                                }`}
-                                        >
-                                            WT-{slot.id}
-                                        </button>
-                                    ))}
-                                    {slots.every(s => s.taskId) && (
-                                        <span className="text-[10px] text-slate-500 dark:text-slate-600 italic">No slots available</span>
-                                    )}
-                                </div>
-                            </div>
+                            <DraggableIssueCard
+                                key={task.id}
+                                task={task}
+                                slots={slots}
+                                onAssignToSlot={onAssignToSlot}
+                            />
                         ))
                     )}
                 </div>
@@ -897,7 +998,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                             </div>
 
                             {/* Content Area */}
-                            <div className="flex-1 p-3 md:p-4 relative flex flex-col min-w-0">
+                            <DroppableSlotWrapper slotId={slot.id} isOccupied={!!slot.taskId}>
                                 {!assignedTask ? (
                                     <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-600 gap-2 py-6 md:py-0">
                                         <FolderGit2 className="w-8 h-8 opacity-20" />
@@ -1063,11 +1164,35 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                         </div>
                                     </>
                                 )}
-                            </div>
+                            </DroppableSlotWrapper>
                         </div>
                     );
                 })}
             </div>
         </div>
+        <DragOverlay>
+            {activeTaskId ? (
+                <div className="p-3 border-2 border-indigo-500 rounded-xl bg-white dark:bg-slate-900/90 shadow-2xl opacity-90 cursor-grabbing">
+                    {(() => {
+                        const task = tasks.find(t => t.id === activeTaskId);
+                        if (!task) return null;
+                        return (
+                            <>
+                                <div className="flex justify-between items-center mb-2 gap-2">
+                                    <span className="text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 font-mono">
+                                        #{task.issueNumber ?? task.id}
+                                    </span>
+                                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${PRIORITY_BADGES[task.priority]}`}>
+                                        {task.priority}
+                                    </span>
+                                </div>
+                                <p className="font-medium text-sm text-slate-900 dark:text-slate-200">{task.title}</p>
+                            </>
+                        );
+                    })()}
+                </div>
+            ) : null}
+        </DragOverlay>
+        </DndContext>
     );
 };
