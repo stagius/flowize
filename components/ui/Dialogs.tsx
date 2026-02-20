@@ -110,7 +110,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ dialog, onCancel, 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <div 
-        className="absolute inset-0 bg-slate-900/20 dark:bg-slate-950/80 backdrop-blur-sm" 
+        className="absolute inset-0 bg-slate-950/40 dark:bg-slate-950/80 backdrop-blur-sm" 
         onClick={onCancel}
         aria-hidden="true"
       />

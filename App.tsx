@@ -923,6 +923,17 @@ export default function App() {
             return;
         }
 
+        if (slot) {
+            const confirmed = await askConfirmation({
+                title: 'Ready to Approve?',
+                message: `Please close any IDEs or terminals that have files open in:\n\n${slot.path}\n\nThis ensures the worktree can be cleaned up after PR creation.`,
+                confirmLabel: 'Continue',
+                cancelLabel: 'Cancel',
+                tone: 'info'
+            });
+            if (!confirmed) return;
+        }
+
         try {
             if (slot) {
                 await pushWorktreeBranch(slot, task.branchName, settings);
@@ -940,7 +951,6 @@ export default function App() {
             const prNumber = pr.number;
             const prUrl = pr.html_url;
 
-            // Updated: vercelStatus is now pending until specifically checked
             setTasks(prev => prev.map(t =>
                 t.id === taskId ? {
                     ...t,
@@ -953,15 +963,26 @@ export default function App() {
             ));
 
             if (slot) {
+                let cleanupSucceeded = false;
                 try {
                     await pruneWorktree(slot, task.branchName, settings);
+                    cleanupSucceeded = true;
                     setSlots(prev => prev.map(s => s.taskId === taskId ? { ...s, taskId: null } : s));
                 } catch (e: any) {
                     console.error('Worktree cleanup after PR approval failed', e);
                     showAlertDialog(
                         'PR Created, Cleanup Failed',
-                        `PR #${prNumber} was created, but worktree cleanup failed: ${e.message}`,
-                        'warning'
+                        `PR #${prNumber} was created, but worktree cleanup failed.\n\nClose any open editors/terminals in:\n${slot.path}\n\nThen click "Retry Cleanup".\n\nError: ${e.message}`,
+                        'warning',
+                        {
+                            label: 'Retry Cleanup',
+                            tone: 'warning',
+                            run: async () => {
+                                await pruneWorktree(slot, task.branchName, settings);
+                                setSlots(prev => prev.map(s => s.taskId === taskId ? { ...s, taskId: null } : s));
+                                showToast('Worktree cleanup succeeded', 'success');
+                            }
+                        }
                     );
                 }
             }
@@ -1354,7 +1375,7 @@ export default function App() {
                     aria-label="Navigation menu"
                 >
                     <div 
-                        className="absolute inset-0 bg-slate-900/90 dark:bg-slate-950/90 backdrop-blur-sm" 
+                        className="absolute inset-0 bg-slate-950/30 dark:bg-slate-950/40 backdrop-blur-sm" 
                         onClick={() => setIsMobileMenuOpen(false)}
                         aria-hidden="true"
                     />

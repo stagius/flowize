@@ -728,7 +728,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
     <div className={`fixed inset-0 z-[100] ${isMobileView ? 'flex items-stretch justify-end' : 'flex items-center justify-center p-4'}`}>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-slate-950/80 dark:bg-slate-950/80 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-slate-950/40 dark:bg-slate-950/40 backdrop-blur-sm transition-opacity"
         onClick={handleClose}
         aria-hidden="true"
       />

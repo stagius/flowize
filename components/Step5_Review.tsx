@@ -21,16 +21,16 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
   const [reviewError, setReviewError] = useState<string | null>(null);
 
   const handleApprove = async (id: string) => {
-      setReviewError(null);
-      setLoadingId(id);
-      try {
-        await onApprovePR(id);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        setReviewError(message);
-      } finally {
-        setLoadingId(null);
-      }
+    setReviewError(null);
+    setLoadingId(id);
+    try {
+      await onApprovePR(id);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setReviewError(message);
+    } finally {
+      setLoadingId(null);
+    }
   };
 
   const handleCheckStatus = async () => {
@@ -75,34 +75,36 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
           />
         </div>
       )}
-      
+
       {/* Pending Reviews */}
       <div className="flex flex-col h-full bg-white dark:bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-teal-50 dark:bg-teal-500/5">
           <h3 className="font-bold text-teal-700 dark:text-teal-400 flex items-center gap-2">
             <FileCode className="w-5 h-5 text-teal-600 dark:text-teal-400" /> Code Review ({pendingReview.length})
             {/* Bridge Required Notice */}
-            <span className={`px-2 py-0.5 rounded inline-flex items-center gap-1 ${
-              bridgeHealth?.status === 'healthy'
-                ? 'bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30'
+            <span className={`px-2 py-0.5 rounded inline-flex items-center gap-1 ${bridgeHealth?.status === 'healthy'
+              ? 'bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30'
+              : bridgeHealth?.status === 'unhealthy'
+                ? 'bg-red-50 dark:bg-red-950/20 border border-red-200/50 dark:border-red-800/30'
+                : 'bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200/50 dark:border-yellow-800/30'
+              }`}>
+              <Server className={`w-3 h-3 flex-shrink-0 ${bridgeHealth?.status === 'healthy'
+                ? 'text-emerald-600 dark:text-emerald-400'
                 : bridgeHealth?.status === 'unhealthy'
-                  ? 'bg-red-50 dark:bg-red-950/20 border border-red-200/50 dark:border-red-800/30'
-                  : 'bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200/50 dark:border-yellow-800/30'
-            }`}>
-              <Server className={`w-3 h-3 flex-shrink-0 ${
-                bridgeHealth?.status === 'healthy'
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : bridgeHealth?.status === 'unhealthy'
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-yellow-600 dark:text-yellow-400'
-              }`} />
-              <span className={`text-[10px] ${
-                bridgeHealth?.status === 'healthy'
-                  ? 'text-emerald-700 dark:text-emerald-300'
-                  : bridgeHealth?.status === 'unhealthy'
-                    ? 'text-red-700 dark:text-red-300'
-                    : 'text-yellow-700 dark:text-yellow-300'
-              }`}>Bridge required</span>
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-yellow-600 dark:text-yellow-400'
+                }`} />
+              {bridgeHealth?.status === 'healthy' && (
+                <span className={`text-[10px] text-emerald-700 dark:text-emerald-300`}>Bridge active</span>
+              )}
+
+              {bridgeHealth?.status === 'unhealthy' && (
+                <span className={`text-[10px] text-red-700 dark:text-red-300`}>Bridge required</span>
+              )}
+
+              {bridgeHealth?.status !== 'healthy' && bridgeHealth?.status !== 'unhealthy' && (
+                <span className={`text-[10px] text-yellow-700 dark:text-yellow-300`}>Bridge required</span>
+              )}
             </span>
           </h3>
         </div>
@@ -137,7 +139,7 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
                     value={reviewNotes[task.id] || ''}
                     onChange={(e) => setReviewNotes(prev => ({ ...prev, [task.id]: e.target.value }))}
                     placeholder="Add feedback for requested changes (optional)"
-                    className="w-full md:flex-1 min-h-[38px] max-h-24 resize-y rounded-lg border border-slate-300 dark:border-slate-700/80 bg-white dark:bg-slate-950/90 px-3 py-2 text-xs leading-5 text-slate-900 dark:text-slate-200 placeholder:text-slate-600 dark:placeholder:text-slate-400 shadow-sm dark:shadow-inner dark:shadow-black/20 focus:outline-none focus:border-red-400 dark:focus:border-red-400/40 focus:ring-2 focus:ring-red-500/20"
+                    className="w-full md:flex-1 min-h-[38px] max-h-24 resize-y rounded-lg border border-slate-300 dark:border-slate-700/80 bg-white px-3 py-2 text-xs leading-5 text-slate-900 dark:text-slate-200 placeholder:text-slate-600 dark:placeholder:text-slate-400 shadow-sm dark:shadow-inner dark:shadow-black/20 focus:outline-none focus:border-red-400 dark:focus:border-red-400/40 focus:ring-2 focus:ring-red-500/20"
                   />
                   <div className="flex items-center justify-end gap-2 md:shrink-0">
                     <button
@@ -179,47 +181,45 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-           {isChecking ? (
-              <LoadingSkeleton rows={3} />
-           ) : activePRs.filter(t => t.status === TaskStatus.PR_CREATED).length === 0 ? (
-              <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-600 text-sm">
-                No active PRs.
-              </div>
-           ) : (
-             activePRs.filter(t => t.status === TaskStatus.PR_CREATED).map(task => (
-                <div key={task.id} className="flex items-center justify-between p-4 border border-blue-200 dark:border-blue-500/20 bg-blue-50 dark:bg-blue-500/5 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-500/10 transition-colors">
-                    <div>
-                        <div className="flex items-center gap-2">
-                             <span className="text-blue-700 dark:text-blue-400 font-mono text-sm">#{task.prNumber}</span>
-                             <span className="font-medium text-slate-900 dark:text-slate-200">{task.title}</span>
-                        </div>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-600 dark:text-slate-400">
-                             <span className="flex items-center gap-1.5">
-                                <span className={`w-1.5 h-1.5 rounded-full shadow-[0_0_5px_currentColor] ${
-                                    task.vercelStatus === 'success' ? 'bg-emerald-500 text-emerald-500' :
-                                    task.vercelStatus === 'failed' ? 'bg-red-500 text-red-500' :
-                                    'bg-yellow-500 text-yellow-500'
-                                }`}></span>
-                                CI: <span className="capitalize">{task.vercelStatus || 'Unknown'}</span>
-                             </span>
-                             <span className="flex items-center gap-1.5">
-                                <span className={`w-1.5 h-1.5 rounded-full ${
-                                    task.vercelStatus === 'success' ? 'bg-slate-900 dark:bg-white' : 'bg-slate-500'
-                                }`}></span>
-                                Vercel: <span className="text-slate-700 dark:text-slate-300">{
-                                    task.vercelStatus === 'success' ? 'Deployed' :
-                                    task.vercelStatus === 'failed' ? 'Error' :
-                                    'Building...'
-                                }</span>
-                             </span>
-                        </div>
-                    </div>
-                    <a href={task.issueUrl || '#'} target="_blank" className="p-2 text-slate-600 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-400 bg-slate-100 dark:bg-slate-950/50 rounded-lg border border-slate-300 dark:border-slate-800 transition-colors">
-                        <ExternalLink className="w-4 h-4" />
-                    </a>
+          {isChecking ? (
+            <LoadingSkeleton rows={3} />
+          ) : activePRs.filter(t => t.status === TaskStatus.PR_CREATED).length === 0 ? (
+            <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-600 text-sm">
+              No active PRs.
+            </div>
+          ) : (
+            activePRs.filter(t => t.status === TaskStatus.PR_CREATED).map(task => (
+              <div key={task.id} className="flex items-center justify-between p-4 border border-blue-200 dark:border-blue-500/20 bg-blue-50 dark:bg-blue-500/5 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-500/10 transition-colors">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-700 dark:text-blue-400 font-mono text-sm">#{task.prNumber}</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-200">{task.title}</span>
+                  </div>
+                  <div className="flex items-center gap-4 mt-2 text-xs text-slate-600 dark:text-slate-400">
+                    <span className="flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full shadow-[0_0_5px_currentColor] ${task.vercelStatus === 'success' ? 'bg-emerald-500 text-emerald-500' :
+                        task.vercelStatus === 'failed' ? 'bg-red-500 text-red-500' :
+                          'bg-yellow-500 text-yellow-500'
+                        }`}></span>
+                      CI: <span className="capitalize">{task.vercelStatus || 'Unknown'}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full ${task.vercelStatus === 'success' ? 'bg-slate-900 dark:bg-white' : 'bg-slate-500'
+                        }`}></span>
+                      Vercel: <span className="text-slate-700 dark:text-slate-300">{
+                        task.vercelStatus === 'success' ? 'Deployed' :
+                          task.vercelStatus === 'failed' ? 'Error' :
+                            'Building...'
+                      }</span>
+                    </span>
+                  </div>
                 </div>
-             ))
-           )}
+                <a href={task.issueUrl || '#'} target="_blank" className="p-2 text-slate-600 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-400 bg-slate-100 dark:bg-slate-950/50 rounded-lg border border-slate-300 dark:border-slate-800 transition-colors">
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

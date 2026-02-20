@@ -57,18 +57,18 @@ export const Step3_Worktrees: React.FC<Props> = ({
     const [liveAgentLogs, setLiveAgentLogs] = useState<Record<string, string>>({});
     const [terminalHistory, setTerminalHistory] = useState<TerminalLine[]>([]);
     const terminalEndRef = useRef<HTMLDivElement>(null);
-    
+
     // Accessibility IDs
     const terminalModalTitleId = useId();
     const agentConsoleTitleId = useId();
-    
+
     // Focus trap for terminal modal
     const terminalModalRef = useFocusTrap<HTMLDivElement>({
         isActive: activeTerminalSlotId !== null,
         onEscape: () => setActiveTerminalSlotId(null),
         restoreFocus: true,
     });
-    
+
     // Focus trap for agent console modal
     const agentConsoleRef = useFocusTrap<HTMLDivElement>({
         isActive: activeAgentConsoleSlotId !== null,
@@ -425,13 +425,13 @@ export const Step3_Worktrees: React.FC<Props> = ({
 
             {/* Terminal Modal Overlay */}
             {activeTerminalSlotId !== null && (
-                <div 
+                <div
                     className="absolute inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-white/60 dark:bg-slate-950/60 animate-in fade-in duration-200"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby={terminalModalTitleId}
                 >
-                    <div 
+                    <div
                         ref={terminalModalRef}
                         className="w-full max-w-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800 h-[600px]"
                     >
@@ -455,7 +455,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                         </div>
 
                         {/* Terminal Output */}
-                        <div 
+                        <div
                             className="flex-1 bg-slate-100 dark:bg-black/50 p-4 font-mono text-xs overflow-y-auto custom-scrollbar"
                             role="log"
                             aria-live="polite"
@@ -509,13 +509,13 @@ export const Step3_Worktrees: React.FC<Props> = ({
 
             {/* Agent Console Overlay */}
             {activeAgentConsoleSlotId !== null && (
-                <div 
+                <div
                     className="absolute inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-white/60 dark:bg-slate-950/60 animate-in fade-in duration-200"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby={agentConsoleTitleId}
                 >
-                    <div 
+                    <div
                         ref={agentConsoleRef}
                         className="w-full max-w-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800 h-[600px]"
                     >
@@ -563,7 +563,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                             </div>
                         </div>
 
-                        <div 
+                        <div
                             className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 text-[11px] text-slate-600 dark:text-slate-400 font-mono"
                             role="status"
                             aria-live="polite"
@@ -573,7 +573,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                 : `Agent status: ${activeAgentTask?.agentRunState || 'idle'}`}
                         </div>
 
-                        <div 
+                        <div
                             className="flex-1 bg-slate-100 dark:bg-black/50 p-4 font-mono text-xs overflow-y-auto custom-scrollbar whitespace-pre-wrap text-slate-900 dark:text-slate-300"
                             role="log"
                             aria-live="polite"
@@ -593,27 +593,30 @@ export const Step3_Worktrees: React.FC<Props> = ({
                     <h3 className="font-semibold text-slate-900 dark:text-slate-300 flex items-center gap-2">
                         <GitBranch className="w-4 h-4 text-orange-600 dark:text-orange-400" /> Issue Backlog
                         {/* Bridge Required Notice */}
-                        <span className={`px-2 py-0.5 rounded inline-flex items-center gap-1 ${
-                            bridgeHealth?.status === 'healthy'
-                                ? 'bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30'
+                        <span className={`px-2 py-0.5 rounded inline-flex items-center gap-1 ${bridgeHealth?.status === 'healthy'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30'
+                            : bridgeHealth?.status === 'unhealthy'
+                                ? 'bg-red-50 dark:bg-red-950/20 border border-red-200/50 dark:border-red-800/30'
+                                : 'bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200/50 dark:border-yellow-800/30'
+                            }`}>
+                            <Server className={`w-3 h-3 flex-shrink-0 ${bridgeHealth?.status === 'healthy'
+                                ? 'text-emerald-600 dark:text-emerald-400'
                                 : bridgeHealth?.status === 'unhealthy'
-                                    ? 'bg-red-50 dark:bg-red-950/20 border border-red-200/50 dark:border-red-800/30'
-                                    : 'bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200/50 dark:border-yellow-800/30'
-                        }`}>
-                            <Server className={`w-3 h-3 flex-shrink-0 ${
-                                bridgeHealth?.status === 'healthy'
-                                    ? 'text-emerald-600 dark:text-emerald-400'
-                                    : bridgeHealth?.status === 'unhealthy'
-                                        ? 'text-red-600 dark:text-red-400'
-                                        : 'text-yellow-600 dark:text-yellow-400'
-                            }`} />
-                            <span className={`text-[10px] ${
-                                bridgeHealth?.status === 'healthy'
-                                    ? 'text-emerald-700 dark:text-emerald-300'
-                                    : bridgeHealth?.status === 'unhealthy'
-                                        ? 'text-red-700 dark:text-red-300'
-                                        : 'text-yellow-700 dark:text-yellow-300'
-                            }`}>Bridge required</span>
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-yellow-600 dark:text-yellow-400'
+                                }`} />
+
+                            {bridgeHealth?.status === 'healthy' && (
+                                <span className={`text-[10px] text-emerald-700 dark:text-emerald-300`}>Bridge active</span>
+                            )}
+
+                            {bridgeHealth?.status === 'unhealthy' && (
+                                <span className={`text-[10px] text-red-700 dark:text-red-300`}>Bridge required</span>
+                            )}
+
+                            {bridgeHealth?.status !== 'healthy' && bridgeHealth?.status !== 'unhealthy' && (
+                                <span className={`text-[10px] text-yellow-700 dark:text-yellow-300`}>Bridge required</span>
+                            )}
                         </span>
                     </h3>
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
@@ -677,8 +680,8 @@ export const Step3_Worktrees: React.FC<Props> = ({
                     const gitStatus = !assignedTask ? null :
                         assignedTask.status === TaskStatus.IMPLEMENTED ? { label: 'STAGED', color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' } :
                             assignedTask.status === TaskStatus.PUSHED ? { label: 'PUSHED', color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' } :
-                            assignedTask.status === TaskStatus.WORKTREE_ACTIVE ? { label: 'DIRTY', color: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' } :
-                                { label: 'CLEAN', color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20' };
+                                assignedTask.status === TaskStatus.WORKTREE_ACTIVE ? { label: 'DIRTY', color: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' } :
+                                    { label: 'CLEAN', color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20' };
 
                     return (
                         <div key={slot.id} className={`rounded-xl border flex flex-col md:flex-row overflow-hidden transition-all relative flex-shrink-0 min-h-[250px] ${theme.border} ${theme.bg} ${assignedTask ? 'shadow-lg' : ''}`}>
@@ -687,7 +690,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
 
                             {/* Slot Header / Status - Mobile Optimized */}
                             <div className="w-full md:w-56 bg-slate-100 dark:bg-slate-950/50 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 p-3 md:p-4 flex flex-row md:flex-col justify-between md:justify-center items-center text-left md:text-center flex-shrink-0 gap-3 md:gap-0">
-                                
+
                                 {/* Mobile Left: Icon + ID + Status */}
                                 <div className="flex items-center md:flex-col gap-3 md:gap-0 min-w-0 flex-1 md:flex-none">
                                     <div className={`w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl flex items-center justify-center border md:mb-3 flex-shrink-0 ${theme.iconBg} ${theme.iconBorder} ${theme.text}`}>
@@ -696,7 +699,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
 
                                     <div className="flex flex-col md:items-center min-w-0">
                                         <h4 className="font-bold text-slate-900 dark:text-slate-200 text-sm md:text-base truncate">WT-{slot.id}</h4>
-                                        
+
                                         <div className="flex items-center gap-2 md:flex-col md:gap-2 md:mt-2">
                                             <div className={`px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-bold uppercase tracking-wider border ${theme.text} ${theme.iconBg} ${theme.iconBorder}`}>
                                                 {config.label}
@@ -756,7 +759,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
 
                                 {/* Mobile Right: Actions */}
                                 <div className="md:hidden flex flex-col items-end gap-2">
-                                     <button
+                                    <button
                                         onClick={() => handleCleanupClick(slot.id)}
                                         disabled={cleaningSlot === slot.id}
                                         aria-busy={cleaningSlot === slot.id}
@@ -808,9 +811,9 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                                 <div className="flex items-center gap-2 mb-1.5 min-w-0">
                                                     {assignedTask.issueNumber && (
                                                         assignedTask.issueUrl ? (
-                                                            <a 
-                                                                href={assignedTask.issueUrl} 
-                                                                target="_blank" 
+                                                            <a
+                                                                href={assignedTask.issueUrl}
+                                                                target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="text-[10px] md:text-xs font-mono bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-500/50 transition-colors flex items-center gap-1.5 flex-shrink-0"
                                                             >
@@ -843,7 +846,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                                         >
                                                             {copiedCmdTaskId === assignedTask.id ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-300" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
                                                         </button>
-                                                        
+
                                                         {/* Mobile: Agent actions Group */}
                                                         <div className="flex gap-2 flex-1 sm:contents">
                                                             <button
