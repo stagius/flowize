@@ -52,7 +52,7 @@ interface AgentLaunchConfig {
 const STATE_DIR = resolve(process.cwd(), '.specflow');
 const DEFAULT_STATE_FILE = join(STATE_DIR, 'backlog.json');
 const DEFAULT_PLAN_FILE = join(STATE_DIR, 'grouped-plan.md');
-const DEFAULT_WORKTREE_ROOT = resolve(process.cwd(), '..', 'handyman-worktrees');
+const DEFAULT_WORKTREE_ROOT = resolve(process.cwd(), '..', 'worktrees');
 const DEFAULT_AGENT_SUBDIR = '.agent-workspace';
 const DEFAULT_AGENT_ISSUE_DESCRIPTION_FILE = 'issue-description.md';
 const DEFAULT_AGENT_SKILL_FILE = resolve(process.cwd(), '.opencode', 'skills', 'specflow-worktree-automation', 'SKILL.md');

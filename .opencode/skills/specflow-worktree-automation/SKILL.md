@@ -13,7 +13,7 @@ Use this skill when you want to execute the specflow workflow from the CLI.
 
 ## Prerequisites
 
-- Run commands from repo root (`Z:\handyman`)
+- Run commands from repo root (worktreeRoot in settings)
 - GitHub CLI authenticated: `gh auth status`
 - Local git repository available with remote `origin`
 
