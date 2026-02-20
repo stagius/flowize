@@ -245,7 +245,7 @@ export default function App() {
             }
             const parsed = JSON.parse(stored) as Partial<AppSettings>;
             const normalized = normalizeSettings(parsed, defaultSettings);
-            
+
             // Check if this is a new session (browser/tab just opened)
             const hasActiveSession = window.sessionStorage.getItem('flowize.session.active');
             if (!hasActiveSession) {
@@ -253,7 +253,7 @@ export default function App() {
                 window.sessionStorage.setItem('flowize.session.active', 'true');
                 return { ...normalized, githubToken: '' };
             }
-            
+
             // Existing session - keep token (user already logged in this session)
             return normalized;
         } catch {
@@ -1301,365 +1301,364 @@ export default function App() {
     const activeStep = STEPS.find((step) => step.id === currentStep);
 
     return (
-        <AuthProvider 
+        <AuthProvider
             initialToken={settings.githubToken}
             onLoginSuccess={handleLoginSuccess}
             onLogout={handleLogout}
         >
-            <AuthGuard 
+            <AuthGuard
                 bridgeEndpoint={settings.antiGravityAgentEndpoint}
                 toasts={<ToastStack toasts={toasts} />}
             >
                 <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 font-sans selection:bg-indigo-500/30">
-            {/* Skip to main content link for keyboard users */}
-            <a 
-                href="#main-content" 
-                className="sr-only focus:not-sr-only focus:absolute focus:z-[200] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-indigo-600 focus:text-white focus:rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-                Skip to main content
-            </a>
-
-            <SettingsModal
-                isOpen={isSettingsOpen}
-                onClose={() => setIsSettingsOpen(false)}
-                currentSettings={settings}
-                onSave={handleSaveSettings}
-                onReset={handleResetSettings}
-                onClearLocalSession={handleClearLocalSession}
-                onLogout={handleLogout}
-                hasApiKey={hasApiKey}
-            />
-
-            <AlertDialog
-                dialog={alertDialog}
-                onClose={closeAlertDialog}
-                onAction={alertDialog?.actionLabel ? handleAlertAction : undefined}
-                actionBusy={alertActionBusy}
-            />
-            <ConfirmDialog
-                dialog={confirmDialog}
-                onCancel={() => closeConfirmDialog(false)}
-                onConfirm={() => closeConfirmDialog(true)}
-            />
-            <ToastStack toasts={toasts} />
-
-            {/* Mobile Menu Overlay */}
-            {isMobileMenuOpen && (
-                <div 
-                    id="mobile-navigation"
-                    className="fixed inset-0 z-[60] lg:hidden"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="Navigation menu"
-                >
-                    <div 
-                        className="absolute inset-0 bg-slate-900/90 dark:bg-slate-950/90 backdrop-blur-sm" 
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        aria-hidden="true"
-                    />
-                    <div className="absolute inset-y-0 left-0 w-[20.5rem] max-w-[90vw] bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-r border-slate-200 dark:border-slate-700/80 shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
-                        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800/80">
-                            <div className="flex items-center gap-3">
-                                <div className="bg-indigo-500/10 p-2 rounded-lg text-indigo-600 dark:text-indigo-400">
-                                    <GitGraph className="w-6 h-6" aria-hidden="true" />
-                                </div>
-                                <div>
-                                    <p className="font-bold text-lg text-slate-900 dark:text-slate-100 leading-tight">Flowize</p>
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Workflow Navigator</p>
-                                </div>
-                            </div>
-                            <button 
-                                onClick={() => setIsMobileMenuOpen(false)} 
-                                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg p-1 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors"
-                                aria-label="Close navigation menu"
-                            >
-                                <X className="w-5 h-5" aria-hidden="true" />
-                            </button>
-                        </div>
-
-                        <nav className="p-4 space-y-2 flex-1 overflow-y-auto" aria-label="Workflow steps">
-                            {STEPS.map((step) => {
-                                const isActive = currentStep === step.id;
-                                const Icon = step.icon;
-                                return (
-                                    <button
-                                        key={step.id}
-                                        onClick={() => {
-                                            setCurrentStep(step.id);
-                                            setIsMobileMenuOpen(false);
-                                        }}
-                                        aria-current={isActive ? 'step' : undefined}
-                                        aria-label={`${step.label}${isActive ? ', current step' : ''}`}
-                                        className={`relative w-full flex items-center min-h-[56px] px-4 py-3 rounded-xl border transition-all ${isActive
-                                            ? `${step.bg} ${step.color} ${step.border}`
-                                            : 'border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-slate-200 dark:hover:border-slate-700/70 hover:text-slate-900 dark:hover:text-slate-300'
-                                            }`}
-                                    >
-                                        <Icon className={`w-5 h-5 ${isActive ? step.color : 'text-slate-600 dark:text-slate-400'}`} aria-hidden="true" />
-                                        <span className="ml-3 text-sm font-semibold tracking-wide">{step.label}</span>
-                                        {isActive && <span className="ml-auto text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300/80" aria-hidden="true">Current</span>}
-                                    </button>
-                                );
-                            })}
-                        </nav>
-
-                        <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-                            <div className="bg-slate-100 dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-700/80 p-3 text-xs space-y-2">
-                                <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
-                                    <span>System Status</span>
-                                    <Activity className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                    <span className="text-emerald-500 font-medium">Online</span>
-                                </div>
-                                <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
-                                    <span className="flex items-center gap-1.5"><Key className="w-3 h-3" /> API Key</span>
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                                        {hasApiKey ? 'CONFIGURED' : 'MISSING'}
-                                    </span>
-                                </div>
-                                <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
-                                    <span className="flex items-center gap-1.5"><Server className="w-3 h-3" /> Bridge</span>
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${bridgeBadgeClass}`} title={bridgeHealth.endpoint || settings.antiGravityAgentEndpoint}>
-                                        {bridgeLabel}
-                                    </span>
-                                </div>
-                                <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50">
-                                    <button
-                                        onClick={handleLogout}
-                                        className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20"
-                                    >
-                                        <LogOut className="w-3 h-3" />
-                                        <span>Logout</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Desktop Sidebar Navigation */}
-            <aside className={`flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-gradient-to-b from-white/80 to-slate-50/80 dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl flex flex-col justify-between hidden lg:flex sticky top-0 h-screen transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20' : 'w-80'}`}>
-                <div className="flex-1 overflow-y-auto overflow-x-hidden">
-                    <div className="h-16 flex items-center justify-start px-6 border-b border-slate-200 dark:border-slate-800/80">
-                        <div className={`bg-indigo-500/10 p-2 rounded-lg text-indigo-600 dark:text-indigo-400 ${isSidebarCollapsed ? 'mx-auto' : ''}`}>
-                            <GitGraph className={`${isSidebarCollapsed ? 'w-5 h-5' : 'w-6 h-6'}`} />
-                        </div>
-                        <div className={`ml-3 transition-opacity duration-200 ${isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
-                            <p className="font-bold text-lg tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap">Flowize</p>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">Workflow Navigator</p>
-                        </div>
-                    </div>
-
-                    <nav className="p-4 space-y-2" aria-label="Workflow steps">
-                        {STEPS.map((step) => {
-                            const isActive = currentStep === step.id;
-                            const Icon = step.icon;
-
-                            return (
-                                <button
-                                    key={step.id}
-                                    onClick={() => setCurrentStep(step.id)}
-                                    aria-current={isActive ? 'step' : undefined}
-                                    aria-label={`${step.label}${isActive ? ', current step' : ''}`}
-                                    className={`relative w-full flex items-center px-4 py-3 rounded-xl border transition-all duration-200 group ${
-                                        isSidebarCollapsed ? 'justify-center h-[48px]' : 'min-h-[52px]'
-                                    } ${isActive
-                                        ? `${step.bg} ${step.color} ${step.border}`
-                                        : 'border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-slate-200 dark:hover:border-slate-700/70 hover:text-slate-900 dark:hover:text-slate-300'
-                                        }`}
-                                    title={isSidebarCollapsed ? step.label : undefined}
-                                >
-                                    <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? step.color : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-300'}`} aria-hidden="true" />
-                                    <span className={`font-medium text-sm transition-all duration-200 ${isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden ml-0' : 'opacity-100 ml-3'}`}>{step.label}</span>
-                                    {isActive && !isSidebarCollapsed && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_8px_currentColor]" aria-hidden="true"></div>}
-                                </button>
-                            );
-                        })}
-                    </nav>
-                </div>
-
-                {/* Toggle Button */}
-                <div className="px-4 pb-2">
-                    <button
-                        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                        className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 ${isSidebarCollapsed ? 'justify-center' : ''}`}
-                        aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                    {/* Skip to main content link for keyboard users */}
+                    <a
+                        href="#main-content"
+                        className="sr-only focus:not-sr-only focus:absolute focus:z-[200] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-indigo-600 focus:text-white focus:rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
                     >
-                        {isSidebarCollapsed ? (
-                            <ChevronRight className="w-4 h-4" />
-                        ) : (
-                            <>
-                                <ChevronLeft className="w-4 h-4" />
-                                <span className="text-sm font-medium">Collapse</span>
-                            </>
-                        )}
-                    </button>
-                </div>
+                        Skip to main content
+                    </a>
 
-                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-                    {isSidebarCollapsed ? (
-                        <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-3 flex flex-col items-center gap-2">
-                            <Activity className="w-4 h-4 text-emerald-600 dark:text-emerald-400" title="System Status: Online" />
-                            <Key 
-                                className={`w-4 h-4 ${hasApiKey ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`} 
-                                title={hasApiKey ? 'API Key: Configured' : 'API Key: Missing'} 
+                    <SettingsModal
+                        isOpen={isSettingsOpen}
+                        onClose={() => setIsSettingsOpen(false)}
+                        currentSettings={settings}
+                        onSave={handleSaveSettings}
+                        onReset={handleResetSettings}
+                        onClearLocalSession={handleClearLocalSession}
+                        onLogout={handleLogout}
+                        hasApiKey={hasApiKey}
+                    />
+
+                    <AlertDialog
+                        dialog={alertDialog}
+                        onClose={closeAlertDialog}
+                        onAction={alertDialog?.actionLabel ? handleAlertAction : undefined}
+                        actionBusy={alertActionBusy}
+                    />
+                    <ConfirmDialog
+                        dialog={confirmDialog}
+                        onCancel={() => closeConfirmDialog(false)}
+                        onConfirm={() => closeConfirmDialog(true)}
+                    />
+                    <ToastStack toasts={toasts} />
+
+                    {/* Mobile Menu Overlay */}
+                    {isMobileMenuOpen && (
+                        <div
+                            id="mobile-navigation"
+                            className="fixed inset-0 z-[60] lg:hidden"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="Navigation menu"
+                        >
+                            <div
+                                className="absolute inset-0 bg-slate-900/90 dark:bg-slate-950/90 backdrop-blur-sm"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                aria-hidden="true"
                             />
-                            <Server 
-                                className={`w-4 h-4 ${bridgeHealth.status === 'healthy' ? 'text-emerald-600 dark:text-emerald-400' : bridgeHealth.status === 'unhealthy' ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`} 
-                                title={`Bridge: ${bridgeLabel}`} 
-                            />
-                            <button
-                                onClick={handleLogout}
-                                className="w-8 h-8 flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20 mt-1"
-                                title="Logout"
-                            >
-                                <LogOut className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-3 text-xs space-y-2">
-                            <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
-                                <span>System Status</span>
-                                <Activity className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                <span className="text-emerald-500 font-medium">Online</span>
-                            </div>
-                            <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
-                                <span className="flex items-center gap-1.5"><Key className="w-3 h-3" /> API Key</span>
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                                    {hasApiKey ? 'CONFIGURED' : 'MISSING'}
-                                </span>
-                            </div>
-                            <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
-                                <span className="flex items-center gap-1.5"><Server className="w-3 h-3" /> Bridge</span>
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded ${bridgeBadgeClass}`} title={bridgeHealth.endpoint || settings.antiGravityAgentEndpoint}>
-                                    {bridgeLabel}
-                                </span>
-                            </div>
-                            <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50">
-                                <button
-                                    onClick={handleLogout}
-                                    className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20"
-                                >
-                                    <LogOut className="w-3 h-3" />
-                                    <span>Logout</span>
-                                </button>
+                            <div className="absolute inset-y-0 left-0 w-[20.5rem] max-w-[90vw] bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-r border-slate-200 dark:border-slate-700/80 shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
+                                <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800/80">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-indigo-500/10 p-2 rounded-lg text-indigo-600 dark:text-indigo-400">
+                                            <GitGraph className="w-6 h-6" aria-hidden="true" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-lg text-slate-900 dark:text-slate-100 leading-tight">Flowize</p>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Workflow Navigator</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg p-1 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors"
+                                        aria-label="Close navigation menu"
+                                    >
+                                        <X className="w-5 h-5" aria-hidden="true" />
+                                    </button>
+                                </div>
+
+                                <nav className="p-4 space-y-2 flex-1 overflow-y-auto" aria-label="Workflow steps">
+                                    {STEPS.map((step) => {
+                                        const isActive = currentStep === step.id;
+                                        const Icon = step.icon;
+                                        return (
+                                            <button
+                                                key={step.id}
+                                                onClick={() => {
+                                                    setCurrentStep(step.id);
+                                                    setIsMobileMenuOpen(false);
+                                                }}
+                                                aria-current={isActive ? 'step' : undefined}
+                                                aria-label={`${step.label}${isActive ? ', current step' : ''}`}
+                                                className={`relative w-full flex items-center min-h-[56px] px-4 py-3 rounded-xl border transition-all ${isActive
+                                                    ? `${step.bg} ${step.color} ${step.border}`
+                                                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-slate-200 dark:hover:border-slate-700/70 hover:text-slate-900 dark:hover:text-slate-300'
+                                                    }`}
+                                            >
+                                                <Icon className={`w-5 h-5 ${isActive ? step.color : 'text-slate-600 dark:text-slate-400'}`} aria-hidden="true" />
+                                                <span className="ml-3 text-sm font-semibold tracking-wide">{step.label}</span>
+                                                {isActive && <span className="ml-auto text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300/80" aria-hidden="true">Current</span>}
+                                            </button>
+                                        );
+                                    })}
+                                </nav>
+
+                                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                                    <div className="bg-slate-100 dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-700/80 p-3 text-xs space-y-2">
+                                        <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                            <span>System Status</span>
+                                            <Activity className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                            <span className="text-emerald-500 font-medium">Online</span>
+                                        </div>
+                                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                            <span className="flex items-center gap-1.5"><Key className="w-3 h-3" /> API Key</span>
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                                                {hasApiKey ? 'CONFIGURED' : 'MISSING'}
+                                            </span>
+                                        </div>
+                                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                            <span className="flex items-center gap-1.5"><Server className="w-3 h-3" /> Bridge</span>
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${bridgeBadgeClass}`} title={bridgeHealth.endpoint || settings.antiGravityAgentEndpoint}>
+                                                {bridgeLabel}
+                                            </span>
+                                        </div>
+                                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50">
+                                            <button
+                                                onClick={handleLogout}
+                                                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20"
+                                            >
+                                                <LogOut className="w-3 h-3" />
+                                                <span>Logout</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
-                </div>
-            </aside>
 
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col min-w-0">
-                {/* Top Bar */}
-                <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/30 dark:bg-slate-900/30 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between px-4 md:px-6">
-                    <button
-                        onClick={() => setIsMobileMenuOpen(true)}
-                        className="flex items-center gap-3 lg:hidden p-1 -ml-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                        aria-label="Open navigation menu"
-                        aria-expanded={isMobileMenuOpen}
-                        aria-controls="mobile-navigation"
-                    >
-                        <Menu className="w-6 h-6" aria-hidden="true" />
-                        <span className="hidden xl:flex font-bold text-slate-900 dark:text-slate-100">Flowize</span>
-                    </button>
-
-                    {/* Workfolder */}
-                    <div className="hidden lg:flex items-center text-sm text-slate-600 dark:text-slate-400">
-                        <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 text-xs">
-                            <Terminal className="w-3.5 h-3.5" />
-                            <span className="text-slate-600 dark:text-slate-400">{settings.worktreeRoot}</span>
-                            <span className="font-mono text-slate-900 dark:text-slate-300">/{settings.repoName}</span>
-                        </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
-                        <div className="flex flex-col items-end">
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 hidden sm:inline">Pipeline</span>
-                                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{progressPercent}%</span>
+                    {/* Desktop Sidebar Navigation */}
+                    <aside className={`flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-gradient-to-b from-white/80 to-slate-50/80 dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl flex flex-col justify-between hidden lg:flex sticky top-0 h-screen transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20' : 'w-80'}`}>
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                            <div className="h-16 flex items-center justify-start px-6 border-b border-slate-200 dark:border-slate-800/80">
+                                <div className={`bg-indigo-500/10 p-2 rounded-lg text-indigo-600 dark:text-indigo-400 ${isSidebarCollapsed ? 'mx-auto' : ''}`}>
+                                    <GitGraph className={`${isSidebarCollapsed ? 'w-5 h-5' : 'w-6 h-6'}`} />
+                                </div>
+                                <div className={`ml-3 transition-opacity duration-200 ${isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+                                    <p className="font-bold text-lg tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap">Flowize</p>
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">Workflow Navigator</p>
+                                </div>
                             </div>
-                            <div className="hidden xl:flex w-24 md:w-32 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-700"
-                                    style={{ width: `${progressPercent}%` }}
-                                ></div>
-                            </div>
+
+                            <nav className="p-4 space-y-2" aria-label="Workflow steps">
+                                {STEPS.map((step) => {
+                                    const isActive = currentStep === step.id;
+                                    const Icon = step.icon;
+
+                                    return (
+                                        <button
+                                            key={step.id}
+                                            onClick={() => setCurrentStep(step.id)}
+                                            aria-current={isActive ? 'step' : undefined}
+                                            aria-label={`${step.label}${isActive ? ', current step' : ''}`}
+                                            className={`relative w-full flex items-center px-4 py-3 rounded-xl border transition-all duration-200 group ${isSidebarCollapsed ? 'justify-center h-[48px]' : 'min-h-[52px]'
+                                                } ${isActive
+                                                    ? `${step.bg} ${step.color} ${step.border}`
+                                                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-slate-200 dark:hover:border-slate-700/70 hover:text-slate-900 dark:hover:text-slate-300'
+                                                }`}
+                                            title={isSidebarCollapsed ? step.label : undefined}
+                                        >
+                                            <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? step.color : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-300'}`} aria-hidden="true" />
+                                            <span className={`font-medium text-sm transition-all duration-200 ${isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden ml-0' : 'opacity-100 ml-3'}`}>{step.label}</span>
+                                            {isActive && !isSidebarCollapsed && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_8px_currentColor]" aria-hidden="true"></div>}
+                                        </button>
+                                    );
+                                })}
+                            </nav>
                         </div>
 
-                        <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-1 md:mx-2"></div>
-
-                        <div className="flex items-center gap-3">
-                            {settings.githubToken && (
-                                <button
-                                    type="button"
-                                    onClick={() => setIsSettingsOpen(true)}
-                                    className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
-                                    title="Open Settings"
-                                >
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-xs font-medium text-slate-900 dark:text-slate-200">
-                                            {githubLogin ? `@${githubLogin}` : 'GitHub Connected'}
-                                        </span>
-                                        <span className="text-[10px] text-slate-500 dark:text-slate-400">{settings.repoOwner}/{settings.repoName}</span>
-                                    </div>
-                                    <img 
-                                        height="16" 
-                                        width="16" 
-                                        src={theme === 'light' 
-                                            ? "https://cdn.simpleicons.org/github" 
-                                            : "https://cdn.simpleicons.org/github/fff"
-                                        }
-                                        alt="GitHub"
-                                    />
-                                </button>
-                            )}
-                            <div className="hidden md:flex flex-col items-end">
-                                <span className="text-xs font-medium text-slate-900 dark:text-slate-200">Worktrees</span>
-                                <span className="text-[10px] text-slate-500 dark:text-slate-400">{activeWorktrees}/{settings.maxWorktrees} Active</span>
-                            </div>
-                            <ThemeToggle />
+                        {/* Toggle Button */}
+                        <div className="px-4 pb-2">
                             <button
-                                onClick={() => setIsSettingsOpen(true)}
-                                className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                                aria-label="Open settings"
+                                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                                className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 ${isSidebarCollapsed ? 'justify-center' : ''}`}
+                                aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                             >
-                                <Settings className="w-5 h-5" aria-hidden="true" />
+                                {isSidebarCollapsed ? (
+                                    <ChevronRight className="w-4 h-4" />
+                                ) : (
+                                    <>
+                                        <ChevronLeft className="w-4 h-4" />
+                                        <span className="text-sm font-medium">Collapse</span>
+                                    </>
+                                )}
                             </button>
                         </div>
-                    </div>
-                </header>
 
-                <main 
-                    id="main-content"
-                    className={`flex-1 min-h-0 p-4 md:p-8 md:pt-4 overflow-x-hidden ${isMergeStep ? 'overflow-hidden' : 'overflow-y-auto'}`}
-                >
-                    <div className="mx-auto h-full min-h-0 flex flex-col">
-                        {/* Page Header */}
-                        <div className="mb-6 flex items-center justify-between">
-                            <div>
-                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-                                    {STEPS.find(s => s.id === currentStep)?.label || 'Dashboard'}
-                                </h1>
-                                <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">Manage your development lifecycle.</p>
+                        <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                            {isSidebarCollapsed ? (
+                                <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-3 flex flex-col items-center gap-2">
+                                    <Activity className="w-4 h-4 text-emerald-600 dark:text-emerald-400" title="System Status: Online" />
+                                    <Key
+                                        className={`w-4 h-4 ${hasApiKey ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}
+                                        title={hasApiKey ? 'API Key: Configured' : 'API Key: Missing'}
+                                    />
+                                    <Server
+                                        className={`w-4 h-4 ${bridgeHealth.status === 'healthy' ? 'text-emerald-600 dark:text-emerald-400' : bridgeHealth.status === 'unhealthy' ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`}
+                                        title={`Bridge: ${bridgeLabel}`}
+                                    />
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-8 h-8 flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20 mt-1"
+                                        title="Logout"
+                                    >
+                                        <LogOut className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-3 text-xs space-y-2">
+                                    <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                        <span>System Status</span>
+                                        <Activity className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                        <span className="text-emerald-500 font-medium">Online</span>
+                                    </div>
+                                    <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                        <span className="flex items-center gap-1.5"><Key className="w-3 h-3" /> API Key</span>
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                                            {hasApiKey ? 'CONFIGURED' : 'MISSING'}
+                                        </span>
+                                    </div>
+                                    <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                        <span className="flex items-center gap-1.5"><Server className="w-3 h-3" /> Bridge</span>
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${bridgeBadgeClass}`} title={bridgeHealth.endpoint || settings.antiGravityAgentEndpoint}>
+                                            {bridgeLabel}
+                                        </span>
+                                    </div>
+                                    <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50">
+                                        <button
+                                            onClick={handleLogout}
+                                            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20"
+                                        >
+                                            <LogOut className="w-3 h-3" />
+                                            <span>Logout</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </aside>
+
+                    {/* Main Content */}
+                    <div className="flex-1 flex flex-col min-w-0">
+                        {/* Top Bar */}
+                        <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/30 dark:bg-slate-900/30 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between px-4 md:px-6">
+                            <button
+                                onClick={() => setIsMobileMenuOpen(true)}
+                                className="flex items-center gap-3 lg:hidden p-1 -ml-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                aria-label="Open navigation menu"
+                                aria-expanded={isMobileMenuOpen}
+                                aria-controls="mobile-navigation"
+                            >
+                                <Menu className="w-6 h-6" aria-hidden="true" />
+                                <span className="hidden xl:flex font-bold text-slate-900 dark:text-slate-100">Flowize</span>
+                            </button>
+
+                            {/* Workfolder */}
+                            <div className="hidden lg:flex items-center text-sm text-slate-600 dark:text-slate-400">
+                                <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 text-xs">
+                                    <Terminal className="w-3.5 h-3.5" />
+                                    <span className="text-slate-600 dark:text-slate-400">{settings.worktreeRoot}</span>
+                                    <span className="font-mono text-slate-900 dark:text-slate-300">/{settings.repoName}</span>
+                                </span>
                             </div>
-                        </div>
 
-                        {/* Step Content */}
-                        <div className="flex-1 min-h-0 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {renderContent()}
-                        </div>
+                            <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
+                                <div className="flex flex-col items-end">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 hidden sm:inline">Pipeline</span>
+                                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{progressPercent}%</span>
+                                    </div>
+                                    <div className="hidden xl:flex w-24 md:w-32 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-700"
+                                            style={{ width: `${progressPercent}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-1 md:mx-2"></div>
+
+                                <div className="flex items-center gap-3">
+                                    {settings.githubToken && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsSettingsOpen(true)}
+                                            className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
+                                            title="Open Settings"
+                                        >
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-xs font-medium text-slate-900 dark:text-slate-200">
+                                                    {githubLogin ? `@${githubLogin}` : 'GitHub Connected'}
+                                                </span>
+                                                <span className="text-[10px] text-slate-500 dark:text-slate-400">{settings.repoOwner}/{settings.repoName}</span>
+                                            </div>
+                                            <img
+                                                height="16"
+                                                width="16"
+                                                src={theme === 'light'
+                                                    ? "https://cdn.simpleicons.org/github"
+                                                    : "https://cdn.simpleicons.org/github/fff"
+                                                }
+                                                alt="GitHub"
+                                            />
+                                        </button>
+                                    )}
+                                    <div className="hidden md:flex flex-col items-end">
+                                        <span className="text-xs font-medium text-slate-900 dark:text-slate-200">Worktrees</span>
+                                        <span className="text-[10px] text-slate-500 dark:text-slate-400">{activeWorktrees}/{settings.maxWorktrees} Active</span>
+                                    </div>
+                                    <ThemeToggle />
+                                    <button
+                                        onClick={() => setIsSettingsOpen(true)}
+                                        className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                        aria-label="Open settings"
+                                    >
+                                        <Settings className="w-5 h-5" aria-hidden="true" />
+                                    </button>
+                                </div>
+                            </div>
+                        </header>
+
+                        <main
+                            id="main-content"
+                            className={`flex-1 min-h-0 p-4 md:p-8 md:pt-4 overflow-x-hidden ${isMergeStep ? 'overflow-hidden' : 'overflow-y-auto'}`}
+                        >
+                            <div className="mx-auto h-full min-h-0 flex flex-col">
+                                {/* Page Header */}
+                                <div className="mb-6 flex items-center justify-between">
+                                    <div>
+                                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                                            {STEPS.find(s => s.id === currentStep)?.label || 'Dashboard'}
+                                        </h1>
+                                        <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">Manage your development lifecycle.</p>
+                                    </div>
+                                </div>
+
+                                {/* Step Content */}
+                                <div className="flex-1 min-h-0 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    {renderContent()}
+                                </div>
+                            </div>
+                        </main>
                     </div>
-                </main>
-            </div>
 
-        </div>
+                </div>
             </AuthGuard>
         </AuthProvider>
     );
