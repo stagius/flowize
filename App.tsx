@@ -214,6 +214,15 @@ export default function App() {
         }
     };
 
+    const isValidSlotPath = (path: string): boolean => {
+        // Check for common Windows drive patterns (e.g., z:/ or z:\)
+        const windowsDrivePattern = /^[a-zA-Z]:[/\\]/;
+        // Check for Unix absolute path
+        const unixAbsolutePattern = /^\//;
+        
+        return windowsDrivePattern.test(path) || unixAbsolutePattern.test(path);
+    };
+
     const buildWorktreeSlotPath = (root: string, slotNumber: number): string => {
         const suffix = `-wt-${slotNumber}`;
 
@@ -295,10 +304,18 @@ export default function App() {
                     const value = slot as Partial<WorktreeSlot>;
                     const id = Number(value.id);
                     if (!Number.isInteger(id) || id < 1) return null;
+                    
+                    // Rebuild path if it's missing or invalid
+                    let slotPath = typeof value.path === 'string' ? value.path : '';
+                    if (!slotPath || !isValidSlotPath(slotPath)) {
+                        console.warn(`Invalid slot path detected for slot ${id}: "${slotPath}". Rebuilding from worktreeRoot.`);
+                        slotPath = buildWorktreeSlotPath(settings.worktreeRoot, id);
+                    }
+                    
                     return {
                         id,
                         taskId: typeof value.taskId === 'string' ? value.taskId : null,
-                        path: typeof value.path === 'string' ? value.path : buildWorktreeSlotPath(settings.worktreeRoot, id)
+                        path: slotPath
                     } as WorktreeSlot;
                 })
                 .filter((slot): slot is WorktreeSlot => Boolean(slot));

@@ -471,7 +471,14 @@ export const Step3_Worktrees: React.FC<Props> = ({
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             console.error('Failed to open Anti-Gravity workspace CMD:', error);
-            window.alert(`Failed to open Anti-Gravity workspace for this slot.\n${message}`);
+            
+            let userMessage = `Failed to open Anti-Gravity workspace for this slot.\n\n${message}`;
+            
+            if (message.includes('does not exist')) {
+                userMessage += '\n\nThe worktree directory may have been deleted or never created.\n\nSuggestions:\n1. Click "Cleanup" to release this slot\n2. Re-assign the task to create a fresh worktree\n3. Check that slot.path is correct: ' + slot.path;
+            }
+            
+            window.alert(userMessage);
         } finally {
             setOpeningAgentWorkspaceSlot((current) => (current === slot.id ? null : current));
         }

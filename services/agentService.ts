@@ -597,7 +597,25 @@ export const openWorktreeCmdWindow = async (
 
   for (const candidate of candidates) {
     try {
+      // First, check if the base worktree path exists (not the subdirectory)
       if (options?.ensureDirectory === true && targetPath !== slot.path) {
+        // Verify base worktree exists before trying to create subdirectory
+        const checkBaseExists = await runBridgeSyncCommand(
+          candidate,
+          `node -e "const fs=require('fs');process.stdout.write(fs.existsSync(process.argv[1])?'yes':'no')" "${slot.path}"`,
+          { worktreePath: slot.path }
+        );
+        
+        const baseExists = String(checkBaseExists?.stdout ?? '').trim().toLowerCase() === 'yes';
+        if (!baseExists) {
+          throw new Error(
+            `Worktree base path does not exist: ${slot.path}\n\n` +
+            `The worktree directory has not been created or was deleted.\n` +
+            `Please cleanup this slot and re-assign the task to create a fresh worktree.`
+          );
+        }
+        
+        // Now create the subdirectory
         const escapedTarget = targetPath.replace(/"/g, '');
         await runBridgeSyncCommand(candidate, `node -e "const fs=require('fs');fs.mkdirSync(process.argv[1],{recursive:true})" "${escapedTarget}"`, {
           worktreePath: slot.path

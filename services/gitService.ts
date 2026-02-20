@@ -232,7 +232,7 @@ const getBridgeCandidates = (endpoint: string): string[] => {
   return Array.from(new Set(alternates));
 };
 
-const runBridgeCommand = async (settings: AppSettings, command: string, context: Record<string, unknown> = {}) => {
+export const runBridgeCommand = async (settings: AppSettings, command: string, context: Record<string, unknown> = {}) => {
   const endpoint = settings.agentEndpoint?.trim();
   if (!endpoint) {
     return null;
@@ -397,20 +397,21 @@ export const createWorktree = async (settings: AppSettings, task: TaskItem, slot
   console.log(`[GitService] Initializing worktree for ${task.branchName}`);
 
   // 1. Fetch latest refs
+  // Note: Use worktreeRoot (main repo) as working directory since slot.path doesn't exist yet
   console.log(`> git fetch origin`);
   if (settings.agentEndpoint) {
     await runBridgeCommand(settings, 'git fetch origin', {
-      worktreePath: slot.path,
+      worktreePath: settings.worktreeRoot,
       branch: task.branchName
     });
 
     await runBridgeCommand(settings, 'git worktree prune', {
-      worktreePath: slot.path,
+      worktreePath: settings.worktreeRoot,
       branch: task.branchName
     });
 
     const listPayload = await runBridgeCommand(settings, 'git worktree list --porcelain', {
-      worktreePath: slot.path,
+      worktreePath: settings.worktreeRoot,
       branch: task.branchName
     }) as { stdout?: string } | null;
 
@@ -444,7 +445,7 @@ export const createWorktree = async (settings: AppSettings, task: TaskItem, slot
     const pathExistsPayload = await runBridgeCommand(
       settings,
       `node -e "const fs=require('fs');process.stdout.write(fs.existsSync(process.argv[1])?'yes':'no')" "${slot.path}"`,
-      { worktreePath: slot.path, branch: task.branchName }
+      { worktreePath: settings.worktreeRoot, branch: task.branchName }
     ) as { stdout?: string } | null;
 
     const pathExists = String(pathExistsPayload?.stdout ?? '').trim().toLowerCase() === 'yes';
@@ -458,7 +459,7 @@ export const createWorktree = async (settings: AppSettings, task: TaskItem, slot
     const branchExistsPayload = await runBridgeCommand(
       settings,
       `git show-ref --verify --quiet "refs/heads/${task.branchName}" && echo yes || echo no`,
-      { worktreePath: slot.path, branch: task.branchName }
+      { worktreePath: settings.worktreeRoot, branch: task.branchName }
     ) as { stdout?: string } | null;
 
     const branchExists = String(branchExistsPayload?.stdout ?? '').trim().toLowerCase() === 'yes';
@@ -468,7 +469,7 @@ export const createWorktree = async (settings: AppSettings, task: TaskItem, slot
       : `git worktree add -b "${task.branchName}" "${slot.path}" "origin/${settings.defaultBranch}"`;
     console.log(`> ${cmd}`);
     await runBridgeCommand(settings, cmd, {
-      worktreePath: slot.path,
+      worktreePath: settings.worktreeRoot,
       branch: task.branchName
     });
 
@@ -515,7 +516,7 @@ export const pruneWorktree = async (slot: WorktreeSlot, branchName?: string, set
 
       try {
         await runBridgeCommand(settings, removeCommand, {
-          worktreePath: slot.path,
+          worktreePath: settings.worktreeRoot,
           branch: branchName
         });
         removed = true;
@@ -549,7 +550,7 @@ export const pruneWorktree = async (slot: WorktreeSlot, branchName?: string, set
   if (settings?.agentEndpoint) {
     try {
       await runBridgeCommand(settings, 'git worktree prune', {
-        worktreePath: slot.path,
+        worktreePath: settings.worktreeRoot,
         branch: branchName
       });
     } catch (error) {
