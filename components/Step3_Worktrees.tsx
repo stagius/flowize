@@ -194,10 +194,11 @@ const DraggableIssueCard: React.FC<DraggableIssueCardProps> = ({ task, slots, on
 interface DroppableSlotWrapperProps {
     slotId: number;
     isOccupied: boolean;
+    isDraggingActive: boolean;
     children: React.ReactNode;
 }
 
-const DroppableSlotWrapper: React.FC<DroppableSlotWrapperProps> = ({ slotId, isOccupied, children }) => {
+const DroppableSlotWrapper: React.FC<DroppableSlotWrapperProps> = ({ slotId, isOccupied, isDraggingActive, children }) => {
     const { isOver, setNodeRef } = useDroppable({
         id: slotId.toString(),
         disabled: isOccupied,
@@ -207,7 +208,11 @@ const DroppableSlotWrapper: React.FC<DroppableSlotWrapperProps> = ({ slotId, isO
         <div
             ref={setNodeRef}
             className={`flex-1 p-3 md:p-4 relative flex flex-col min-w-0 transition-all ${
-                isOver && !isOccupied ? 'bg-indigo-500/10 ring-2 ring-indigo-500/50 ring-inset' : ''
+                isOver && !isOccupied 
+                    ? 'bg-indigo-500/10 ring-2 ring-indigo-500 ring-inset' 
+                    : isDraggingActive && !isOccupied
+                        ? 'ring-2 ring-dashed ring-indigo-400/50 ring-inset'
+                        : ''
             }`}
         >
             {children}
@@ -998,7 +1003,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                             </div>
 
                             {/* Content Area */}
-                            <DroppableSlotWrapper slotId={slot.id} isOccupied={!!slot.taskId}>
+                            <DroppableSlotWrapper slotId={slot.id} isOccupied={!!slot.taskId} isDraggingActive={!!activeTaskId}>
                                 {!assignedTask ? (
                                     <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-600 gap-2 py-6 md:py-0">
                                         <FolderGit2 className="w-8 h-8 opacity-20" />
@@ -1186,7 +1191,25 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                         {task.priority}
                                     </span>
                                 </div>
-                                <p className="font-medium text-sm text-slate-900 dark:text-slate-200">{task.title}</p>
+                                <p className="font-medium text-sm text-slate-900 dark:text-slate-200 mb-3">{task.title}</p>
+                                
+                                {/* Assignment Actions */}
+                                <div className="flex flex-wrap gap-1">
+                                    {slots.map(slot => (
+                                        <div
+                                            key={slot.id}
+                                            className={`text-[10px] py-1 px-2 rounded border transition-all ${slot.taskId
+                                                ? 'bg-slate-100 dark:bg-slate-900/50 text-slate-600 dark:text-slate-700 border-slate-200 dark:border-slate-800 cursor-not-allowed hidden'
+                                                : 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20'
+                                                }`}
+                                        >
+                                            WT-{slot.id}
+                                        </div>
+                                    ))}
+                                    {slots.every(s => s.taskId) && (
+                                        <span className="text-[10px] text-slate-500 dark:text-slate-600 italic">No slots available</span>
+                                    )}
+                                </div>
                             </>
                         );
                     })()}
