@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogState, ConfirmDialog, ConfirmDialogState, Dialo
 import { ToastItem, ToastStack, ToastTone } from './components/ui/ToastStack';
 import { createGithubIssue, fetchGithubIssues, createBranch, getBSHA, commitFile, createPullRequest, mergePullRequest, fetchMergedPRs, fetchOpenPRs, fetchCommitStatus, fetchAuthenticatedUser, fetchPullRequestDetails } from './services/githubService';
 import { createWorktree, pruneWorktree, pushWorktreeBranch, forcePushWorktreeBranchWithLease } from './services/gitService';
+import { getProcessesUsingPath, formatProcessList } from './services/processDetection';
 import { GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ThemeToggle } from './components/ui/ThemeToggle';
 import { useTheme } from './contexts/ThemeContext';
@@ -521,9 +522,12 @@ export default function App() {
     };
 
     const handleResetSettings = () => {
-        setSettings(defaultSettings);
+        // Preserve the GitHub token when resetting to defaults
+        const preservedToken = settings.githubToken;
+        const newSettings = { ...defaultSettings, githubToken: preservedToken };
+        setSettings(newSettings);
         if (typeof window !== 'undefined') {
-            window.localStorage.removeItem(SETTINGS_STORAGE_KEY);
+            window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
         }
         showToast('Settings reset to defaults.', 'info');
     };
@@ -970,9 +974,13 @@ export default function App() {
                     setSlots(prev => prev.map(s => s.taskId === taskId ? { ...s, taskId: null } : s));
                 } catch (e: any) {
                     console.error('Worktree cleanup after PR approval failed', e);
+                    
+                    const blockingProcesses = await getProcessesUsingPath(slot.path, settings);
+                    const processList = formatProcessList(blockingProcesses);
+                    
                     showAlertDialog(
                         'PR Created, Cleanup Failed',
-                        `PR #${prNumber} was created, but worktree cleanup failed.\n\nClose any open editors/terminals in:\n${slot.path}\n\nThen click "Retry Cleanup".\n\nError: ${e.message}`,
+                        `PR #${prNumber} was created, but worktree cleanup failed.${processList}\n\nClose the processes above, then click "Retry Cleanup".\n\nError: ${e.message}`,
                         'warning',
                         {
                             label: 'Retry Cleanup',
