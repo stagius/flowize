@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
+import React from 'react';
+import { AlertTriangle, RefreshCw, Home, Bug, Check } from 'lucide-react';
 
 interface Props {
   children: React.ReactNode;
@@ -11,14 +11,16 @@ interface State {
   error: Error | null;
   errorInfo: React.ErrorInfo | null;
   errorId: string | null;
+  copied: boolean;
 }
 
 export class ErrorBoundary extends React.Component<Props, State> {
-  public state: State = {
+  state: State = {
     hasError: false,
     error: null,
     errorInfo: null,
-    errorId: null
+    errorId: null,
+    copied: false
   };
 
   public static getDerivedStateFromError(error: Error): Partial<State> {
@@ -33,7 +35,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     console.error('[ErrorBoundary] Caught an error:', error);
     console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
     
-    this.setState({
+    (this as any).setState({
       errorInfo
     });
   }
@@ -47,7 +49,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
   };
 
   private handleCopyError = (): void => {
-    const { error, errorInfo } = this.state;
+    const { error, errorInfo } = (this as any).state;
     const errorText = [
       `Error: ${error?.message || 'Unknown error'}`,
       `Stack: ${error?.stack || 'No stack trace'}`,
@@ -57,15 +59,18 @@ export class ErrorBoundary extends React.Component<Props, State> {
     ].join('\n\n');
 
     navigator.clipboard.writeText(errorText).then(() => {
-      alert('Error details copied to clipboard');
+      (this as any).setState({ copied: true });
+      setTimeout(() => {
+        (this as any).setState({ copied: false });
+      }, 2000);
     }).catch(() => {
       console.log('Failed to copy to clipboard');
     });
   };
 
   public render(): React.ReactNode {
-    const { hasError, error, errorInfo, errorId } = this.state;
-    const { children, fallback } = this.props;
+    const { hasError, error, errorInfo, errorId, copied } = (this as any).state;
+    const { children, fallback } = (this as any).props;
 
     if (hasError) {
       if (fallback) {
@@ -145,10 +150,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
                 </button>
                 <button
                   onClick={this.handleCopyError}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-lg transition-colors border border-slate-300 dark:border-slate-700"
-                  title="Copy error details"
+                  className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 font-medium rounded-lg transition-colors border ${
+                    copied 
+                      ? 'bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700'
+                      : 'bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                  }`}
+                  title={copied ? "Copied!" : "Copy error details"}
                 >
-                  <Bug className="w-4 h-4" />
+                  {copied ? <Check className="w-4 h-4" /> : <Bug className="w-4 h-4" />}
                 </button>
               </div>
             </div>

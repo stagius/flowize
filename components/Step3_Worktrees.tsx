@@ -4,7 +4,7 @@ import { cancelAgentJob, generateImplementationFromAgent, openWorktreeCmdWindow 
 import { GitBranch, FolderGit2, Terminal, Loader2, CloudUpload, CheckCircle2, GitCommit, FileDiff, History, X, Command, Trash2, ScrollText, Copy, Check, Server } from 'lucide-react';
 import { PRIORITY_BADGES, WORKTREE_STATUS_THEMES } from '../designSystem';
 import { useFocusTrap } from './ui/hooks/useFocusTrap';
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useDraggable, useDroppable, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 
 const CODE_SNIPPETS = [
     `// Implementing feature...
@@ -135,9 +135,10 @@ interface DraggableIssueCardProps {
     task: TaskItem;
     slots: WorktreeSlot[];
     onAssignToSlot: (taskId: string, slotId: number) => void;
+    isSlotAvailable: (slot: WorktreeSlot) => boolean;
 }
 
-const DraggableIssueCard: React.FC<DraggableIssueCardProps> = ({ task, slots, onAssignToSlot }) => {
+const DraggableIssueCard: React.FC<DraggableIssueCardProps> = ({ task, slots, onAssignToSlot, isSlotAvailable }) => {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: task.id,
     });
@@ -167,23 +168,26 @@ const DraggableIssueCard: React.FC<DraggableIssueCardProps> = ({ task, slots, on
 
             {/* Assignment Actions */}
             <div className="flex flex-wrap gap-1">
-                {slots.map(slot => (
-                    <button
-                        key={slot.id}
-                        disabled={!!slot.taskId}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onAssignToSlot(task.id, slot.id);
-                        }}
-                        className={`text-[10px] py-1 px-2 rounded border transition-all ${slot.taskId
-                            ? 'bg-slate-100 dark:bg-slate-900/50 text-slate-600 dark:text-slate-700 border-slate-200 dark:border-slate-800 cursor-not-allowed hidden'
-                            : 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20 hover:bg-indigo-500/20 hover:border-indigo-500/40'
-                            }`}
-                    >
-                        WT-{slot.id}
-                    </button>
-                ))}
-                {slots.every(s => s.taskId) && (
+                {slots.map(slot => {
+                    const slotAvailable = isSlotAvailable(slot);
+                    return (
+                        <button
+                            key={slot.id}
+                            disabled={!slotAvailable}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onAssignToSlot(task.id, slot.id);
+                            }}
+                            className={`text-[10px] py-1 px-2 rounded border transition-all ${!slotAvailable
+                                ? 'bg-slate-100 dark:bg-slate-900/50 text-slate-600 dark:text-slate-700 border-slate-200 dark:border-slate-800 cursor-not-allowed hidden'
+                                : 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20 hover:bg-indigo-500/20 hover:border-indigo-500/40'
+                                }`}
+                        >
+                            WT-{slot.id}
+                        </button>
+                    );
+                })}
+                {slots.every(s => !isSlotAvailable(s)) && (
                     <span className="text-[10px] text-slate-500 dark:text-slate-600 italic">No slots available</span>
                 )}
             </div>
@@ -220,6 +224,29 @@ const DroppableSlotWrapper: React.FC<DroppableSlotWrapperProps> = ({ slotId, isO
     );
 };
 
+interface BacklogDroppableZoneProps {
+    children: React.ReactNode;
+}
+
+const BacklogDroppableZone: React.FC<BacklogDroppableZoneProps> = ({ children }) => {
+    const { isOver, setNodeRef } = useDroppable({
+        id: 'backlog',
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`transition-all ${
+                isOver 
+                    ? 'ring-2 ring-orange-500 ring-inset rounded-2xl' 
+                    : ''
+            }`}
+        >
+            {children}
+        </div>
+    );
+};
+
 interface Props {
     tasks: TaskItem[];
     slots: WorktreeSlot[];
@@ -236,6 +263,7 @@ interface Props {
     onCleanup: (slotId: number) => Promise<void>;
     settings?: AppSettings;
     bridgeHealth?: { status: 'checking' | 'healthy' | 'unhealthy'; endpoint?: string };
+    showToast?: (message: string, tone?: 'info' | 'success' | 'warning' | 'error') => void;
 }
 
 interface TerminalLine {
@@ -251,9 +279,17 @@ export const Step3_Worktrees: React.FC<Props> = ({
     onFinishImplementation,
     onCleanup,
     settings,
-    bridgeHealth
+    bridgeHealth,
+    showToast
 }) => {
     const backlog = tasks.filter(t => t.status === TaskStatus.ISSUE_CREATED);
+    
+    const isSlotAvailable = (slot: WorktreeSlot): boolean => {
+        if (!slot.taskId) return true;
+        const taskExists = tasks.some(t => t.id === slot.taskId);
+        return !taskExists;
+    };
+    
     const [loadingTask, setLoadingTask] = useState<string | null>(null);
     const [pushingTask, setPushingTask] = useState<string | null>(null);
     const [cleaningSlot, setCleaningSlot] = useState<number | null>(null);
@@ -478,7 +514,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                 userMessage += '\n\nThe worktree directory may have been deleted or never created.\n\nSuggestions:\n1. Click "Cleanup" to release this slot\n2. Re-assign the task to create a fresh worktree\n3. Check that slot.path is correct: ' + slot.path;
             }
             
-            window.alert(userMessage);
+            showToast?.(userMessage, 'error');
         } finally {
             setOpeningAgentWorkspaceSlot((current) => (current === slot.id ? null : current));
         }
@@ -496,7 +532,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             console.error('Failed to open full Anti-Gravity IDE:', error);
-            window.alert(`Failed to open full Anti-Gravity IDE for this slot.\n${message}`);
+            showToast?.(`Failed to open full Anti-Gravity IDE for this slot.\n${message}`, 'error');
         } finally {
             setOpeningFullAgentSlot((current) => (current === slot.id ? null : current));
         }
@@ -663,12 +699,16 @@ export const Step3_Worktrees: React.FC<Props> = ({
 
         if (!over) return;
 
+        // If dropped in the backlog zone, don't assign
+        if (over.id === 'backlog') {
+            return;
+        }
+
         const taskId = active.id as string;
         const slotId = parseInt(over.id as string);
 
-        // Check if slot is available
         const slot = slots.find(s => s.id === slotId);
-        if (slot && !slot.taskId) {
+        if (slot && isSlotAvailable(slot)) {
             onAssignToSlot(taskId, slotId);
         }
     };
@@ -680,6 +720,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
     return (
         <DndContext
             sensors={sensors}
+            collisionDetection={closestCenter}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
@@ -851,6 +892,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
             )}
 
             {/* Backlog Column */}
+            <BacklogDroppableZone>
             <div className="xl:col-span-1 bg-slate-100 dark:bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden h-full min-h-[460px] xl:max-h-[calc(100vh-12rem)]">
                 <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/80 flex-shrink-0">
                     <h3 className="font-semibold text-slate-900 dark:text-slate-300 flex items-center gap-2">
@@ -898,11 +940,13 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                 task={task}
                                 slots={slots}
                                 onAssignToSlot={onAssignToSlot}
+                                isSlotAvailable={isSlotAvailable}
                             />
                         ))
                     )}
                 </div>
             </div>
+            </BacklogDroppableZone>
 
             {/* Worktree Slots Area */}
             <div className="xl:col-span-3 flex flex-col gap-4 h-full min-h-[460px] overflow-y-auto custom-scrollbar pr-1 xl:pr-2 max-h-[calc(100vh-12rem)]">
@@ -1010,7 +1054,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                             </div>
 
                             {/* Content Area */}
-                            <DroppableSlotWrapper slotId={slot.id} isOccupied={!!slot.taskId} isDraggingActive={!!activeTaskId}>
+                            <DroppableSlotWrapper slotId={slot.id} isOccupied={!isSlotAvailable(slot)} isDraggingActive={!!activeTaskId}>
                                 {!assignedTask ? (
                                     <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-600 gap-2 py-6 md:py-0">
                                         <FolderGit2 className="w-8 h-8 opacity-20" />
@@ -1205,7 +1249,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                     {slots.map(slot => (
                                         <div
                                             key={slot.id}
-                                            className={`text-[10px] py-1 px-2 rounded border transition-all ${slot.taskId
+                                            className={`text-[10px] py-1 px-2 rounded border transition-all ${!isSlotAvailable(slot)
                                                 ? 'bg-slate-100 dark:bg-slate-900/50 text-slate-600 dark:text-slate-700 border-slate-200 dark:border-slate-800 cursor-not-allowed hidden'
                                                 : 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20'
                                                 }`}
@@ -1213,7 +1257,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                             WT-{slot.id}
                                         </div>
                                     ))}
-                                    {slots.every(s => s.taskId) && (
+                                    {slots.every(s => !isSlotAvailable(s)) && (
                                         <span className="text-[10px] text-slate-500 dark:text-slate-600 italic">No slots available</span>
                                     )}
                                 </div>
