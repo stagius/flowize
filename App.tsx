@@ -1328,8 +1328,25 @@ export default function App() {
     };
 
     const activeWorktrees = slots.filter(s => s.taskId).length;
+
+    const getTaskProgressWeight = (status: TaskStatus): number => {
+        const weights: Record<TaskStatus, number> = {
+            [TaskStatus.RAW]: 0,
+            [TaskStatus.FORMATTED]: 0.1,
+            [TaskStatus.ISSUE_CREATED]: 0.2,
+            [TaskStatus.WORKTREE_QUEUED]: 0.3,
+            [TaskStatus.WORKTREE_INITIALIZING]: 0.4,
+            [TaskStatus.WORKTREE_ACTIVE]: 0.5,
+            [TaskStatus.IMPLEMENTED]: 0.65,
+            [TaskStatus.PUSHED]: 0.75,
+            [TaskStatus.PR_CREATED]: 0.85,
+            [TaskStatus.PR_MERGED]: 1,
+        };
+        return weights[status] ?? 0;
+    };
+
     const progressPercent = tasks.length > 0
-        ? Math.round((tasks.filter(t => t.status === TaskStatus.PR_MERGED).length / tasks.length) * 100)
+        ? Math.round((tasks.reduce((sum, t) => sum + getTaskProgressWeight(t.status), 0) / tasks.length) * 100)
         : 0;
 
     const isMergeStep = currentStep === 5;
