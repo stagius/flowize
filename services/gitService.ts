@@ -1,4 +1,6 @@
 import { AppSettings, TaskItem, WorktreeSlot } from '../types';
+import { getProcessesUsingPath, formatProcessList } from './processDetection';
+import { openWorktreeCmdWindow } from './agentService';
 
 /**
  * Executes git operations through the configured local bridge endpoint.
@@ -355,31 +357,11 @@ const tryRemoveDirectory = async (settings: AppSettings, targetPath: string, bra
     }
   }
 
-  console.warn(`[GitService] Directory still busy, skipped physical delete for ${targetPath}: ${lastErrorMessage}`);
+  const processes = await getProcessesUsingPath(targetPath, settings);
+  console.log(`[GitService] Process detection for ${targetPath}: found ${processes.length} process(es)`);
+  const processInfo = formatProcessList(processes);
+  console.warn(`[GitService] Directory still busy, skipped physical delete for ${targetPath}: ${lastErrorMessage}${processInfo}`);
   return false;
-};
-
-const openWorktreeCmdWindow = async (
-  settings: AppSettings,
-  slot: WorktreeSlot,
-  branchName?: string,
-  startupCommand?: string
-): Promise<void> => {
-  if (!settings.agentEndpoint) {
-    return;
-  }
-
-  try {
-    await runBridgeCommand(settings, 'open-terminal', {
-      action: 'open-terminal',
-      worktreePath: slot.path,
-      title: `Flowize WT-${slot.id}`,
-      startupCommand: startupCommand || (branchName ? 'git status && git branch --show-current' : 'git status'),
-      branch: branchName
-    });
-  } catch (error) {
-    console.warn(`[GitService] Unable to open terminal for ${slot.path}: ${getErrorMessage(error)}`);
-  }
 };
 
 const buildWorktreeStartupCommand = async (
@@ -425,7 +407,14 @@ export const createWorktree = async (settings: AppSettings, task: TaskItem, slot
         await copyBaseContextToWorktree(settings, slot.path, task.branchName);
         await setupAgentWorkspace(settings, slot.path, task);
         const startupCommand = await buildWorktreeStartupCommand(settings, task, slot);
-        await openWorktreeCmdWindow(settings, slot, task.branchName, startupCommand);
+        await openWorktreeCmdWindow(settings, slot, {
+          subdir: settings.agentSubdir?.trim() || DEFAULT_AGENT_SUBDIR,
+          title: `Flowize AG-${slot.id}`,
+          startupCommand,
+          task,
+          copyTemplatedCommandToClipboard: true,
+          ensureDirectory: true
+        });
         return;
       }
       throw new Error(
@@ -476,7 +465,14 @@ export const createWorktree = async (settings: AppSettings, task: TaskItem, slot
     await copyBaseContextToWorktree(settings, slot.path, task.branchName);
     await setupAgentWorkspace(settings, slot.path, task);
     const startupCommand = await buildWorktreeStartupCommand(settings, task, slot);
-    await openWorktreeCmdWindow(settings, slot, task.branchName, startupCommand);
+    await openWorktreeCmdWindow(settings, slot, {
+      subdir: settings.agentSubdir?.trim() || DEFAULT_AGENT_SUBDIR,
+      title: `Flowize AG-${slot.id}`,
+      startupCommand,
+      task,
+      copyTemplatedCommandToClipboard: true,
+      ensureDirectory: true
+    });
   } else {
     throw new Error('No local bridge endpoint configured. Real git worktree operations require Agent Bridge Endpoint.');
   }
@@ -531,7 +527,9 @@ export const pruneWorktree = async (slot: WorktreeSlot, branchName?: string, set
         }
 
         if (isDirectoryBusyError(message)) {
-          console.warn(`[GitService] Worktree still busy, retrying remove for ${slot.path}: ${message}`);
+          const processes = await getProcessesUsingPath(slot.path, settings);
+          const processInfo = formatProcessList(processes);
+          console.warn(`[GitService] Worktree still busy, retrying remove for ${slot.path}: ${message}${processInfo}`);
           continue;
         }
 
@@ -556,7 +554,9 @@ export const pruneWorktree = async (slot: WorktreeSlot, branchName?: string, set
     } catch (error) {
       const message = getErrorMessage(error);
       if (isDirectoryBusyError(message)) {
-        console.warn(`[GitService] git worktree prune skipped while path is busy: ${message}`);
+        const processes = await getProcessesUsingPath(slot.path, settings);
+        const processInfo = formatProcessList(processes);
+        console.warn(`[GitService] git worktree prune skipped while path is busy: ${message}${processInfo}`);
       } else {
         throw error;
       }

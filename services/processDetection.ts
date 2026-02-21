@@ -46,39 +46,49 @@ async function getProcessesUnix(path: string, settings: AppSettings): Promise<Pr
 }
 
 async function getProcessesWindows(path: string, settings: AppSettings): Promise<ProcessInfo[]> {
+  const normalizedPath = path.replace(/\//g, '\\');
+  const escapedPath = normalizedPath.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  
+  console.log(`[ProcessDetection] Checking processes for path: ${normalizedPath}`);
+  
+  const processes: ProcessInfo[] = [];
+  const seen = new Set<number>();
+  
+  const wmiCommand = `powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like \\"*${escapedPath}*\\" -or ($_.ExecutablePath -like \\"*${escapedPath}*\\") } | Select-Object Name,ProcessId | ConvertTo-Json -Compress"`;
+  
+  console.log(`[ProcessDetection] Running: ${wmiCommand}`);
+  
   try {
-    const result = await runBridgeCommand(settings, `handle.exe -accepteula "${path}" 2>nul || echo "HANDLE_NOT_FOUND"`);
-    if (!result || typeof result !== 'object') {
-      return [];
+    const result = await runBridgeCommand(settings, wmiCommand);
+    console.log(`[ProcessDetection] Result:`, result);
+    if (result && typeof result === 'object' && result.stdout) {
+      let stdout = (result.stdout as string).trim();
+      console.log(`[ProcessDetection] stdout: ${stdout}`);
+      if (stdout && stdout !== 'null' && stdout !== '[]') {
+        let entries: Array<{ Name: string; ProcessId: number }> = [];
+        
+        try {
+          if (stdout.startsWith('[')) {
+            entries = JSON.parse(stdout);
+          } else if (stdout.startsWith('{')) {
+            entries = [JSON.parse(stdout)];
+          }
+        } catch {}
+        
+        for (const entry of entries) {
+          const pid = Number(entry.ProcessId);
+          if (isNaN(pid) || pid <= 0 || seen.has(pid)) continue;
+          seen.add(pid);
+          processes.push({ name: entry.Name, pid, platform: 'win32' });
+        }
+      }
     }
-    
-    const stdout = result.stdout as string;
-    if (!stdout || stdout.includes('HANDLE_NOT_FOUND') || stdout.includes('not recognized')) {
-      return [];
-    }
-    
-    const lines = stdout.split('\n');
-    const processes: ProcessInfo[] = [];
-    const seen = new Set<number>();
-    const regex = /^(\S+)\s+pid:\s+(\d+)/i;
-    
-    for (const line of lines) {
-      const match = line.match(regex);
-      if (!match) continue;
-      
-      const name = match[1];
-      const pid = parseInt(match[2], 10);
-      
-      if (isNaN(pid) || pid <= 0 || seen.has(pid)) continue;
-      seen.add(pid);
-      
-      processes.push({ name, pid, platform: 'win32' });
-    }
-    
-    return processes;
-  } catch {
-    return [];
+  } catch (e) {
+    console.warn(`[ProcessDetection] Error:`, e);
   }
+  
+  console.log(`[ProcessDetection] Found ${processes.length} processes`);
+  return processes;
 }
 
 export async function getProcessesUsingPath(path: string, settings: AppSettings): Promise<ProcessInfo[]> {
@@ -97,7 +107,7 @@ export async function getProcessesUsingPath(path: string, settings: AppSettings)
 
 export function formatProcessList(processes: ProcessInfo[]): string {
   if (processes.length === 0) {
-    return '';
+    return '\n\nUnable to identify blocking process. Check: VS Code, terminals, node processes, or file explorers using this directory.';
   }
   
   const platformLabel = processes[0]?.platform === 'win32' ? 'Windows' : 

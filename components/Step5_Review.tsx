@@ -139,7 +139,7 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
                     value={reviewNotes[task.id] || ''}
                     onChange={(e) => setReviewNotes(prev => ({ ...prev, [task.id]: e.target.value }))}
                     placeholder="Add feedback for requested changes (optional)"
-                    className="w-full md:flex-1 min-h-[38px] max-h-24 resize-y rounded-lg border border-slate-300 dark:border-slate-700/80 bg-white px-3 py-2 text-xs leading-5 text-slate-900 dark:text-slate-200 placeholder:text-slate-600 dark:placeholder:text-slate-400 shadow-sm dark:shadow-inner dark:shadow-black/20 focus:outline-none focus:border-red-400 dark:focus:border-red-400/40 focus:ring-2 focus:ring-red-500/20"
+                    className="w-full md:flex-1 min-h-[38px] max-h-24 resize-y rounded-lg border border-slate-300 dark:border-slate-700/80 bg-transparent px-3 py-2 text-xs leading-5 text-slate-900 dark:text-slate-200 placeholder:text-slate-600 dark:placeholder:text-slate-400 shadow-sm dark:shadow-inner dark:shadow-black/20 focus:outline-none focus:border-red-400 dark:focus:border-red-400/40 focus:ring-2 focus:ring-red-500/20"
                   />
                   <div className="flex items-center justify-end gap-2 md:shrink-0">
                     <button
