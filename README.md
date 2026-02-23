@@ -1,6 +1,3 @@
-<img width="1958" height="1268" alt="image" src="https://github.com/user-attachments/assets/6295d9b0-357f-466d-9624-e8edf7dd77c6" />
-
-
 # Flowize
 [![Vercel Deployment Status](https://therealsujitk-vercel-badge.vercel.app/?app=flowize)](https://flowize-git.vercel.app)
 
@@ -27,6 +24,14 @@ npm run bridge:start
 ```
 
 On first launch, you'll be prompted to log in with GitHub. Click "Connect with GitHub" or manually paste a Personal Access Token in Settings.
+
+## Features
+
+### Issue Creation
+
+Parse raw requirements into structured GitHub issues using AI.
+
+<img width="800" alt="Issue Creation" src="/public/demo-1.gif" />
 
 ## What it does
 
