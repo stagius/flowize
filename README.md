@@ -31,13 +31,17 @@ On first launch, you'll be prompted to log in with GitHub. Click "Connect with G
 
 Parse raw requirements into structured GitHub issues using AI.
 
-<img width="800" alt="Issue Creation" src="/public/demo-1.gif" />
+<video width="800" autoplay loop muted playsinline>
+  <source src="/public/demo-1.mp4" type="video/mp4" />
+</video>
 
 ### Worktrees & Review
 
 Assign issues to worktree slots, generate implementation drafts, and open PRs for review.
 
-<img width="800" alt="Worktrees & Review" src="/public/demo-2.gif" />
+<video width="800" autoplay loop muted playsinline>
+  <source src="/public/demo-2.mp4" type="video/mp4" />
+</video>
 
 ## What it does
 
