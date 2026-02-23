@@ -33,6 +33,12 @@ Parse raw requirements into structured GitHub issues using AI.
 
 <img width="800" alt="Issue Creation" src="/public/demo-1.gif" />
 
+### Issue Management
+
+Create and sync issues to GitHub, or import existing ones from your repository.
+
+<img width="800" alt="Issue Management" src="/public/demo-2.gif" />
+
 ## What it does
 
 Flowize guides you through the complete development workflow:
