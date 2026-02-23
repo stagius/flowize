@@ -58,8 +58,13 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
 
   // Check if form has unsaved changes
   const isFormDirty = useCallback(() => {
-    return JSON.stringify(formData) !== JSON.stringify(currentSettings);
-  }, [formData, currentSettings]);
+    return formData.githubToken !== currentSettings.githubToken ||
+      formData.repoOwner !== currentSettings.repoOwner ||
+      formData.repoName !== currentSettings.repoName ||
+      formData.defaultBranch !== currentSettings.defaultBranch ||
+      formData.agentEndpoint !== currentSettings.agentEndpoint ||
+      formData.worktreeRoot !== currentSettings.worktreeRoot;
+  }, [formData.githubToken, formData.repoOwner, formData.repoName, formData.defaultBranch, formData.agentEndpoint, formData.worktreeRoot, currentSettings]);
 
   // Handle close with dirty check
   const handleClose = useCallback(() => {
