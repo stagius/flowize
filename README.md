@@ -35,11 +35,13 @@ Parse raw requirements into structured GitHub issues using AI.
 
 ## What it does
 
-- Parses raw requirements into structured tasks with title, description, group, and priority using Gemini.
-- Promotes tasks to GitHub Issues and can import open issues from a repository.
-- Assigns issues to worktree slots and runs local git worktree operations for execution flow.
-- Generates implementation drafts, opens PRs, checks commit/CI status, and merges PRs via GitHub API.
-- Tracks active and merged PRs in a step-based dashboard.
+Flowize guides you through the complete development workflow:
+
+- **Task Input** — Paste raw specs and generate structured tasks with AI
+- **Issues** — Create GitHub issues or import existing ones
+- **Worktrees** — Assign issues to slots, generate implementation drafts, and push to review
+- **Review** — Open PRs and monitor CI status
+- **Merge** — Merge ready PRs and track history
 
 ## Tech stack
 
