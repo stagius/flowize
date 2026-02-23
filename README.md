@@ -33,11 +33,11 @@ Parse raw requirements into structured GitHub issues using AI.
 
 <img width="800" alt="Issue Creation" src="/public/demo-1.gif" />
 
-### Issue Management
+### Worktrees & Review
 
-Create and sync issues to GitHub, or import existing ones from your repository.
+Assign issues to worktree slots, generate implementation drafts, and open PRs for review.
 
-<img width="800" alt="Issue Management" src="/public/demo-2.gif" />
+<img width="800" alt="Worktrees & Review" src="/public/demo-2.gif" />
 
 ## What it does
 
