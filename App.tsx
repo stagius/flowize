@@ -1440,7 +1440,7 @@ export default function App() {
                                     </div>
                                     <button
                                         onClick={() => setIsMobileMenuOpen(false)}
-                                        className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg p-1 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors"
+                                        className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg p-1 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                                         aria-label="Close navigation menu"
                                     >
                                         <X className="w-5 h-5" aria-hidden="true" />
@@ -1582,7 +1582,7 @@ export default function App() {
                                     />
                                     <button
                                         onClick={handleLogout}
-                                        className="w-8 h-8 flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20 mt-1"
+                                        className="w-11 h-11 flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20 mt-1"
                                         title="Logout"
                                     >
                                         <LogOut className="w-3.5 h-3.5" />
@@ -1632,7 +1632,7 @@ export default function App() {
                         <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/30 dark:bg-slate-900/30 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between px-4 md:px-6">
                             <button
                                 onClick={() => setIsMobileMenuOpen(true)}
-                                className="flex items-center gap-3 lg:hidden p-1 -ml-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                className="flex items-center gap-3 lg:hidden p-1 -ml-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white min-w-[44px] min-h-[44px]"
                                 aria-label="Open navigation menu"
                                 aria-expanded={isMobileMenuOpen}
                                 aria-controls="mobile-navigation"
@@ -1671,7 +1671,7 @@ export default function App() {
                                         <button
                                             type="button"
                                             onClick={() => setIsSettingsOpen(true)}
-                                            className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
+                                            className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors min-h-[44px]"
                                             title="Open Settings"
                                         >
                                             <div className="flex flex-col items-end">
@@ -1707,7 +1707,7 @@ export default function App() {
                                     <ThemeToggle />
                                     <button
                                         onClick={() => setIsSettingsOpen(true)}
-                                        className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                        className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                                         aria-label="Open settings"
                                     >
                                         <Settings className="w-5 h-5" aria-hidden="true" />

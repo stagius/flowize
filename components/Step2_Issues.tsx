@@ -189,14 +189,14 @@ export const Step2_Issues: React.FC<Props> = ({
                         <button
                           onClick={() => startEditing(task)}
                           disabled={isSyncing}
-                          className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 disabled:opacity-70 disabled:cursor-not-allowed"
+                          className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 disabled:opacity-70 disabled:cursor-not-allowed min-h-[44px]"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => onDeleteTask(task.id)}
                           disabled={isSyncing}
-                          className="px-2.5 py-1.5 text-xs font-medium rounded-md bg-slate-100 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-red-500/20 text-slate-700 hover:text-red-700 dark:text-slate-300 dark:hover:text-red-200 border border-slate-300 hover:border-red-400/60 dark:border-slate-700 dark:hover:border-red-400/40 disabled:opacity-70 disabled:cursor-not-allowed"
+                          className="px-2.5 py-1.5 text-xs font-medium rounded-md bg-slate-100 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-red-500/20 text-slate-700 hover:text-red-700 dark:text-slate-300 dark:hover:text-red-200 border border-slate-300 hover:border-red-400/60 dark:border-slate-700 dark:hover:border-red-400/40 disabled:opacity-70 disabled:cursor-not-allowed min-w-[44px] min-h-[44px] flex items-center justify-center"
                           title="Delete pending task"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -204,7 +204,7 @@ export const Step2_Issues: React.FC<Props> = ({
                         <button
                           onClick={() => onPromoteToIssue(task.id)}
                           disabled={isSyncing}
-                          className={`text-xs px-3 py-1.5 rounded-md font-semibold transition-all ${isSyncing
+                          className={`text-xs px-3 py-1.5 rounded-md font-semibold transition-all min-h-[44px] ${isSyncing
                               ? 'bg-purple-200 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 cursor-not-allowed'
                               : 'bg-purple-600 hover:bg-purple-500 text-white border border-purple-500/40 shadow-lg shadow-purple-500/20 dark:shadow-purple-900/20'
                             }`}
@@ -284,13 +284,13 @@ export const Step2_Issues: React.FC<Props> = ({
                           <div className="flex items-center gap-2 ml-auto">
                             <button
                               onClick={() => cancelEditing(task.id)}
-                              className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700"
+                              className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 min-h-[44px]"
                             >
                               Cancel
                             </button>
                             <button
                               onClick={() => saveEditing(task.id)}
-                              className="px-3 py-1.5 text-xs font-medium rounded-md bg-purple-600 hover:bg-purple-500 text-white border border-purple-500/50"
+                              className="px-3 py-1.5 text-xs font-medium rounded-md bg-purple-600 hover:bg-purple-500 text-white border border-purple-500/50 min-h-[44px]"
                             >
                               Save
                             </button>
