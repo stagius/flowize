@@ -142,6 +142,7 @@ export default function App() {
     const [alertActionBusy, setAlertActionBusy] = useState(false);
     const [bridgeHealth, setBridgeHealth] = useState<BridgeHealthState>({ status: 'checking' });
     const [githubLogin, setGithubLogin] = useState<string>('');
+    const [githubAvatarUrl, setGithubAvatarUrl] = useState<string>('');
     const confirmResolverRef = useRef<((value: boolean) => void) | null>(null);
     const alertActionRef = useRef<(() => Promise<void> | void) | null>(null);
 
@@ -451,6 +452,7 @@ export default function App() {
         const token = (settings.githubToken || '').trim();
         if (!token) {
             setGithubLogin('');
+            setGithubAvatarUrl('');
             return;
         }
 
@@ -460,10 +462,12 @@ export default function App() {
                 const user = await fetchAuthenticatedUser(token);
                 if (!cancelled) {
                     setGithubLogin(user.login || '');
+                    setGithubAvatarUrl(user.avatar_url || '');
                 }
             } catch {
                 if (!cancelled) {
                     setGithubLogin('');
+                    setGithubAvatarUrl('');
                 }
             }
         };
@@ -1679,11 +1683,20 @@ export default function App() {
                                             <img
                                                 height="16"
                                                 width="16"
-                                                src={theme === 'light'
-                                                    ? "https://cdn.simpleicons.org/github"
-                                                    : "https://cdn.simpleicons.org/github/fff"
+                                                src={githubAvatarUrl
+                                                    ? `${githubAvatarUrl}&s=16`
+                                                    : theme === 'light'
+                                                        ? "https://cdn.simpleicons.org/github"
+                                                        : "https://cdn.simpleicons.org/github/fff"
                                                 }
-                                                alt="GitHub"
+                                                srcSet={githubAvatarUrl
+                                                    ? `${githubAvatarUrl}&s=16 1x, ${githubAvatarUrl}&s=32 2x`
+                                                    : undefined
+                                                }
+                                                alt={githubAvatarUrl ? `${githubLogin} avatar` : "GitHub"}
+                                                loading="lazy"
+                                                decoding="async"
+                                                className={githubAvatarUrl ? "rounded-full" : undefined}
                                             />
                                         </button>
                                     )}
