@@ -737,7 +737,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                 >
                     <div
                         ref={terminalModalRef}
-                        className="w-full max-w-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800 h-[600px]"
+                        className="w-full max-w-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800 h-[600px] max-h-[85vh]"
                     >
                         {/* Terminal Header */}
                         <div className="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
@@ -821,7 +821,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                 >
                     <div
                         ref={agentConsoleRef}
-                        className="w-full max-w-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800 h-[600px]"
+                        className="w-full max-w-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800 h-[600px] max-h-[85vh]"
                     >
                         <div className="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                             <div className="flex items-center gap-3">
