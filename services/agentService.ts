@@ -180,18 +180,26 @@ const runBridgeSyncCommand = async (
   command: string,
   context: Record<string, unknown> = {}
 ): Promise<AgentRunResponse> => {
-  const response = await fetchWithTimeout(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      command,
-      mode: 'shell',
-      ...context
-    })
-  }, 20000);
+  console.log(`[bridge:sync] POST ${endpoint} command="${command.slice(0, 120)}${command.length > 120 ? '…' : ''}"`);
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        command,
+        mode: 'shell',
+        ...context
+      })
+    }, 20000);
+  } catch (fetchErr) {
+    console.warn(`[bridge:sync] fetch failed for ${endpoint}:`, fetchErr instanceof Error ? fetchErr.message : String(fetchErr));
+    throw fetchErr;
+  }
 
+  console.log(`[bridge:sync] response status=${response.status} from ${endpoint}`);
   const rawText = await response.text();
   let data: AgentRunResponse = {};
 
@@ -202,13 +210,18 @@ const runBridgeSyncCommand = async (
   }
 
   if (!response.ok) {
-    throw new Error(data.error || `Agent bridge returned ${response.status} on ${endpoint}`);
+    const err = data.error || `Agent bridge returned ${response.status} on ${endpoint}`;
+    console.error(`[bridge:sync] error from ${endpoint}: ${err}`);
+    throw new Error(err);
   }
 
   if (data.success === false || (typeof data.exitCode === 'number' && data.exitCode !== 0)) {
-    throw new Error(data.error || `Command failed on ${endpoint}`);
+    const err = data.error || `Command failed on ${endpoint}`;
+    console.error(`[bridge:sync] command failed on ${endpoint}: exitCode=${data.exitCode} error=${err}`);
+    throw new Error(err);
   }
 
+  console.log(`[bridge:sync] success from ${endpoint} exitCode=${data.exitCode ?? 0}`);
   return data;
 };
 
@@ -249,10 +262,19 @@ const pollAsyncJob = async (
 ): Promise<AgentRunResponse> => {
   const base = endpoint.endsWith('/run') ? endpoint.slice(0, -4) : endpoint;
   const logsUrl = `${base}/logs?jobId=${encodeURIComponent(jobId)}`;
+  console.log(`[bridge:poll] starting poll for jobId=${jobId} url=${logsUrl} maxAttempts=${AGENT_POLL_MAX_ATTEMPTS}`);
 
   for (let i = 0; i < AGENT_POLL_MAX_ATTEMPTS; i += 1) {
-    const response = await fetchWithTimeout(logsUrl, { method: 'GET' }, 10000);
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(logsUrl, { method: 'GET' }, 10000);
+    } catch (fetchErr) {
+      console.warn(`[bridge:poll] attempt=${i + 1} fetch error for jobId=${jobId}:`, fetchErr instanceof Error ? fetchErr.message : String(fetchErr));
+      throw new Error(`Unable to poll agent logs — fetch failed: ${fetchErr instanceof Error ? fetchErr.message : String(fetchErr)}`);
+    }
+
     if (!response.ok) {
+      console.error(`[bridge:poll] attempt=${i + 1} HTTP ${response.status} for jobId=${jobId} url=${logsUrl}`);
       throw new Error(`Unable to poll agent logs (${response.status}) from ${logsUrl}`);
     }
 
@@ -264,6 +286,15 @@ const pollAsyncJob = async (
       ? (Date.now() - data.updatedAt)
       : (typeof data.startedAt === 'number' ? Date.now() - data.startedAt : 0);
 
+    if (i === 0 || i % 10 === 0 || data.done) {
+      console.log(
+        `[bridge:poll] attempt=${i + 1}/${AGENT_POLL_MAX_ATTEMPTS} jobId=${jobId}` +
+        ` done=${data.done} exitCode=${data.exitCode ?? 'running'}` +
+        ` pid=${data.pid ?? 'none'} stdout=${stdoutLength}B stderr=${stderrLength}B` +
+        ` idleSince=${Math.round(idleSinceMs / 1000)}s`
+      );
+    }
+
     const logs = formatLogs(endpoint, command, data);
     onProgress?.({
       logs,
@@ -273,18 +304,25 @@ const pollAsyncJob = async (
     });
 
     if (data.done === true) {
+      console.log(`[bridge:poll] jobId=${jobId} finished — success=${data.success} exitCode=${data.exitCode}`);
       return data;
     }
 
     if (idleSinceMs >= AGENT_STALE_OUTPUT_TIMEOUT_MS) {
+      console.warn(
+        `[bridge:poll] jobId=${jobId} stale — no output for ${Math.round(idleSinceMs / 1000)}s` +
+        ` (threshold=${AGENT_STALE_OUTPUT_TIMEOUT_MS / 1000}s) hasSeenOutput=${hasSeenOutput}`
+      );
       let cancelNote = '';
       if (settings?.agentEndpoint) {
         try {
           await cancelAgentJob(settings, jobId);
           cancelNote = ' Cancellation requested automatically.';
+          console.log(`[bridge:poll] jobId=${jobId} cancelled successfully`);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           cancelNote = ` Automatic cancellation failed: ${message}`;
+          console.warn(`[bridge:poll] jobId=${jobId} auto-cancel failed: ${message}`);
         }
       }
 
@@ -297,6 +335,7 @@ const pollAsyncJob = async (
     await sleep(AGENT_POLL_INTERVAL_MS);
   }
 
+  console.warn(`[bridge:poll] jobId=${jobId} exceeded max attempts (${AGENT_POLL_MAX_ATTEMPTS}) — timing out`);
   let cancelNote = '';
   if (settings?.agentEndpoint) {
     try {
@@ -397,9 +436,12 @@ export const generateImplementationFromAgent = async (
   const candidates = getBridgeCandidates(endpoint);
   let lastError = '';
   let lastLogs = '';
+  console.log(`[bridge:agent] starting for issue #${task.issueNumber} candidates=[${candidates.join(', ')}]`);
 
   for (const candidate of candidates) {
+    console.log(`[bridge:agent] trying candidate=${candidate}`);
     try {
+      console.log(`[bridge:agent] running ensureWorkspace on ${candidate}`);
       await runBridgeSyncCommand(candidate, ensureWorkspaceCommand, {
         worktreePath: slot.path,
         branch: task.branchName,
@@ -407,23 +449,31 @@ export const generateImplementationFromAgent = async (
         issueDescriptionFile
       });
 
-      const response = await fetchWithTimeout(candidate, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          command,
-          mode: 'shell',
-          async: true,
-          issueNumber: task.issueNumber,
-          branch: task.branchName,
-          worktreePath: slot.path,
-          issueDescriptionFile,
-          skillFile,
-          title: task.title
-        })
-      }, 20000);
+      console.log(`[bridge:agent] ensureWorkspace done, posting async agent command to ${candidate}`);
+      let response: Response;
+      try {
+        response = await fetchWithTimeout(candidate, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            command,
+            mode: 'shell',
+            async: true,
+            issueNumber: task.issueNumber,
+            branch: task.branchName,
+            worktreePath: slot.path,
+            issueDescriptionFile,
+            skillFile,
+            title: task.title
+          })
+        }, 20000);
+      } catch (fetchErr) {
+        console.warn(`[bridge:agent] fetch failed for async job on ${candidate}:`, fetchErr instanceof Error ? fetchErr.message : String(fetchErr));
+        throw fetchErr;
+      }
+      console.log(`[bridge:agent] async POST status=${response.status} from ${candidate}`);
 
       const rawText = await response.text();
       let data: AgentRunResponse = {};
@@ -436,10 +486,12 @@ export const generateImplementationFromAgent = async (
 
       if (!response.ok) {
         const maybeError = data.error || `Agent bridge returned ${response.status} on ${candidate}`;
+        console.error(`[bridge:agent] async POST failed on ${candidate}: ${maybeError}`);
         throw new Error(maybeError);
       }
 
       if (data.jobId) {
+        console.log(`[bridge:agent] async job started jobId=${data.jobId} on ${candidate}`);
         onProgress?.({
           logs: `Agent job started. jobId=${data.jobId}`,
           done: false,
@@ -447,6 +499,8 @@ export const generateImplementationFromAgent = async (
           jobId: data.jobId
         });
         data = await pollAsyncJob(candidate, command, data.jobId, settings, onProgress);
+      } else {
+        console.warn(`[bridge:agent] no jobId returned from ${candidate} — treating as sync response`);
       }
 
       const logs = formatLogs(candidate, command, data);
@@ -455,11 +509,13 @@ export const generateImplementationFromAgent = async (
 
       if (data.success === false || (typeof data.exitCode === 'number' && data.exitCode !== 0)) {
         const errorMessage = data.error || `Agent bridge returned ${response.status} on ${candidate}`;
+        console.error(`[bridge:agent] job failed on ${candidate}: exitCode=${data.exitCode} error=${errorMessage}`);
         throw new Error(errorMessage);
       }
 
       if ((typeof data.implementation !== 'string' || data.implementation.trim().length === 0)
         && (!data.stdout || data.stdout.trim().length === 0)) {
+        console.warn(`[bridge:agent] job on ${candidate} completed with no output`);
         throw new Error('Sub-agent completed with no output. Verify command syntax for your Anti-Gravity CLI.');
       }
 
@@ -468,6 +524,7 @@ export const generateImplementationFromAgent = async (
           ? data.implementation
           : (data.stdout?.trim().length ? data.stdout : 'Sub-agent completed successfully with no implementation output.');
 
+      console.log(`[bridge:agent] success on ${candidate} — implementation length=${implementation.length}`);
       return {
         success: true,
         implementation,
@@ -476,6 +533,7 @@ export const generateImplementationFromAgent = async (
       };
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error);
+      console.warn(`[bridge:agent] candidate=${candidate} failed: ${lastError}`);
     }
   }
 

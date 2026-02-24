@@ -243,6 +243,7 @@ export const runBridgeCommand = async (settings: AppSettings, command: string, c
   const candidates = getBridgeCandidates(endpoint);
   let lastError = '';
   let hadHttpResponse = false;
+  console.log(`[bridge:git] command="${command.slice(0, 120)}${command.length > 120 ? '…' : ''}" candidates=[${candidates.join(', ')}]`);
 
   for (const candidate of candidates) {
     try {
@@ -259,6 +260,7 @@ export const runBridgeCommand = async (settings: AppSettings, command: string, c
       });
 
       hadHttpResponse = true;
+      console.log(`[bridge:git] response status=${response.status} from ${candidate}`);
 
       const raw = await response.text();
       let payload: any = null;
@@ -273,21 +275,28 @@ export const runBridgeCommand = async (settings: AppSettings, command: string, c
         const details = payload?.error || raw || 'no response body';
         const message = `Local bridge error (${response.status}) on ${candidate}: ${details}`;
         if (response.status === 404 || response.status === 405) {
+          console.warn(`[bridge:git] ${response.status} on ${candidate} — skipping to next candidate`);
           lastError = message;
           continue;
         }
+        console.error(`[bridge:git] error on ${candidate}: ${message}`);
         throw new Error(message);
       }
 
       if (payload && typeof payload === 'object') {
         if (payload.success === false) {
-          throw new Error(`Command failed on ${candidate}: ${payload.error || 'unknown bridge error'}`);
+          const err = `Command failed on ${candidate}: ${payload.error || 'unknown bridge error'}`;
+          console.error(`[bridge:git] ${err}`);
+          throw new Error(err);
         }
         if (typeof payload.exitCode === 'number' && payload.exitCode !== 0) {
-          throw new Error(`Command failed on ${candidate}: exitCode=${payload.exitCode}`);
+          const err = `Command failed on ${candidate}: exitCode=${payload.exitCode}`;
+          console.error(`[bridge:git] ${err}`);
+          throw new Error(err);
         }
       }
 
+      console.log(`[bridge:git] success on ${candidate}`);
       return payload;
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error);
@@ -300,13 +309,16 @@ export const runBridgeCommand = async (settings: AppSettings, command: string, c
       if (isCommandFailure) {
         throw new Error(lastError);
       }
+      console.warn(`[bridge:git] candidate=${candidate} failed: ${lastError}`);
     }
   }
 
   if (hadHttpResponse) {
+    console.error(`[bridge:git] all candidates failed after receiving HTTP responses. lastError: ${lastError}`);
     throw new Error(lastError || 'Bridge request failed after receiving response');
   }
 
+  console.error(`[bridge:git] cannot reach bridge. Tried: ${candidates.join(', ')}. lastError: ${lastError}`);
   throw new Error(
     `Cannot reach local agent bridge. Tried: ${candidates.join(', ')}. Last error: ${lastError}. ` +
     `Start your local bridge and allow requests from app origin (${typeof window !== 'undefined' ? window.location.origin : 'unknown'}).`

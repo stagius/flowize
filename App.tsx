@@ -422,21 +422,29 @@ export default function App() {
 
         const check = async () => {
             const candidates = getCandidates(endpoint);
+            console.log(`[bridge:health] checking ${candidates.length} candidates: [${candidates.join(', ')}]`);
             for (const healthUrl of candidates) {
                 try {
                     const response = await fetch(healthUrl, { method: 'GET' });
-                    if (!response.ok) continue;
+                    if (!response.ok) {
+                        console.warn(`[bridge:health] ${healthUrl} returned ${response.status}`);
+                        continue;
+                    }
                     const payload = await response.json() as { ok?: boolean };
                     if (payload.ok && active) {
+                        console.log(`[bridge:health] healthy via ${healthUrl}`);
                         setBridgeHealth({ status: 'healthy', endpoint: healthUrl });
                         return;
+                    } else {
+                        console.warn(`[bridge:health] ${healthUrl} ok=${payload.ok} — not marking healthy`);
                     }
-                } catch {
-                    // continue trying alternate health endpoints
+                } catch (err) {
+                    console.warn(`[bridge:health] ${healthUrl} fetch error:`, err instanceof Error ? err.message : String(err));
                 }
             }
 
             if (active) {
+                console.warn(`[bridge:health] all candidates unreachable — marking unhealthy`);
                 setBridgeHealth({ status: 'unhealthy' });
             }
         };
