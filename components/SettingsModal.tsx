@@ -63,8 +63,10 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
       formData.repoName !== currentSettings.repoName ||
       formData.defaultBranch !== currentSettings.defaultBranch ||
       formData.agentEndpoint !== currentSettings.agentEndpoint ||
-      formData.worktreeRoot !== currentSettings.worktreeRoot;
-  }, [formData.githubToken, formData.repoOwner, formData.repoName, formData.defaultBranch, formData.agentEndpoint, formData.worktreeRoot, currentSettings]);
+      formData.worktreeRoot !== currentSettings.worktreeRoot ||
+      formData.geminiApiKey !== currentSettings.geminiApiKey ||
+      formData.model !== currentSettings.model;
+  }, [formData.githubToken, formData.repoOwner, formData.repoName, formData.defaultBranch, formData.agentEndpoint, formData.worktreeRoot, formData.geminiApiKey, formData.model, currentSettings]);
 
   // Handle close with dirty check
   const handleClose = useCallback(() => {

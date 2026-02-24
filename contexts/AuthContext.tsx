@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { encrypt, decrypt, isEncrypted } from '../utils/crypto';
 
 type LoginMode = 'oauth' | 'manual';
@@ -43,13 +43,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
     });
     const [isInitialized, setIsInitialized] = useState(false);
+    // Track whether the one-time initialization has run so that subsequent
+    // changes to `initialToken` (e.g. when App.setSettings updates the token
+    // after login) don't re-trigger the full async init and cause a white screen.
+    const hasInitialized = useRef(false);
 
-    // Initialize token from storage on mount
+    // Initialize auth exactly once on mount, using the initial token value
+    // captured in a ref so the effect dependency array stays empty ([]).
+    const initialTokenRef = useRef(initialToken);
+
     useEffect(() => {
+        if (hasInitialized.current) return;
+        hasInitialized.current = true;
+
         const initializeAuth = async () => {
-            if (initialToken) {
+            const startToken = initialTokenRef.current;
+
+            if (startToken) {
                 // Use initial token if provided (from settings)
-                setToken(initialToken);
+                setToken(startToken);
                 setIsAuthenticated(true);
                 setIsInitialized(true);
                 return;
@@ -83,17 +95,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
                 }
             } catch (error) {
                 console.error('Failed to load token from storage:', error);
+            } finally {
+                // Always mark as initialized so the spinner never hangs indefinitely
+                // (e.g. if crypto.subtle is unavailable in a non-secure context)
+                setIsInitialized(true);
             }
-
-            setIsInitialized(true);
         };
 
-        initializeAuth();
-    }, [initialToken]);
+        void initializeAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
+    // When the parent passes a new initialToken after initialization (e.g. after
+    // a successful login that calls App.handleLoginSuccess → setSettings), sync
+    // the token into context state without re-running the full init flow.
     useEffect(() => {
-        setIsAuthenticated(Boolean(token));
-    }, [token]);
+        if (!hasInitialized.current) return;
+        if (initialToken) {
+            setToken(initialToken);
+            setIsAuthenticated(true);
+        }
+    }, [initialToken]);
 
     const login = async (newToken: string, mode: LoginMode = 'oauth') => {
         setToken(newToken);
@@ -140,9 +162,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
     };
 
-    // Don't render children until auth is initialized
+    // Don't render children until auth is initialized to avoid flash of wrong content.
+    // Show a minimal spinner instead of null so the screen is never blank white.
     if (!isInitialized) {
-        return null;
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+                <div className="w-8 h-8 rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-indigo-500 animate-spin" aria-label="Loading..." role="status" />
+            </div>
+        );
     }
 
     return (

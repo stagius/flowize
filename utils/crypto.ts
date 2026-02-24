@@ -17,6 +17,10 @@ const SALT = 'flowize-v1'; // Static salt for key derivation
  * This allows decryption without storing the key, but keys differ per browser
  */
 async function getEncryptionKey(): Promise<CryptoKey> {
+  if (!crypto?.subtle) {
+    throw new Error('Web Crypto API (crypto.subtle) is not available. The page must be served over HTTPS or localhost.');
+  }
+
   // Create a fingerprint from various browser properties
   const fingerprint = [
     navigator.userAgent,

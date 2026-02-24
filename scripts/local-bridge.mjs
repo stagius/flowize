@@ -3,15 +3,33 @@ import { exec, spawn } from 'child_process';
 import { randomUUID } from 'crypto';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 
+// ---------------------------------------------------------------------------
+// Logging
+// ---------------------------------------------------------------------------
+const LOG_LEVEL = (process.env.BRIDGE_LOG_LEVEL || 'info').toLowerCase();
+const LOG_LEVELS = { debug: 0, info: 1, warn: 2, error: 3 };
+const currentLogLevel = LOG_LEVELS[LOG_LEVEL] ?? LOG_LEVELS.info;
+
+const ts = () => new Date().toISOString();
+
+const log = {
+  debug: (...args) => { if (currentLogLevel <= LOG_LEVELS.debug) console.debug(`[bridge] [DEBUG] ${ts()}`, ...args); },
+  info:  (...args) => { if (currentLogLevel <= LOG_LEVELS.info)  console.log  (`[bridge] [INFO]  ${ts()}`, ...args); },
+  warn:  (...args) => { if (currentLogLevel <= LOG_LEVELS.warn)  console.warn (`[bridge] [WARN]  ${ts()}`, ...args); },
+  error: (...args) => { if (currentLogLevel <= LOG_LEVELS.error) console.error(`[bridge] [ERROR] ${ts()}`, ...args); },
+};
+
 const loadLocalEnvFile = () => {
   const envPath = '.env.local';
   if (!existsSync(envPath)) {
+    log.debug('.env.local not found, skipping');
     return;
   }
 
   try {
     const content = readFileSync(envPath, 'utf8');
     const lines = content.split(/\r?\n/);
+    const loaded = [];
 
     for (const rawLine of lines) {
       const line = rawLine.trim();
@@ -34,8 +52,14 @@ const loadLocalEnvFile = () => {
       }
 
       process.env[key] = value;
+      loaded.push(key);
     }
-  } catch {
+
+    if (loaded.length > 0) {
+      log.debug(`.env.local loaded keys: ${loaded.join(', ')}`);
+    }
+  } catch (err) {
+    log.warn('.env.local parse error:', err.message);
     // ignore malformed .env.local; explicit shell env vars still work
   }
 };
@@ -79,6 +103,7 @@ const writeJson = (res, status, body, origin = '') => {
     'Vary': 'Origin'
   });
   res.end(JSON.stringify(body));
+  log.debug(`  -> ${status} JSON origin=${allowOrigin || '(none)'}`);
 };
 
 const writeHtml = (res, status, html) => {
@@ -87,6 +112,7 @@ const writeHtml = (res, status, html) => {
     'Cache-Control': 'no-store'
   });
   res.end(html);
+  log.debug(`  -> ${status} HTML`);
 };
 
 const cleanupExpiredJobs = () => {
@@ -400,8 +426,9 @@ const openLinuxTerminal = async (worktreePath, title, bootCommand, closeAfterSta
 
 const openWindowsCmd = openWindowsTerminal;
 
-const startAsyncJob = async (command) => {
+const startAsyncJob = async (command, worktreePath) => {
   const jobId = randomUUID();
+  const cwd = worktreePath || WORKDIR;
   const job = {
     id: jobId,
     command,
@@ -417,6 +444,7 @@ const startAsyncJob = async (command) => {
   };
 
   jobs.set(jobId, job);
+  log.info(`[job:${jobId}] start — command="${command}" cwd="${cwd}"`);
 
   const finalizeFromExitCode = (code) => {
     if (job.done && (job.exitCode === 124 || job.exitCode === 130)) {
@@ -433,15 +461,17 @@ const startAsyncJob = async (command) => {
     }
     job.updatedAt = Date.now();
     job.child = null;
+    log.info(`[job:${jobId}] done — exitCode=${exitCode} success=${job.success}${job.error ? ` error="${job.error}"` : ''}`);
   };
 
   const child = spawn(command, {
-    cwd: worktreePath || WORKDIR,
+    cwd,
     shell: true,
     windowsHide: true,
     env: process.env
   });
   job.child = child;
+  log.debug(`[job:${jobId}] spawned pid=${child.pid}`);
 
   child.stdout?.on('data', (chunk) => {
     job.stdout += String(chunk);
@@ -454,6 +484,7 @@ const startAsyncJob = async (command) => {
   });
 
   child.on('error', (error) => {
+    log.error(`[job:${jobId}] spawn error:`, error.message);
     job.done = true;
     job.success = false;
     job.exitCode = 1;
@@ -469,6 +500,7 @@ const startAsyncJob = async (command) => {
     if (job.done) {
       return;
     }
+    log.warn(`[job:${jobId}] timed out after ${JOB_MAX_RUNTIME_MS}ms — killing`);
     try {
       job.child?.kill('SIGTERM');
     } catch {
@@ -536,15 +568,20 @@ const runShellCommand = (command, worktreePath) => {
 
 const server = createServer(async (req, res) => {
   const origin = req.headers.origin || '';
+  const reqId = randomUUID().slice(0, 8);
+  log.info(`${req.method} ${req.url} origin=${origin || '(none)'} id=${reqId}`);
+
   cleanupExpiredJobs();
   cleanupExpiredOAuthStates();
 
   if (req.method === 'OPTIONS') {
+    log.debug(`[${reqId}] CORS preflight`);
     writeJson(res, 200, { ok: true }, origin);
     return;
   }
 
   if (req.method === 'GET' && req.url === '/health') {
+    log.debug(`[${reqId}] health check`);
     writeJson(res, 200, {
       ok: true,
       asyncJobs: true,
@@ -554,7 +591,10 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && req.url?.startsWith('/github/oauth/start')) {
+    log.info(`[${reqId}] oauth/start — client_id=${GITHUB_OAUTH_CLIENT_ID || '(missing)'}`);
+
     if (!GITHUB_OAUTH_CLIENT_ID || !GITHUB_OAUTH_CLIENT_SECRET) {
+      log.error(`[${reqId}] oauth/start — GITHUB_OAUTH_CLIENT_ID or GITHUB_OAUTH_CLIENT_SECRET not set`);
       writeJson(res, 503, {
         success: false,
         error: 'GitHub OAuth is not configured. Set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET.'
@@ -575,6 +615,8 @@ const server = createServer(async (req, res) => {
     authorizeUrl.searchParams.set('scope', GITHUB_OAUTH_SCOPE);
     authorizeUrl.searchParams.set('state', state);
 
+    log.info(`[${reqId}] oauth/start — state=${state} requestedOrigin=${requestedOrigin} redirect_uri=${GITHUB_OAUTH_REDIRECT_URI}`);
+
     writeJson(res, 200, {
       success: true,
       authorizeUrl: authorizeUrl.toString(),
@@ -587,7 +629,10 @@ const server = createServer(async (req, res) => {
     const code = getQueryParam(req.url, 'code');
     const state = getQueryParam(req.url, 'state');
 
+    log.info(`[${reqId}] oauth/callback — code=${code ? '(present)' : '(missing)'} state=${state || '(missing)'}`);
+
     if (!code || !state) {
+      log.warn(`[${reqId}] oauth/callback — missing code or state`);
       writeHtml(res, 400, oauthMessagePage({
         success: false,
         origin: '*',
@@ -600,6 +645,7 @@ const server = createServer(async (req, res) => {
     oauthStates.delete(state);
 
     if (!stateEntry) {
+      log.warn(`[${reqId}] oauth/callback — unknown or expired state=${state} (active states: ${oauthStates.size})`);
       writeHtml(res, 400, oauthMessagePage({
         success: false,
         origin: '*',
@@ -608,7 +654,10 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    log.info(`[${reqId}] oauth/callback — valid state, postMessage target origin=${stateEntry.origin}`);
+
     try {
+      log.debug(`[${reqId}] oauth/callback — exchanging code for token with GitHub`);
       const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
         method: 'POST',
         headers: {
@@ -624,10 +673,13 @@ const server = createServer(async (req, res) => {
       });
 
       const tokenPayload = await tokenResponse.json();
+      log.debug(`[${reqId}] oauth/callback — GitHub token response status=${tokenResponse.status} has_access_token=${Boolean(tokenPayload.access_token)} error=${tokenPayload.error || '(none)'}`);
+
       if (!tokenResponse.ok || tokenPayload.error || !tokenPayload.access_token) {
         throw new Error(tokenPayload.error_description || tokenPayload.error || 'Could not exchange OAuth code for access token.');
       }
 
+      log.info(`[${reqId}] oauth/callback — success, scope=${tokenPayload.scope || '(empty)'} posting token to origin=${stateEntry.origin}`);
       writeHtml(res, 200, oauthMessagePage({
         success: true,
         origin: stateEntry.origin,
@@ -635,6 +687,7 @@ const server = createServer(async (req, res) => {
         scope: tokenPayload.scope || ''
       }));
     } catch (error) {
+      log.error(`[${reqId}] oauth/callback — token exchange failed:`, error.message);
       writeHtml(res, 500, oauthMessagePage({
         success: false,
         origin: stateEntry.origin,
@@ -647,16 +700,19 @@ const server = createServer(async (req, res) => {
   if (req.method === 'GET' && req.url?.startsWith('/logs')) {
     const jobId = getQueryParam(req.url, 'jobId');
     if (!jobId) {
+      log.warn(`[${reqId}] /logs — missing jobId`);
       writeJson(res, 400, { success: false, error: 'Missing jobId' }, origin);
       return;
     }
 
     const job = jobs.get(jobId);
     if (!job) {
+      log.warn(`[${reqId}] /logs — job not found: ${jobId}`);
       writeJson(res, 404, { success: false, error: 'Job not found' }, origin);
       return;
     }
 
+    log.debug(`[${reqId}] /logs — jobId=${jobId} done=${job.done} exitCode=${job.exitCode}`);
     writeJson(res, 200, {
       success: job.success,
       done: job.done,
@@ -677,21 +733,25 @@ const server = createServer(async (req, res) => {
       const body = await parseJson(req);
       const jobId = typeof body.jobId === 'string' ? body.jobId.trim() : '';
       if (!jobId) {
+        log.warn(`[${reqId}] /cancel — missing jobId`);
         writeJson(res, 400, { success: false, error: 'Missing jobId' }, origin);
         return;
       }
 
       const job = jobs.get(jobId);
       if (!job) {
+        log.warn(`[${reqId}] /cancel — job not found: ${jobId}`);
         writeJson(res, 404, { success: false, error: 'Job not found' }, origin);
         return;
       }
 
       if (job.done) {
+        log.debug(`[${reqId}] /cancel — job ${jobId} already done`);
         writeJson(res, 200, { success: true, done: true, alreadyDone: true }, origin);
         return;
       }
 
+      log.info(`[${reqId}] /cancel — killing job ${jobId} pid=${job.child?.pid}`);
       try {
         job.child?.kill('SIGTERM');
       } catch {
@@ -708,6 +768,7 @@ const server = createServer(async (req, res) => {
       writeJson(res, 200, { success: true, done: true, cancelled: true }, origin);
       return;
     } catch (error) {
+      log.error(`[${reqId}] /cancel — unexpected error:`, error.message);
       writeJson(res, 500, {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -717,6 +778,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method !== 'POST' || (req.url !== '/run' && req.url !== '/')) {
+    log.warn(`[${reqId}] 404 — unrecognised route ${req.method} ${req.url}`);
     writeJson(res, 404, { success: false, error: 'Not found' }, origin);
     return;
   }
@@ -732,10 +794,14 @@ const server = createServer(async (req, res) => {
       const closeAfterStartup = body.closeAfterStartup === true;
       const launchAntigravity = body.launchAntigravity === true;
 
+      log.info(`[${reqId}] open-terminal — path="${worktreePath}" title="${title}" startup="${startupCommand}" close=${closeAfterStartup} antigravity=${launchAntigravity}`);
+
       try {
         const result = await openTerminal(worktreePath, title, startupCommand, closeAfterStartup, launchAntigravity);
+        log.info(`[${reqId}] open-terminal — result: success=${result.success}${result.error ? ` error="${result.error}"` : ''}`);
         writeJson(res, result.success ? 200 : 400, result, origin);
       } catch (error) {
+        log.error(`[${reqId}] open-terminal — threw:`, error.message);
         writeJson(res, 500, {
           success: false,
           error: error instanceof Error ? error.message : String(error)
@@ -748,19 +814,26 @@ const server = createServer(async (req, res) => {
     const worktreePath = typeof body.worktreePath === 'string' ? body.worktreePath.trim() : '';
 
     if (!command) {
+      log.warn(`[${reqId}] /run — missing command`);
       writeJson(res, 400, { success: false, error: 'Missing command' }, origin);
       return;
     }
 
     if (body.async === true) {
+      log.info(`[${reqId}] /run async — command="${command}" cwd="${worktreePath || WORKDIR}"`);
       const created = await startAsyncJob(command, worktreePath);
+      log.info(`[${reqId}] /run async — jobId=${created.jobId}`);
       writeJson(res, 202, { success: true, jobId: created.jobId, done: false }, origin);
       return;
     }
 
+    log.info(`[${reqId}] /run sync — command="${command}" cwd="${worktreePath || WORKDIR}"`);
     const result = await runShellCommand(command, worktreePath);
+    log.info(`[${reqId}] /run sync — exitCode=${result.exitCode} success=${result.success}${result.error ? ` error="${result.error}"` : ''}`);
+    if (result.stderr) log.debug(`[${reqId}] /run sync — stderr: ${result.stderr.slice(0, 500)}`);
     writeJson(res, result.success ? 200 : 500, result, origin);
   } catch (error) {
+    log.error(`[${reqId}] /run — unexpected error:`, error.message);
     writeJson(res, 500, {
       success: false,
       error: error instanceof Error ? error.message : String(error)
@@ -769,13 +842,14 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`[flowize-bridge] listening on http://${HOST}:${PORT}/run`);
-  console.log(`[flowize-bridge] workdir=${WORKDIR}`);
-  console.log(`[flowize-bridge] allowed-origin=${ALLOWED_ORIGIN}`);
-  console.log('[flowize-bridge] async-mode=spawn-only');
+  log.info(`listening on http://${HOST}:${PORT}/run`);
+  log.info(`workdir=${WORKDIR}`);
+  log.info(`allowed-origin=${ALLOWED_ORIGIN}`);
+  log.info(`log-level=${LOG_LEVEL} (set BRIDGE_LOG_LEVEL=debug for verbose output)`);
+  log.info(`job-ttl=${JOB_TTL_MS}ms  job-max-runtime=${JOB_MAX_RUNTIME_MS}ms  sync-max-runtime=${SYNC_MAX_RUNTIME_MS}ms`);
   if (GITHUB_OAUTH_CLIENT_ID && GITHUB_OAUTH_CLIENT_SECRET) {
-    console.log(`[flowize-bridge] github-oauth=enabled redirect=${GITHUB_OAUTH_REDIRECT_URI}`);
+    log.info(`github-oauth=enabled  client_id=${GITHUB_OAUTH_CLIENT_ID}  redirect=${GITHUB_OAUTH_REDIRECT_URI}  scope="${GITHUB_OAUTH_SCOPE}"`);
   } else {
-    console.log('[flowize-bridge] github-oauth=disabled (set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET)');
+    log.warn('github-oauth=disabled — set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET in .env.local');
   }
 });
