@@ -1413,7 +1413,7 @@ export default function App() {
                     {isMobileMenuOpen && (
                         <div
                             id="mobile-navigation"
-                            className="fixed inset-0 z-[60] lg:hidden"
+                            className="fixed inset-0 z-[60] md:hidden"
                             role="dialog"
                             aria-modal="true"
                             aria-label="Navigation menu"
@@ -1507,7 +1507,7 @@ export default function App() {
                     )}
 
                     {/* Desktop Sidebar Navigation */}
-                    <aside className={`flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-gradient-to-b from-white/80 to-slate-50/80 dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl flex flex-col justify-between hidden lg:flex sticky top-0 h-screen transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20' : 'w-80'}`}>
+                    <aside className={`flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-gradient-to-b from-white/80 to-slate-50/80 dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl flex flex-col justify-between hidden md:flex sticky top-0 h-screen transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20' : 'w-80'}`}>
                         <div className="flex-1 overflow-y-auto overflow-x-hidden">
                             <div className="h-16 flex items-center justify-start px-6 border-b border-slate-200 dark:border-slate-800/80">
                                 <div className={`bg-indigo-500/10 p-2 rounded-lg text-indigo-600 dark:text-indigo-400 ${isSidebarCollapsed ? 'mx-auto' : ''}`}>
@@ -1628,7 +1628,7 @@ export default function App() {
                         <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/30 dark:bg-slate-900/30 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between px-4 md:px-6">
                             <button
                                 onClick={() => setIsMobileMenuOpen(true)}
-                                className="flex items-center gap-3 lg:hidden p-1 -ml-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                className="flex items-center gap-3 md:hidden p-1 -ml-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                                 aria-label="Open navigation menu"
                                 aria-expanded={isMobileMenuOpen}
                                 aria-controls="mobile-navigation"
@@ -1638,7 +1638,7 @@ export default function App() {
                             </button>
 
                             {/* Workfolder */}
-                            <div className="hidden lg:flex items-center text-sm text-slate-600 dark:text-slate-400">
+                            <div className="hidden md:flex items-center text-sm text-slate-600 dark:text-slate-400">
                                 <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 text-xs">
                                     <Terminal className="w-3.5 h-3.5" />
                                     <span className="text-slate-600 dark:text-slate-400">{settings.worktreeRoot}</span>
