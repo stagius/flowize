@@ -52,6 +52,7 @@ export interface AppSettings {
   agentSubdir?: string;
   agentSkillFile?: string;
   model?: string;
+  geminiApiKey?: string;
 }
 
 export type StepId = 1 | 2 | 3 | 4 | 5;

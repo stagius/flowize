@@ -1,23 +1,22 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { TaskItem, TaskStatus } from "../types";
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
-
-// Helper to generate a unique ID
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
-// Fallback model chain - ordered by preference
 const FALLBACK_MODELS = [
   'gemini-2.5-flash',
   'gemini-3-flash-preview',
   'gemini-2.5-flash-lite'
 ];
 
-export const analyzeAndFormatTasks = async (rawInput: string, model: string = 'gemini-3-flash-preview'): Promise<TaskItem[]> => {
-  if (!apiKey) {
-    throw new Error('Gemini API key is not configured. Set API_KEY (or VITE_API_KEY in client env).');
+export const analyzeAndFormatTasks = async (rawInput: string, model: string = 'gemini-3-flash-preview', apiKey?: string): Promise<TaskItem[]> => {
+  const key = apiKey || process.env.API_KEY || '';
+  
+  if (!key) {
+    throw new Error('Gemini API key is not configured. Set API_KEY (or VITE_API_KEY in client env) or configure it in Settings.');
   }
+
+  const ai = new GoogleGenAI({ apiKey: key });
 
   // Build the model list: primary model first, then fallbacks (excluding the primary if it's already in the list)
   const modelsToTry = [model, ...FALLBACK_MODELS.filter(m => m !== model)];
