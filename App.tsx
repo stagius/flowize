@@ -30,7 +30,7 @@ const SLOTS_STORAGE_KEY = 'flowize.slots.v1';
 const STEP_STORAGE_KEY = 'flowize.current-step.v1';
 const SIDEBAR_COLLAPSED_KEY = 'flowize.sidebar-collapsed.v1';
 
-const createDefaultSettings = (envGithubToken: string, envBridgeEndpoint?: string): AppSettings => ({
+const createDefaultSettings = (envGithubToken: string, envBridgeEndpoint?: string, envApiKey?: string): AppSettings => ({
     repoOwner: 'stagius',
     repoName: 'flowize',
     defaultBranch: 'master',
@@ -42,7 +42,8 @@ const createDefaultSettings = (envGithubToken: string, envBridgeEndpoint?: strin
     agentEndpoint: envBridgeEndpoint || 'http://127.0.0.1:4141/run',
     agentSubdir: '.agent-workspace',
     agentSkillFile: '.opencode/skills/specflow-worktree-automation/SKILL.md',
-    model: 'gemini-3-flash-preview'
+    model: 'gemini-3-flash-preview',
+    geminiApiKey: envApiKey || ''
 });
 
 const normalizeSettings = (raw: Partial<AppSettings>, defaults: AppSettings): AppSettings => {
@@ -63,7 +64,7 @@ export default function App() {
     const envGithubToken = env?.VITE_GITHUB_TOKEN || env?.GITHUB_TOKEN || '';
     const envApiKey = env?.VITE_API_KEY || env?.API_KEY || '';
     const envBridgeEndpoint = env?.VITE_BRIDGE_ENDPOINT;
-    const defaultSettings = createDefaultSettings(envGithubToken, envBridgeEndpoint);
+    const defaultSettings = createDefaultSettings(envGithubToken, envBridgeEndpoint, envApiKey);
 
     const [currentStep, setCurrentStep] = useState<number>(() => {
         if (typeof window === 'undefined') {
@@ -1308,7 +1309,7 @@ export default function App() {
 
     const renderContent = () => {
         switch (currentStep) {
-            case 1: return <Step1_Input onTasksGenerated={handleTasksGenerated} existingTasks={tasks} model={settings.model} />;
+            case 1: return <Step1_Input onTasksGenerated={handleTasksGenerated} existingTasks={tasks} model={settings.model} geminiApiKey={settings.geminiApiKey} />;
             case 2: return <Step2_Issues tasks={tasks} onPromoteToIssue={handlePromoteToIssue} onPromoteAll={handlePromoteAllIssues} syncingTaskIds={syncingTaskIds} onFetchRemote={handleFetchRemote} onEditTask={handleEditTask} onDeleteTask={handleDeleteTask} />;
             case 3: return <Step3_Worktrees
                 tasks={tasks}
@@ -1351,7 +1352,7 @@ export default function App() {
 
     const isMergeStep = currentStep === 5;
 
-    const hasApiKey = Boolean(envApiKey);
+    const hasApiKey = Boolean(settings.geminiApiKey);
     const bridgeLabel = bridgeHealth.status === 'healthy'
         ? 'HEALTHY'
         : bridgeHealth.status === 'checking'
@@ -1566,7 +1567,7 @@ export default function App() {
                         <div className="p-4 border-t border-slate-200 dark:border-slate-800">
                             {isSidebarCollapsed ? (
                                 <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-3 flex flex-col items-center gap-2">
-                                    <Activity className="w-4 h-4 text-emerald-600 dark:text-emerald-400" title="System Status: Online" />
+                                    <Activity className={`w-4 h-4 ${hasApiKey ? 'text-emerald-600 dark:text-emerald-400' : 'text-yellow-600 dark:text-yellow-400'}`} title={hasApiKey ? 'System Status: Ready' : 'System Status: API Key Missing'} />
                                     <Key
                                         className={`w-4 h-4 ${hasApiKey ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}
                                         title={hasApiKey ? 'API Key: Configured' : 'API Key: Missing'}
@@ -1587,11 +1588,13 @@ export default function App() {
                                 <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-3 text-xs space-y-2">
                                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                                         <span>System Status</span>
-                                        <Activity className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                        <Activity className={`w-3 h-3 ${hasApiKey ? 'text-emerald-600 dark:text-emerald-400' : 'text-yellow-600 dark:text-yellow-400'}`} />
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                        <span className="text-emerald-500 font-medium">Online</span>
+                                        <div className={`w-2 h-2 rounded-full ${hasApiKey ? 'bg-emerald-500 animate-pulse' : 'bg-yellow-500'}`}></div>
+                                        <span className={`font-medium ${hasApiKey ? 'text-emerald-500' : 'text-yellow-500'}`}>
+                                            {hasApiKey ? 'Ready' : 'API Key Missing'}
+                                        </span>
                                     </div>
                                     <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
                                         <span className="flex items-center gap-1.5"><Key className="w-3 h-3" /> API Key</span>

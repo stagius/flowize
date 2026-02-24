@@ -9,6 +9,7 @@ interface Props {
   onTasksGenerated: (tasks: TaskItem[]) => void;
   existingTasks: TaskItem[];
   model?: string;
+  geminiApiKey?: string;
 }
 
 const INPUT_STORAGE_KEY = 'flowize.input.v1';
@@ -26,7 +27,7 @@ const isUnsynced = (task: TaskItem): boolean => {
   return task.status === TaskStatus.RAW || task.status === TaskStatus.FORMATTED;
 };
 
-export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks, model }) => {
+export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks, model, geminiApiKey }) => {
   const [input, setInput] = useState(getStoredInput);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -42,7 +43,7 @@ export const Step1_Input: React.FC<Props> = ({ onTasksGenerated, existingTasks, 
     setIsAnalyzing(true);
     setAnalysisError(null);
     try {
-      const tasks = await analyzeAndFormatTasks(input, model);
+      const tasks = await analyzeAndFormatTasks(input, model, geminiApiKey);
       onTasksGenerated(tasks);
       setInput('');
     } catch (error) {

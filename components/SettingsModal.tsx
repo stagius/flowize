@@ -766,34 +766,155 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-          <div className={`p-6 space-y-6 overflow-y-auto custom-scrollbar flex-1 ${isMobileView ? 'pb-4' : ''}`}>
+          <div className={`p-6 space-y-8 overflow-y-auto custom-scrollbar flex-1 ${isMobileView ? 'pb-4' : ''}`}>
 
             {/* API Access Section */}
-            <div className="space-y-4">
+            <div className="space-y-5">
               <h3 className="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
                 API Access
               </h3>
-              <div className={`border rounded-lg p-3 flex justify-between items-center ${hasApiKey ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'
+              <div className={`border rounded-lg p-3 flex justify-between items-center ${(formData.geminiApiKey || hasApiKey) ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'
                 }`}>
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${hasApiKey ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                    {hasApiKey ? <ShieldCheck className="w-4 h-4" /> : <Key className="w-4 h-4" />}
+                  <div className={`p-2 rounded-lg ${(formData.geminiApiKey || hasApiKey) ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                    {(formData.geminiApiKey || hasApiKey) ? <ShieldCheck className="w-4 h-4" /> : <Key className="w-4 h-4" />}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-slate-900 dark:text-slate-200">Gemini API Key</p>
-                    <p className="text-[10px] text-slate-600 dark:text-slate-400">Env Var: process.env.API_KEY</p>
+                    <p className="text-[10px] text-slate-600 dark:text-slate-400">Configured in Settings</p>
                   </div>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-1 rounded border ${hasApiKey
+                <span className={`text-[10px] font-bold px-2 py-1 rounded border ${(formData.geminiApiKey || hasApiKey)
                   ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                   : 'bg-red-500/10 text-red-400 border-red-500/20'
                   }`}>
-                  {hasApiKey ? 'CONNECTED' : 'MISSING'}
+                  {(formData.geminiApiKey || hasApiKey) ? 'CONNECTED' : 'MISSING'}
                 </span>
               </div>
 
+              {/* Gemini API Key Input */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Gemini API Key</label>
+                <input
+                  type="password"
+                  value={formData.geminiApiKey || ''}
+                  onChange={e => setFormData({ ...formData, geminiApiKey: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
+                  placeholder="Enter your Gemini API key"
+                />
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Get one from{' '}
+                  <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">Google AI Studio</a>.
+                </p>
+              </div>
+
+              {/* Model Selection */}
+              <div className="space-y-2">
+                <label id={`${modelListboxId}-label`} className="text-sm font-medium text-slate-700 dark:text-slate-300">Gemini Model</label>
+                <div className="relative" ref={modelPickerRef}>
+                  <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
+                  <button
+                    type="button"
+                    onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape' && isModelMenuOpen) {
+                        e.preventDefault();
+                        setIsModelMenuOpen(false);
+                        setModelActiveIndex(-1);
+                      } else if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        if (!isModelMenuOpen) {
+                          setIsModelMenuOpen(true);
+                          setModelActiveIndex(0);
+                        } else {
+                          setModelActiveIndex((prev) =>
+                            prev < MODEL_OPTIONS.length - 1 ? prev + 1 : 0
+                          );
+                        }
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (!isModelMenuOpen) {
+                          setIsModelMenuOpen(true);
+                          setModelActiveIndex(MODEL_OPTIONS.length - 1);
+                        } else {
+                          setModelActiveIndex((prev) =>
+                            prev > 0 ? prev - 1 : MODEL_OPTIONS.length - 1
+                          );
+                        }
+                      } else if ((e.key === 'Enter' || e.key === ' ') && isModelMenuOpen && modelActiveIndex >= 0) {
+                        e.preventDefault();
+                        setFormData({ ...formData, model: MODEL_OPTIONS[modelActiveIndex].value });
+                        setIsModelMenuOpen(false);
+                        setModelActiveIndex(-1);
+                      }
+                    }}
+                    role="combobox"
+                    aria-expanded={isModelMenuOpen}
+                    aria-haspopup="listbox"
+                    aria-controls={modelListboxId}
+                    aria-labelledby={`${modelListboxId}-label`}
+                    aria-activedescendant={modelActiveIndex >= 0 ? `model-option-${modelActiveIndex}` : undefined}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-9 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-left flex items-center justify-between"
+                  >
+                    <span>
+                      {(() => {
+                        const selected = MODEL_OPTIONS.find(m => m.value === (formData.model || 'gemini-3-pro'));
+                        return selected ? `${selected.label}${selected.description ? ` (${selected.description})` : ''}` : (formData.model || 'gemini-3-pro');
+                      })()}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-slate-600 dark:text-slate-400 transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                  </button>
+
+                  {isModelMenuOpen && (
+                    <ul
+                      id={modelListboxId}
+                      role="listbox"
+                      aria-label="Model options"
+                      className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 shadow-2xl max-h-[300px] overflow-y-auto"
+                    >
+                      {MODEL_OPTIONS.map((model, index) => {
+                        const isSelected = model.value === (formData.model || 'gemini-3-pro');
+                        const isActive = index === modelActiveIndex;
+                        return (
+                          <li
+                            key={model.value}
+                            id={`model-option-${index}`}
+                            role="option"
+                            aria-selected={isSelected}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setFormData({ ...formData, model: model.value });
+                              setIsModelMenuOpen(false);
+                              setModelActiveIndex(-1);
+                            }}
+                            onMouseEnter={() => setModelActiveIndex(index)}
+                            className={`w-full text-left px-3 py-2 border-b border-slate-200 dark:border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-100 dark:bg-slate-800/80' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'}`}
+                          >
+                            <p className="text-xs font-medium text-slate-900 dark:text-slate-200">{model.label}</p>
+                            {model.description && (
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400">{model.description}</p>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Select the Gemini model for AI task analysis.
+                </p>
+              </div>
+
+            </div>
+
+            <div className="w-full h-px bg-slate-200 dark:bg-slate-800"></div>
+
+            {/* Repo Details */}
+            <div className="space-y-5">
+              <h3 className="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider">Repository Details</h3>
+
               {/* GitHub Token */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">GitHub Personal Access Token</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
@@ -806,10 +927,15 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   />
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Get one from{' '}
+                  <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">GitHub Settings</a>.
                   Required scopes: <strong>repo</strong> (Classic) or <strong>Contents:Read/Write, PullRequests:Read/Write</strong> (Fine-grained).
                 </p>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Auto-loads from <code>.env.local</code> when <code>VITE_GITHUB_TOKEN</code> is set.
+
+                <div className="w-full h-px bg-slate-200 dark:bg-slate-800 my-3"></div>
+
+                <p className="text-xs text-center text-slate-600 dark:text-slate-400">
+                  Or connect via OAuth
                 </p>
 
                 <div className="mt-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/60 p-3 space-y-3">
@@ -945,121 +1071,8 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 </div>
               </div>
 
-              {/* Model Selection */}
-              <div className="space-y-1.5">
-                <label id={`${modelListboxId}-label`} className="text-sm font-medium text-slate-700 dark:text-slate-300">Gemini Model</label>
-                <div className="relative" ref={modelPickerRef}>
-                  <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
-                  <button
-                    type="button"
-                    onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape' && isModelMenuOpen) {
-                        e.preventDefault();
-                        setIsModelMenuOpen(false);
-                        setModelActiveIndex(-1);
-                      } else if (e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        if (!isModelMenuOpen) {
-                          setIsModelMenuOpen(true);
-                          setModelActiveIndex(0);
-                        } else {
-                          setModelActiveIndex((prev) =>
-                            prev < MODEL_OPTIONS.length - 1 ? prev + 1 : 0
-                          );
-                        }
-                      } else if (e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        if (!isModelMenuOpen) {
-                          setIsModelMenuOpen(true);
-                          setModelActiveIndex(MODEL_OPTIONS.length - 1);
-                        } else {
-                          setModelActiveIndex((prev) =>
-                            prev > 0 ? prev - 1 : MODEL_OPTIONS.length - 1
-                          );
-                        }
-                      } else if ((e.key === 'Enter' || e.key === ' ') && isModelMenuOpen && modelActiveIndex >= 0) {
-                        e.preventDefault();
-                        setFormData({ ...formData, model: MODEL_OPTIONS[modelActiveIndex].value });
-                        setIsModelMenuOpen(false);
-                        setModelActiveIndex(-1);
-                      }
-                    }}
-                    role="combobox"
-                    aria-expanded={isModelMenuOpen}
-                    aria-haspopup="listbox"
-                    aria-controls={modelListboxId}
-                    aria-labelledby={`${modelListboxId}-label`}
-                    aria-activedescendant={modelActiveIndex >= 0 ? `model-option-${modelActiveIndex}` : undefined}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-9 pr-9 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-left flex items-center justify-between"
-                  >
-                    <span>
-                      {(() => {
-                        const selected = MODEL_OPTIONS.find(m => m.value === (formData.model || 'gemini-3-pro'));
-                        return selected ? `${selected.label}${selected.description ? ` (${selected.description})` : ''}` : (formData.model || 'gemini-3-pro');
-                      })()}
-                    </span>
-                    <ChevronDown className={`w-4 h-4 text-slate-600 dark:text-slate-400 transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
-                  </button>
-
-                  {isModelMenuOpen && (
-                    <ul
-                      id={modelListboxId}
-                      role="listbox"
-                      aria-label="Model options"
-                      className="absolute left-0 right-0 top-full mt-1 z-[120] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 shadow-2xl max-h-[300px] overflow-y-auto"
-                    >
-                      {MODEL_OPTIONS.map((model, index) => {
-                        const isSelected = model.value === (formData.model || 'gemini-3-pro');
-                        const isActive = index === modelActiveIndex;
-                        return (
-                          <li
-                            key={model.value}
-                            id={`model-option-${index}`}
-                            role="option"
-                            aria-selected={isSelected}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => {
-                              setFormData({ ...formData, model: model.value });
-                              setIsModelMenuOpen(false);
-                              setModelActiveIndex(-1);
-                            }}
-                            onMouseEnter={() => setModelActiveIndex(index)}
-                            className={`w-full text-left px-3 py-2 border-b border-slate-200 dark:border-slate-800/70 last:border-b-0 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/10' : ''} ${isActive ? 'bg-slate-100 dark:bg-slate-800/80' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'}`}
-                          >
-                            <p className="text-xs font-medium text-slate-900 dark:text-slate-200">{model.label}</p>
-                            {model.description && (
-                              <p className="text-[10px] text-slate-500 dark:text-slate-400">{model.description}</p>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Select the Gemini model for AI task analysis.
-                </p>
-              </div>
-
-              {!hasApiKey && (
-                <div className="flex items-start gap-2 text-xs text-yellow-500/90 bg-yellow-500/5 border border-yellow-500/10 p-3 rounded-lg">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <p>
-                    To enable AI features, you must set the <code>API_KEY</code> environment variable in your project configuration. The UI does not accept direct key input for security.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="w-full h-px bg-slate-200 dark:bg-slate-800"></div>
-
-            {/* Repo Details */}
-            <div className="space-y-4">
-              <h3 className="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider">Repository Details</h3>
-
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Owner</label>
                   <div className="relative">
                     <Github className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
@@ -1077,7 +1090,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   )}
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Repository Name</label>
                   <div className="relative">
                     <div className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400 flex items-center justify-center font-mono text-[10px] font-bold">/</div>
@@ -1096,7 +1109,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label id={`${branchListboxId}-label`} className="text-sm font-medium text-slate-700 dark:text-slate-300">Default Branch</label>
                 {canUseBranchDropdown ? (
                   <div className="relative" ref={branchPickerRef}>
@@ -1206,11 +1219,11 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
             <div className="w-full h-px bg-slate-200 dark:bg-slate-800"></div>
 
             {/* Environment */}
-            <div className="space-y-4">
+            <div className="space-y-5">
               <h3 className="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider">Local Environment</h3>
 
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                <div className="col-span-2 space-y-1.5">
+                <div className="col-span-2 space-y-2">
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Worktree Root Path</label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
@@ -1241,7 +1254,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Max Slots</label>
                   <div className="relative">
                     <Cpu className="absolute left-3 top-2.5 w-4 h-4 text-slate-600 dark:text-slate-400" />
@@ -1260,7 +1273,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 New worktrees will be created as sibling folders (example: /flowize-wt-1).
               </p>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Command</label>
                 <input
                   type="text"
@@ -1277,7 +1290,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 </p>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">OpenCode Agent Name (optional)</label>
                 <input
                   type="text"
@@ -1292,7 +1305,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
               </div>
 
               <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Bridge Endpoint</label>
                   <div className="flex gap-2">
                     <input
@@ -1379,7 +1392,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   )}
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Workspace Folder</label>
                   <input
                     type="text"
@@ -1394,7 +1407,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Skill File Path</label>
                 <input
                   type="text"
@@ -1409,7 +1422,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
           </div>
 
           {/* Fixed Footer with Action Buttons */}
-          <div className={`border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-6 py-3 flex justify-end gap-3 flex-shrink-0`}>
+          <div className={`border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-6 py-4 flex justify-end gap-3 flex-shrink-0`}>
             <button
               type="button"
               onClick={() => {
