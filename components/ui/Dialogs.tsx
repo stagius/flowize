@@ -71,14 +71,14 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({ dialog, onClose, onAct
               onClick={onAction}
               disabled={actionBusy}
               aria-busy={actionBusy}
-              className={`px-3 py-1.5 rounded-lg border text-sm text-white disabled:opacity-70 disabled:cursor-not-allowed ${TONE_STYLES[actionTone].button}`}
+              className={`px-3 py-1.5 rounded-lg border text-sm text-white disabled:opacity-70 disabled:cursor-not-allowed min-h-[44px] ${TONE_STYLES[actionTone].button}`}
             >
               {actionBusy ? 'Running...' : dialog.actionLabel}
             </button>
           )}
           <button
             onClick={onClose}
-            className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100"
+            className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 min-h-[44px]"
           >
             OK
           </button>
@@ -132,13 +132,13 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ dialog, onCancel, 
         <div className="mt-5 flex justify-end gap-2" role="group" aria-label="Dialog actions">
           <button
             onClick={onCancel}
-            className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100"
+            className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 min-h-[44px]"
           >
             {dialog.cancelLabel}
           </button>
           <button
             onClick={onConfirm}
-            className={`px-3 py-1.5 rounded-lg border text-sm text-white ${TONE_STYLES[dialog.tone].button}`}
+            className={`px-3 py-1.5 rounded-lg border text-sm text-white min-h-[44px] ${TONE_STYLES[dialog.tone].button}`}
           >
             {dialog.confirmLabel}
           </button>

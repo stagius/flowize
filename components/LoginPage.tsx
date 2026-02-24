@@ -260,7 +260,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, bridgeEndp
                 setAuthState({ status: 'idle', message: '' });
                 setScopeWarning('');
               }}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${loginMode === 'oauth'
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all min-h-[44px] ${loginMode === 'oauth'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
@@ -277,7 +277,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, bridgeEndp
                 setAuthState({ status: 'idle', message: '' });
                 setScopeWarning('');
               }}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${loginMode === 'manual'
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all min-h-[44px] ${loginMode === 'manual'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}

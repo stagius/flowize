@@ -52,7 +52,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
             onClick={() => {
               void onRetry();
             }}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-red-300 bg-red-100 px-2.5 py-1.5 text-xs font-medium text-red-900 transition-colors hover:bg-red-200 dark:border-red-300/30 dark:bg-red-600/20 dark:text-red-50 dark:hover:bg-red-600/30"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-red-300 bg-red-100 px-2.5 py-1.5 text-xs font-medium text-red-900 transition-colors hover:bg-red-200 dark:border-red-300/30 dark:bg-red-600/20 dark:text-red-50 dark:hover:bg-red-600/30 min-h-[44px]"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             {retryLabel}
