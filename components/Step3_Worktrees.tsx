@@ -178,7 +178,7 @@ const DraggableIssueCard: React.FC<DraggableIssueCardProps> = ({ task, slots, on
                                 e.stopPropagation();
                                 onAssignToSlot(task.id, slot.id);
                             }}
-                            className={`text-[10px] py-1 px-2 rounded border transition-all ${!slotAvailable
+                            className={`text-[10px] py-1 px-2 rounded border transition-all min-h-[44px] min-w-[44px] ${!slotAvailable
                                 ? 'bg-slate-100 dark:bg-slate-900/50 text-slate-600 dark:text-slate-700 border-slate-200 dark:border-slate-800 cursor-not-allowed hidden'
                                 : 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20 hover:bg-indigo-500/20 hover:border-indigo-500/40'
                                 }`}
@@ -737,7 +737,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                 >
                     <div
                         ref={terminalModalRef}
-                        className="w-full max-w-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800 h-[600px]"
+                        className="w-full max-w-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800 h-[600px] max-h-[85vh]"
                     >
                         {/* Terminal Header */}
                         <div className="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
@@ -751,7 +751,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                             </div>
                             <button
                                 onClick={() => setActiveTerminalSlotId(null)}
-                                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors"
+                                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                                 aria-label="Close terminal"
                             >
                                 <X className="w-5 h-5" aria-hidden="true" />
@@ -795,7 +795,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                             key={action.cmd}
                                             onClick={() => task && runGitCommand(action.cmd)}
                                             aria-label={`Run ${action.cmd}`}
-                                            className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 transition-all active:scale-95 group"
+                                            className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 transition-all active:scale-95 group min-h-[44px]"
                                         >
                                             <action.icon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
                                             {action.label}
@@ -821,7 +821,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                 >
                     <div
                         ref={agentConsoleRef}
-                        className="w-full max-w-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800 h-[600px]"
+                        className="w-full max-w-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800 h-[600px] max-h-[85vh]"
                     >
                         <div className="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                             <div className="flex items-center gap-3">
@@ -838,7 +838,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                 {activeAgentTask && activeAgentCommand && (
                                     <button
                                         onClick={handleCopyActiveAgentCommand}
-                                        className="text-[11px] px-2.5 py-1 rounded border border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800/60 text-slate-900 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700/80"
+                                        className="text-[11px] px-2.5 py-1 rounded border border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800/60 text-slate-900 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700/80 min-h-[44px]"
                                         aria-label={copiedAgentCommandTaskId === activeAgentTask.id ? 'Command copied' : 'Copy agent command'}
                                     >
                                         <span className="inline-flex items-center gap-1.5">
@@ -852,14 +852,14 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                         onClick={() => handleCancelAgent(activeAgentTask.id)}
                                         disabled={cancellingTaskId === activeAgentTask.id}
                                         aria-busy={cancellingTaskId === activeAgentTask.id}
-                                        className="text-[11px] px-2.5 py-1 rounded border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-300 hover:bg-red-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
+                                        className="text-[11px] px-2.5 py-1 rounded border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-300 hover:bg-red-500/20 disabled:opacity-70 disabled:cursor-not-allowed min-h-[44px]"
                                     >
                                         {cancellingTaskId === activeAgentTask.id ? 'Cancelling...' : 'Cancel Run'}
                                     </button>
                                 )}
                                 <button
                                     onClick={() => setActiveAgentConsoleSlotId(null)}
-                                    className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors"
+                                    className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                                     aria-label="Close agent console"
                                 >
                                     <X className="w-5 h-5" aria-hidden="true" />
@@ -1008,7 +1008,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
 
                                     <button
                                         onClick={() => handleCopyWorktreePath(slot.id, slot.path)}
-                                        className="text-[10px] text-slate-600 dark:text-slate-400 font-mono mt-3 bg-slate-200 dark:bg-slate-900 px-2 py-1 rounded-md border border-slate-300 dark:border-slate-800 truncate w-full max-w-[150px] mx-auto opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-600 transition-all flex items-center justify-center gap-1.5 group"
+                                        className="text-[10px] text-slate-600 dark:text-slate-400 font-mono mt-3 bg-slate-200 dark:bg-slate-900 px-2 py-1 rounded-md border border-slate-300 dark:border-slate-800 truncate w-full max-w-[150px] mx-auto opacity-70 hover:opacity-100 hover:border-slate-400 dark:hover:border-slate-600 transition-all flex items-center justify-center gap-1.5 group min-h-[44px]"
                                         aria-label="Copy worktree path to clipboard"
                                         title={copiedPathSlotId === slot.id ? "Copied!" : "Click to copy path"}
                                     >
@@ -1032,7 +1032,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                         disabled={cleaningSlot === slot.id}
                                         aria-busy={cleaningSlot === slot.id}
                                         aria-label={`Cleanup worktree slot ${slot.id}`}
-                                        className={`mt-4 flex items-center gap-2 text-[10px] transition-colors border border-transparent hover:border-slate-300 dark:hover:border-slate-800 px-2 py-1 rounded-full ${cleaningSlot === slot.id ? 'text-slate-500 dark:text-slate-400' : 'text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'}`}
+                                        className={`mt-4 flex items-center gap-2 text-[10px] transition-colors border border-transparent hover:border-slate-300 dark:hover:border-slate-800 px-2 py-1 rounded-full min-h-[44px] ${cleaningSlot === slot.id ? 'text-slate-500 dark:text-slate-400' : 'text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'}`}
                                     >
                                         {cleaningSlot === slot.id ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> : <Trash2 className="w-3 h-3" aria-hidden="true" />}
                                         Cleanup
@@ -1046,7 +1046,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                         disabled={cleaningSlot === slot.id}
                                         aria-busy={cleaningSlot === slot.id}
                                         aria-label={`Cleanup worktree slot ${slot.id}`}
-                                        className={`p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 ${cleaningSlot === slot.id ? 'text-slate-500 dark:text-slate-600' : 'text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'}`}
+                                        className={`p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 min-w-[44px] min-h-[44px] flex items-center justify-center ${cleaningSlot === slot.id ? 'text-slate-500 dark:text-slate-600' : 'text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'}`}
                                     >
                                         {cleaningSlot === slot.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />}
                                     </button>

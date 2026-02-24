@@ -145,14 +145,14 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
                     <button
                       onClick={() => handleRequestChanges(task.id)}
                       disabled={requestingId === task.id || loadingId === task.id}
-                      className="h-9 px-3 rounded-lg border border-red-200 dark:border-red-500/25 bg-red-50 dark:bg-red-500/10 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20 hover:border-red-300 dark:hover:border-red-400/40 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                      className="h-11 px-3 rounded-lg border border-red-200 dark:border-red-500/25 bg-red-50 dark:bg-red-500/10 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20 hover:border-red-300 dark:hover:border-red-400/40 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                       {requestingId === task.id ? 'Requesting...' : 'Request Changes'}
                     </button>
                     <button
                       onClick={() => handleApprove(task.id)}
                       disabled={loadingId === task.id || requestingId === task.id}
-                      className="h-9 bg-teal-600 hover:bg-teal-500 text-white px-4 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all shadow-[0_0_10px_rgba(20,184,166,0.2)] disabled:opacity-70 disabled:cursor-not-allowed"
+                      className="h-11 bg-teal-600 hover:bg-teal-500 text-white px-4 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all shadow-[0_0_10px_rgba(20,184,166,0.2)] disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                       {loadingId === task.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <GitPullRequest className="w-3.5 h-3.5" />}
                       Approve code & Open PR
@@ -174,7 +174,7 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
           <button
             onClick={handleCheckStatus}
             disabled={isChecking}
-            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors border border-transparent hover:border-slate-300 dark:hover:border-slate-700"
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors border border-transparent hover:border-slate-300 dark:hover:border-slate-700 min-w-[44px] min-h-[44px] flex items-center justify-center"
             title="Refresh CI Status"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isChecking ? 'animate-spin' : ''}`} />
@@ -214,7 +214,7 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
                     </span>
                   </div>
                 </div>
-                <a href={task.issueUrl || '#'} target="_blank" className="p-2 text-slate-600 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-400 bg-slate-100 dark:bg-slate-950/50 rounded-lg border border-slate-300 dark:border-slate-800 transition-colors">
+                <a href={task.issueUrl || '#'} target="_blank" className="p-2 text-slate-600 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-400 bg-slate-100 dark:bg-slate-950/50 rounded-lg border border-slate-300 dark:border-slate-800 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
                   <ExternalLink className="w-4 h-4" />
                 </a>
               </div>
