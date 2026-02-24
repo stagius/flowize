@@ -93,7 +93,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
                 </div>
             ) : (
                 readyToMerge.map(task => (
-                    <div key={task.id} className="border border-green-300 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5 rounded-xl p-5 flex flex-col justify-between h-48 hover:bg-green-100 dark:hover:bg-green-500/10 transition-colors relative overflow-hidden group">
+                    <div key={task.id} className="border border-green-300 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5 rounded-xl p-5 flex flex-col justify-between min-h-[12rem] h-auto hover:bg-green-100 dark:hover:bg-green-500/10 transition-colors relative overflow-hidden group">
                          <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-green-500/20 to-transparent rounded-bl-full -mr-8 -mt-8 opacity-50"></div>
                              <div>
                               <div className="flex justify-between items-start mb-2">
@@ -180,65 +180,67 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
                 Sync PRs
              </button>
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto p-0 custom-scrollbar">
-              {isFetching && mergedHistory.length === 0 && (
-                <div className="p-4">
-                  <LoadingSkeleton rows={3} />
-                </div>
-              )}
-              {!isFetching && (
-              <table className="w-full text-sm text-left">
-                  <thead className="bg-slate-100 dark:bg-slate-950/50 text-slate-600 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-800">
-                      <tr>
-                          <th className="px-6 py-3">Task</th>
-                          <th className="px-6 py-3">PR</th>
-                          <th className="hidden xl:flex px-6 py-3">Group</th>
-                          <th className="px-6 py-3 text-right">Status</th>
-                      </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800/50">
-                      {mergedHistory.length === 0 ? (
-                          <tr>
-                              <td colSpan={4} className="px-6 py-12 text-center text-slate-500 dark:text-slate-600">
-                                  No items merged yet.
-                              </td>
-                          </tr>
-                      ) : (
-                          mergedHistory.slice().reverse().map(task => {
-                              const prUrl = buildPrUrl(task);
-                              return (
-                              <tr key={task.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/30 transition-colors">
-                                  <td className="px-6 py-3 font-medium text-slate-900 dark:text-slate-200">{task.title}</td>
-                                  <td className="px-5 py-3 font-mono text-slate-600 dark:text-slate-400">
-                                      {prUrl ? (
-                                        <a 
-                                            href={prUrl}
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline flex items-center gap-1 transition-colors"
-                                        >
-                                            #{task.prNumber} <ExternalLink className="w-3 h-3" />
-                                        </a>
-                                      ) : (
-                                        <span>#{task.prNumber}</span>
-                                      )}
-                                  </td>
-                                  <td className="hidden xl:flex px-6 py-3">
-                                      <span className="bg-slate-100 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 px-2 py-1 rounded-full text-xs text-slate-600 dark:text-slate-400">{task.group}</span>
-                                  </td>
-                                  <td className="px-6 py-3 text-right">
-                                      <span className="inline-flex items-center gap-1.5 text-purple-700 dark:text-purple-300 font-medium bg-purple-100 dark:bg-purple-500/10 border border-purple-300 dark:border-purple-500/20 px-2.5 py-1 rounded-full text-xs">
-                                          <GitMerge className="w-3 h-3" /> Merged
-                                      </span>
-                                  </td>
-                              </tr>
-                          );
-                          })
-                       )}
-                  </tbody>
-              </table>
-              )}
-          </div>
+           <div className="flex-1 min-h-0 overflow-y-auto p-0 custom-scrollbar">
+               {isFetching && mergedHistory.length === 0 && (
+                 <div className="p-4">
+                   <LoadingSkeleton rows={3} />
+                 </div>
+               )}
+               {!isFetching && (
+               <div className="overflow-x-auto">
+               <table className="w-full text-sm text-left">
+                   <thead className="bg-slate-100 dark:bg-slate-950/50 text-slate-600 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-800">
+                       <tr>
+                           <th className="px-6 py-3">Task</th>
+                           <th className="px-6 py-3">PR</th>
+                           <th className="hidden xl:table-cell px-6 py-3">Group</th>
+                           <th className="px-6 py-3 text-right">Status</th>
+                       </tr>
+                   </thead>
+                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800/50">
+                       {mergedHistory.length === 0 ? (
+                           <tr>
+                               <td colSpan={4} className="px-6 py-12 text-center text-slate-500 dark:text-slate-600">
+                                   No items merged yet.
+                               </td>
+                           </tr>
+                       ) : (
+                           mergedHistory.slice().reverse().map(task => {
+                               const prUrl = buildPrUrl(task);
+                               return (
+                               <tr key={task.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/30 transition-colors">
+                                   <td className="px-6 py-3 font-medium text-slate-900 dark:text-slate-200">{task.title}</td>
+                                   <td className="px-5 py-3 font-mono text-slate-600 dark:text-slate-400">
+                                       {prUrl ? (
+                                         <a 
+                                             href={prUrl}
+                                             target="_blank" 
+                                             rel="noopener noreferrer"
+                                             className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline flex items-center gap-1 transition-colors"
+                                         >
+                                             #{task.prNumber} <ExternalLink className="w-3 h-3" />
+                                         </a>
+                                       ) : (
+                                         <span>#{task.prNumber}</span>
+                                       )}
+                                   </td>
+                                   <td className="hidden xl:table-cell px-6 py-3">
+                                       <span className="bg-slate-100 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 px-2 py-1 rounded-full text-xs text-slate-600 dark:text-slate-400">{task.group}</span>
+                                   </td>
+                                   <td className="px-6 py-3 text-right">
+                                       <span className="inline-flex items-center gap-1.5 text-purple-700 dark:text-purple-300 font-medium bg-purple-100 dark:bg-purple-500/10 border border-purple-300 dark:border-purple-500/20 px-2.5 py-1 rounded-full text-xs">
+                                           <GitMerge className="w-3 h-3" /> Merged
+                                       </span>
+                                   </td>
+                               </tr>
+                           );
+                           })
+                        )}
+                   </tbody>
+               </table>
+               </div>
+               )}
+           </div>
       </div>
     </div>
   );
