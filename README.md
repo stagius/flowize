@@ -31,10 +31,15 @@ https://github.com/user-attachments/assets/c4f34639-26c5-4d7f-8955-a8bd215ba1c5
 
 ### Worktrees & Review
 
-Assign issues to worktree slots, generate implementation drafts, and open PRs for review.
+Assign issues to worktree slots, generate implementation drafts, and open PRs for review. Drag and drop issues to reorder your workflow seamlessly.
 
 https://github.com/user-attachments/assets/6e185bd8-fd53-4fbc-93b6-929a3bdd355c
 
+
+### UI & Customization
+
+- **Dark Mode:** Toggle between light and dark themes to suit your preference.
+- **Responsive Layout:** Mobile-friendly interface featuring a collapsible sidebar to maximize your workspace.
 
 ## What it does
 
@@ -76,6 +81,7 @@ Use the Settings modal to configure:
 - `defaultBranch` (defaults to `master`)
 - `worktreeRoot` and max worktree slots
 - `githubToken` (PAT, optional if `VITE_GITHUB_TOKEN` is set)
+- `geminiApiKey` (your Gemini API key)
 
 Recommended GitHub token scopes:
 
@@ -92,18 +98,11 @@ Recommended GitHub token scopes:
 - `npm run build` - Production build
 - `npm run preview` - Preview production build
 
-## Workflow steps in the UI
-
-1. **Task Input** - Paste raw specs/bug notes and generate structured tasks.
-2. **Issues** - Review and sync tasks to GitHub issues, or fetch existing remote issues.
-3. **Worktrees** - Assign issues to slots, generate implementation drafts, and push to review.
-4. **Review** - Open PRs and monitor commit/CI status.
-5. **Merged** - Merge ready PRs and view merged history.
-
 ## Project structure
 
-- `App.tsx` - Main application state and workflow orchestration
-- `components/` - Step-based UI and settings modal
+- `App.tsx` - Main application state, auth middleware, and workflow orchestration
+- `components/` - Step-based UI, authentication flow, and settings modal
+- `contexts/` - Global state providers including ThemeContext for dark mode and AuthContext for authentication
 - `services/geminiService.ts` - Gemini integration for task analysis
 - `services/githubService.ts` - GitHub API integration
 - `services/gitService.ts` - Real worktree operations through the local bridge endpoint
