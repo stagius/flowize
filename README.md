@@ -11,7 +11,10 @@ npm run init
 
 Open http://localhost:3000 and login with GitHub (OAuth or manual token).
 
-For OAuth login (optional), update `.env.local` with your GitHub OAuth app credentials.
+>For OAuth login (optional), update `.env.local` with your GitHub OAuth app credentials.
+
+>For GitHub Personal Access Token, get one from [GitHub Settings](https://github.com/settings/tokens).
+*__Required scopes__: repo (Classic) or Contents:Read/Write, PullRequests:Read/Write (Fine-grained).*
 
 ## Features
 
