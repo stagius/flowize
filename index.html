@@ -1,85 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>Flowize</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
-            },
-            colors: {
-              slate: {
-                850: '#151e2e',
-                950: '#020617',
-              }
-            }
-          }
-        }
-      }
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-      body {
-        font-family: 'Inter', sans-serif;
-      }
-      /* Light mode body styles */
-      body {
-        background-color: #f8fafc; /* Slate 50 */
-        color: #0f172a; /* Slate 900 */
-      }
-      /* Dark mode body styles */
-      .dark body {
-        background-color: #020617; /* Slate 950 */
-        color: #f8fafc; /* Slate 50 */
-      }
-      /* Custom scrollbar - light mode */
-      ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #e2e8f0; /* slate-200 */
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #94a3b8; /* slate-400 */
-        border-radius: 3px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #64748b; /* slate-500 */
-      }
-      /* Custom scrollbar - dark mode */
-      .dark ::-webkit-scrollbar-track {
-        background: #0f172a; /* slate-900 */
-      }
-      .dark ::-webkit-scrollbar-thumb {
-        background: #334155; /* slate-700 */
-      }
-      .dark ::-webkit-scrollbar-thumb:hover {
-        background: #475569; /* slate-600 */
-      }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.564.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4"
-  }
-}
-</script>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>Flowize</title>
+  <link rel="stylesheet" href="/index.css" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Light mode body styles */
+    body {
+      background-color: #f8fafc;
+      /* Slate 50 */
+      color: #0f172a;
+      /* Slate 900 */
+    }
+
+    /* Dark mode body styles */
+    .dark body {
+      background-color: #020617;
+      /* Slate 950 */
+      color: #f8fafc;
+      /* Slate 50 */
+    }
+
+    /* Custom scrollbar - light mode */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #e2e8f0;
+      /* slate-200 */
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      /* slate-400 */
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+      /* slate-500 */
+    }
+
+    /* Custom scrollbar - dark mode */
+    .dark ::-webkit-scrollbar-track {
+      background: #0f172a;
+      /* slate-900 */
+    }
+
+    .dark ::-webkit-scrollbar-thumb {
+      background: #334155;
+      /* slate-700 */
+    }
+
+    .dark ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+      /* slate-600 */
+    }
+  </style>
 </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
 </html>
