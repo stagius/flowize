@@ -20,26 +20,10 @@ Open http://localhost:3000 and login with GitHub (OAuth or manual token).
 >For GitHub Personal Access Token, get one from [GitHub Settings](https://github.com/settings/tokens).
 *__Required scopes__: repo (Classic) or Contents:Read/Write, PullRequests:Read/Write (Fine-grained).*
 
-## Features
+## Quick Demo
 
-### Issue Creation
+https://github.com/user-attachments/assets/68ec9e44-896d-46ad-bb64-a8d44939b6c4
 
-Parse raw requirements into structured GitHub issues using AI.
-
-https://github.com/user-attachments/assets/c4f34639-26c5-4d7f-8955-a8bd215ba1c5
-
-
-### Worktrees & Review
-
-Assign issues to worktree slots, generate implementation drafts, and open PRs for review. Drag and drop issues to reorder your workflow seamlessly.
-
-https://github.com/user-attachments/assets/6e185bd8-fd53-4fbc-93b6-929a3bdd355c
-
-
-### UI & Customization
-
-- **Dark Mode:** Toggle between light and dark themes to suit your preference.
-- **Responsive Layout:** Mobile-friendly interface featuring a collapsible sidebar to maximize your workspace.
 
 ## What it does
 
