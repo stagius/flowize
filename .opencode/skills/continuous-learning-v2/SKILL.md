@@ -43,10 +43,10 @@ Use functional patterns over classes when appropriate.
 ```
 
 **Properties:**
-- **Atomic** — one trigger, one action
-- **Confidence-weighted** — 0.3 = tentative, 0.9 = near certain
-- **Domain-tagged** — code-style, testing, git, debugging, workflow, etc.
-- **Evidence-backed** — tracks what observations created it
+- **Atomic** - one trigger, one action
+- **Confidence-weighted** - 0.3 = tentative, 0.9 = near certain
+- **Domain-tagged** - code-style, testing, git, debugging, workflow, etc.
+- **Evidence-backed** - tracks what observations created it
 
 ## How It Works
 
@@ -225,7 +225,7 @@ Confidence evolves over time:
 
 ## Why Hooks vs Skills for Observation?
 
-> "v1 relied on skills to observe. Skills are probabilistic—they fire ~50-80% of the time based on Claude's judgment."
+> "v1 relied on skills to observe. Skills are probabilistic-they fire ~50-80% of the time based on Claude's judgment."
 
 Hooks fire **100% of the time**, deterministically. This means:
 - Every tool call is observed

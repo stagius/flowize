@@ -10,7 +10,7 @@ Real-world OpenCode patterns from power users who ship production code daily. No
 
 ## The Core Insight
 
-> "80% of my code is written by AI, 20% is spent reviewing and correcting it." — Karpathy
+> "80% of my code is written by AI, 20% is spent reviewing and correcting it." - Karpathy
 
 This skill optimizes for that ratio. Every pattern here reduces correction cycles.
 

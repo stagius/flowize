@@ -2,7 +2,7 @@
 
 Battle-tested workflows adapted from [pro-workflow](https://github.com/rohitg00/pro-workflow) by rohitg00. Optimized for OpenCode to help you achieve the 80/20 AI coding ratio.
 
-> "80% of my code is written by AI, 20% is spent reviewing and correcting it." — Karpathy
+> "80% of my code is written by AI, 20% is spent reviewing and correcting it." - Karpathy
 
 ## What's Included
 

@@ -16,8 +16,8 @@ const ts = () => new Date().toISOString();
 
 const log = {
   debug: (...args) => { if (currentLogLevel <= LOG_LEVELS.debug) console.debug(`[bridge] [DEBUG] ${ts()}`, ...args); },
-  info:  (...args) => { if (currentLogLevel <= LOG_LEVELS.info)  console.log  (`[bridge] [INFO]  ${ts()}`, ...args); },
-  warn:  (...args) => { if (currentLogLevel <= LOG_LEVELS.warn)  console.warn (`[bridge] [WARN]  ${ts()}`, ...args); },
+  info: (...args) => { if (currentLogLevel <= LOG_LEVELS.info) console.log(`[bridge] [INFO]  ${ts()}`, ...args); },
+  warn: (...args) => { if (currentLogLevel <= LOG_LEVELS.warn) console.warn(`[bridge] [WARN]  ${ts()}`, ...args); },
   error: (...args) => { if (currentLogLevel <= LOG_LEVELS.error) console.error(`[bridge] [ERROR] ${ts()}`, ...args); },
 };
 
@@ -109,7 +109,7 @@ const updateOAuthConstants = () => {
   GITHUB_OAUTH_SCOPE = (process.env.GITHUB_OAUTH_SCOPE || 'read:user repo').trim();
   GITHUB_OAUTH_CALLBACK_HOST = (process.env.GITHUB_OAUTH_CALLBACK_HOST || '127.0.0.1').trim();
   GITHUB_OAUTH_REDIRECT_URI = (process.env.GITHUB_OAUTH_REDIRECT_URI || `http://${GITHUB_OAUTH_CALLBACK_HOST}:${PORT}/github/oauth/callback`).trim();
-  
+
   if (GITHUB_OAUTH_CLIENT_ID && GITHUB_OAUTH_CLIENT_SECRET) {
     log.info(`OAuth updated: client_id=${GITHUB_OAUTH_CLIENT_ID} redirect=${GITHUB_OAUTH_REDIRECT_URI}`);
   } else {
@@ -491,7 +491,7 @@ const startAsyncJob = async (command, worktreePath) => {
   };
 
   jobs.set(jobId, job);
-  log.info(`[job:${jobId}] start — command="${command}" cwd="${cwd}"`);
+  log.info(`[job:${jobId}] start - command="${command}" cwd="${cwd}"`);
 
   const finalizeFromExitCode = (code) => {
     if (job.done && (job.exitCode === 124 || job.exitCode === 130)) {
@@ -508,7 +508,7 @@ const startAsyncJob = async (command, worktreePath) => {
     }
     job.updatedAt = Date.now();
     job.child = null;
-    log.info(`[job:${jobId}] done — exitCode=${exitCode} success=${job.success}${job.error ? ` error="${job.error}"` : ''}`);
+    log.info(`[job:${jobId}] done - exitCode=${exitCode} success=${job.success}${job.error ? ` error="${job.error}"` : ''}`);
   };
 
   const child = spawn(command, {
@@ -547,7 +547,7 @@ const startAsyncJob = async (command, worktreePath) => {
     if (job.done) {
       return;
     }
-    log.warn(`[job:${jobId}] timed out after ${JOB_MAX_RUNTIME_MS}ms — killing`);
+    log.warn(`[job:${jobId}] timed out after ${JOB_MAX_RUNTIME_MS}ms - killing`);
     try {
       job.child?.kill('SIGTERM');
     } catch {
@@ -638,10 +638,10 @@ server = createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && req.url?.startsWith('/github/oauth/start')) {
-    log.info(`[${reqId}] oauth/start — client_id=${GITHUB_OAUTH_CLIENT_ID || '(missing)'}`);
+    log.info(`[${reqId}] oauth/start - client_id=${GITHUB_OAUTH_CLIENT_ID || '(missing)'}`);
 
     if (!GITHUB_OAUTH_CLIENT_ID || !GITHUB_OAUTH_CLIENT_SECRET) {
-      log.error(`[${reqId}] oauth/start — GITHUB_OAUTH_CLIENT_ID or GITHUB_OAUTH_CLIENT_SECRET not set`);
+      log.error(`[${reqId}] oauth/start - GITHUB_OAUTH_CLIENT_ID or GITHUB_OAUTH_CLIENT_SECRET not set`);
       writeJson(res, 503, {
         success: false,
         error: 'GitHub OAuth is not configured. Set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET.'
@@ -662,7 +662,7 @@ server = createServer(async (req, res) => {
     authorizeUrl.searchParams.set('scope', GITHUB_OAUTH_SCOPE);
     authorizeUrl.searchParams.set('state', state);
 
-    log.info(`[${reqId}] oauth/start — state=${state} requestedOrigin=${requestedOrigin} redirect_uri=${GITHUB_OAUTH_REDIRECT_URI}`);
+    log.info(`[${reqId}] oauth/start - state=${state} requestedOrigin=${requestedOrigin} redirect_uri=${GITHUB_OAUTH_REDIRECT_URI}`);
 
     writeJson(res, 200, {
       success: true,
@@ -676,10 +676,10 @@ server = createServer(async (req, res) => {
     const code = getQueryParam(req.url, 'code');
     const state = getQueryParam(req.url, 'state');
 
-    log.info(`[${reqId}] oauth/callback — code=${code ? '(present)' : '(missing)'} state=${state || '(missing)'}`);
+    log.info(`[${reqId}] oauth/callback - code=${code ? '(present)' : '(missing)'} state=${state || '(missing)'}`);
 
     if (!code || !state) {
-      log.warn(`[${reqId}] oauth/callback — missing code or state`);
+      log.warn(`[${reqId}] oauth/callback - missing code or state`);
       writeHtml(res, 400, oauthMessagePage({
         success: false,
         origin: '*',
@@ -692,7 +692,7 @@ server = createServer(async (req, res) => {
     oauthStates.delete(state);
 
     if (!stateEntry) {
-      log.warn(`[${reqId}] oauth/callback — unknown or expired state=${state} (active states: ${oauthStates.size})`);
+      log.warn(`[${reqId}] oauth/callback - unknown or expired state=${state} (active states: ${oauthStates.size})`);
       writeHtml(res, 400, oauthMessagePage({
         success: false,
         origin: '*',
@@ -701,10 +701,10 @@ server = createServer(async (req, res) => {
       return;
     }
 
-    log.info(`[${reqId}] oauth/callback — valid state, postMessage target origin=${stateEntry.origin}`);
+    log.info(`[${reqId}] oauth/callback - valid state, postMessage target origin=${stateEntry.origin}`);
 
     try {
-      log.debug(`[${reqId}] oauth/callback — exchanging code for token with GitHub`);
+      log.debug(`[${reqId}] oauth/callback - exchanging code for token with GitHub`);
       const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
         method: 'POST',
         headers: {
@@ -720,13 +720,13 @@ server = createServer(async (req, res) => {
       });
 
       const tokenPayload = await tokenResponse.json();
-      log.debug(`[${reqId}] oauth/callback — GitHub token response status=${tokenResponse.status} has_access_token=${Boolean(tokenPayload.access_token)} error=${tokenPayload.error || '(none)'}`);
+      log.debug(`[${reqId}] oauth/callback - GitHub token response status=${tokenResponse.status} has_access_token=${Boolean(tokenPayload.access_token)} error=${tokenPayload.error || '(none)'}`);
 
       if (!tokenResponse.ok || tokenPayload.error || !tokenPayload.access_token) {
         throw new Error(tokenPayload.error_description || tokenPayload.error || 'Could not exchange OAuth code for access token.');
       }
 
-      log.info(`[${reqId}] oauth/callback — success, scope=${tokenPayload.scope || '(empty)'} posting token to origin=${stateEntry.origin}`);
+      log.info(`[${reqId}] oauth/callback - success, scope=${tokenPayload.scope || '(empty)'} posting token to origin=${stateEntry.origin}`);
       writeHtml(res, 200, oauthMessagePage({
         success: true,
         origin: stateEntry.origin,
@@ -734,7 +734,7 @@ server = createServer(async (req, res) => {
         scope: tokenPayload.scope || ''
       }));
     } catch (error) {
-      log.error(`[${reqId}] oauth/callback — token exchange failed:`, error.message);
+      log.error(`[${reqId}] oauth/callback - token exchange failed:`, error.message);
       writeHtml(res, 500, oauthMessagePage({
         success: false,
         origin: stateEntry.origin,
@@ -747,19 +747,19 @@ server = createServer(async (req, res) => {
   if (req.method === 'GET' && req.url?.startsWith('/logs')) {
     const jobId = getQueryParam(req.url, 'jobId');
     if (!jobId) {
-      log.warn(`[${reqId}] /logs — missing jobId`);
+      log.warn(`[${reqId}] /logs - missing jobId`);
       writeJson(res, 400, { success: false, error: 'Missing jobId' }, origin);
       return;
     }
 
     const job = jobs.get(jobId);
     if (!job) {
-      log.warn(`[${reqId}] /logs — job not found: ${jobId}`);
+      log.warn(`[${reqId}] /logs - job not found: ${jobId}`);
       writeJson(res, 404, { success: false, error: 'Job not found' }, origin);
       return;
     }
 
-    log.debug(`[${reqId}] /logs — jobId=${jobId} done=${job.done} exitCode=${job.exitCode}`);
+    log.debug(`[${reqId}] /logs - jobId=${jobId} done=${job.done} exitCode=${job.exitCode}`);
     writeJson(res, 200, {
       success: job.success,
       done: job.done,
@@ -780,25 +780,25 @@ server = createServer(async (req, res) => {
       const body = await parseJson(req);
       const jobId = typeof body.jobId === 'string' ? body.jobId.trim() : '';
       if (!jobId) {
-        log.warn(`[${reqId}] /cancel — missing jobId`);
+        log.warn(`[${reqId}] /cancel - missing jobId`);
         writeJson(res, 400, { success: false, error: 'Missing jobId' }, origin);
         return;
       }
 
       const job = jobs.get(jobId);
       if (!job) {
-        log.warn(`[${reqId}] /cancel — job not found: ${jobId}`);
+        log.warn(`[${reqId}] /cancel - job not found: ${jobId}`);
         writeJson(res, 404, { success: false, error: 'Job not found' }, origin);
         return;
       }
 
       if (job.done) {
-        log.debug(`[${reqId}] /cancel — job ${jobId} already done`);
+        log.debug(`[${reqId}] /cancel - job ${jobId} already done`);
         writeJson(res, 200, { success: true, done: true, alreadyDone: true }, origin);
         return;
       }
 
-      log.info(`[${reqId}] /cancel — killing job ${jobId} pid=${job.child?.pid}`);
+      log.info(`[${reqId}] /cancel - killing job ${jobId} pid=${job.child?.pid}`);
       try {
         job.child?.kill('SIGTERM');
       } catch {
@@ -815,7 +815,7 @@ server = createServer(async (req, res) => {
       writeJson(res, 200, { success: true, done: true, cancelled: true }, origin);
       return;
     } catch (error) {
-      log.error(`[${reqId}] /cancel — unexpected error:`, error.message);
+      log.error(`[${reqId}] /cancel - unexpected error:`, error.message);
       writeJson(res, 500, {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -825,7 +825,7 @@ server = createServer(async (req, res) => {
   }
 
   if (req.method !== 'POST' || (req.url !== '/run' && req.url !== '/')) {
-    log.warn(`[${reqId}] 404 — unrecognised route ${req.method} ${req.url}`);
+    log.warn(`[${reqId}] 404 - unrecognised route ${req.method} ${req.url}`);
     writeJson(res, 404, { success: false, error: 'Not found' }, origin);
     return;
   }
@@ -841,14 +841,14 @@ server = createServer(async (req, res) => {
       const closeAfterStartup = body.closeAfterStartup === true;
       const launchAntigravity = body.launchAntigravity === true;
 
-      log.info(`[${reqId}] open-terminal — path="${worktreePath}" title="${title}" startup="${startupCommand}" close=${closeAfterStartup} antigravity=${launchAntigravity}`);
+      log.info(`[${reqId}] open-terminal - path="${worktreePath}" title="${title}" startup="${startupCommand}" close=${closeAfterStartup} antigravity=${launchAntigravity}`);
 
       try {
         const result = await openTerminal(worktreePath, title, startupCommand, closeAfterStartup, launchAntigravity);
-        log.info(`[${reqId}] open-terminal — result: success=${result.success}${result.error ? ` error="${result.error}"` : ''}`);
+        log.info(`[${reqId}] open-terminal - result: success=${result.success}${result.error ? ` error="${result.error}"` : ''}`);
         writeJson(res, result.success ? 200 : 400, result, origin);
       } catch (error) {
-        log.error(`[${reqId}] open-terminal — threw:`, error.message);
+        log.error(`[${reqId}] open-terminal - threw:`, error.message);
         writeJson(res, 500, {
           success: false,
           error: error instanceof Error ? error.message : String(error)
@@ -861,26 +861,26 @@ server = createServer(async (req, res) => {
     const worktreePath = typeof body.worktreePath === 'string' ? body.worktreePath.trim() : '';
 
     if (!command) {
-      log.warn(`[${reqId}] /run — missing command`);
+      log.warn(`[${reqId}] /run - missing command`);
       writeJson(res, 400, { success: false, error: 'Missing command' }, origin);
       return;
     }
 
     if (body.async === true) {
-      log.info(`[${reqId}] /run async — command="${command}" cwd="${worktreePath || WORKDIR}"`);
+      log.info(`[${reqId}] /run async - command="${command}" cwd="${worktreePath || WORKDIR}"`);
       const created = await startAsyncJob(command, worktreePath);
-      log.info(`[${reqId}] /run async — jobId=${created.jobId}`);
+      log.info(`[${reqId}] /run async - jobId=${created.jobId}`);
       writeJson(res, 202, { success: true, jobId: created.jobId, done: false }, origin);
       return;
     }
 
-    log.info(`[${reqId}] /run sync — command="${command}" cwd="${worktreePath || WORKDIR}"`);
+    log.info(`[${reqId}] /run sync - command="${command}" cwd="${worktreePath || WORKDIR}"`);
     const result = await runShellCommand(command, worktreePath);
-    log.info(`[${reqId}] /run sync — exitCode=${result.exitCode} success=${result.success}${result.error ? ` error="${result.error}"` : ''}`);
-    if (result.stderr) log.debug(`[${reqId}] /run sync — stderr: ${result.stderr.slice(0, 500)}`);
+    log.info(`[${reqId}] /run sync - exitCode=${result.exitCode} success=${result.success}${result.error ? ` error="${result.error}"` : ''}`);
+    if (result.stderr) log.debug(`[${reqId}] /run sync - stderr: ${result.stderr.slice(0, 500)}`);
     writeJson(res, result.success ? 200 : 500, result, origin);
   } catch (error) {
-    log.error(`[${reqId}] /run — unexpected error:`, error.message);
+    log.error(`[${reqId}] /run - unexpected error:`, error.message);
     writeJson(res, 500, {
       success: false,
       error: error instanceof Error ? error.message : String(error)
@@ -898,7 +898,7 @@ const startServer = () => {
     if (GITHUB_OAUTH_CLIENT_ID && GITHUB_OAUTH_CLIENT_SECRET) {
       log.info(`github-oauth=enabled  client_id=${GITHUB_OAUTH_CLIENT_ID}  redirect=${GITHUB_OAUTH_REDIRECT_URI}  scope="${GITHUB_OAUTH_SCOPE}"`);
     } else {
-      log.warn('github-oauth=disabled — set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET in .env.local');
+      log.warn('github-oauth=disabled - set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET in .env.local');
     }
   });
 };

@@ -275,7 +275,7 @@ export const runBridgeCommand = async (settings: AppSettings, command: string, c
         const details = payload?.error || raw || 'no response body';
         const message = `Local bridge error (${response.status}) on ${candidate}: ${details}`;
         if (response.status === 404 || response.status === 405) {
-          console.warn(`[bridge:git] ${response.status} on ${candidate} — skipping to next candidate`);
+          console.warn(`[bridge:git] ${response.status} on ${candidate} - skipping to next candidate`);
           lastError = message;
           continue;
         }

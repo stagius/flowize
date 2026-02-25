@@ -270,7 +270,7 @@ const pollAsyncJob = async (
       response = await fetchWithTimeout(logsUrl, { method: 'GET' }, 10000);
     } catch (fetchErr) {
       console.warn(`[bridge:poll] attempt=${i + 1} fetch error for jobId=${jobId}:`, fetchErr instanceof Error ? fetchErr.message : String(fetchErr));
-      throw new Error(`Unable to poll agent logs — fetch failed: ${fetchErr instanceof Error ? fetchErr.message : String(fetchErr)}`);
+      throw new Error(`Unable to poll agent logs - fetch failed: ${fetchErr instanceof Error ? fetchErr.message : String(fetchErr)}`);
     }
 
     if (!response.ok) {
@@ -304,13 +304,13 @@ const pollAsyncJob = async (
     });
 
     if (data.done === true) {
-      console.log(`[bridge:poll] jobId=${jobId} finished — success=${data.success} exitCode=${data.exitCode}`);
+      console.log(`[bridge:poll] jobId=${jobId} finished - success=${data.success} exitCode=${data.exitCode}`);
       return data;
     }
 
     if (idleSinceMs >= AGENT_STALE_OUTPUT_TIMEOUT_MS) {
       console.warn(
-        `[bridge:poll] jobId=${jobId} stale — no output for ${Math.round(idleSinceMs / 1000)}s` +
+        `[bridge:poll] jobId=${jobId} stale - no output for ${Math.round(idleSinceMs / 1000)}s` +
         ` (threshold=${AGENT_STALE_OUTPUT_TIMEOUT_MS / 1000}s) hasSeenOutput=${hasSeenOutput}`
       );
       let cancelNote = '';
@@ -335,7 +335,7 @@ const pollAsyncJob = async (
     await sleep(AGENT_POLL_INTERVAL_MS);
   }
 
-  console.warn(`[bridge:poll] jobId=${jobId} exceeded max attempts (${AGENT_POLL_MAX_ATTEMPTS}) — timing out`);
+  console.warn(`[bridge:poll] jobId=${jobId} exceeded max attempts (${AGENT_POLL_MAX_ATTEMPTS}) - timing out`);
   let cancelNote = '';
   if (settings?.agentEndpoint) {
     try {
@@ -500,7 +500,7 @@ export const generateImplementationFromAgent = async (
         });
         data = await pollAsyncJob(candidate, command, data.jobId, settings, onProgress);
       } else {
-        console.warn(`[bridge:agent] no jobId returned from ${candidate} — treating as sync response`);
+        console.warn(`[bridge:agent] no jobId returned from ${candidate} - treating as sync response`);
       }
 
       const logs = formatLogs(candidate, command, data);
@@ -524,7 +524,7 @@ export const generateImplementationFromAgent = async (
           ? data.implementation
           : (data.stdout?.trim().length ? data.stdout : 'Sub-agent completed successfully with no implementation output.');
 
-      console.log(`[bridge:agent] success on ${candidate} — implementation length=${implementation.length}`);
+      console.log(`[bridge:agent] success on ${candidate} - implementation length=${implementation.length}`);
       return {
         success: true,
         implementation,
@@ -663,7 +663,7 @@ export const openWorktreeCmdWindow = async (
           `node -e "const fs=require('fs');process.stdout.write(fs.existsSync(process.argv[1])?'yes':'no')" "${slot.path}"`,
           { worktreePath: slot.path }
         );
-        
+
         const baseExists = String(checkBaseExists?.stdout ?? '').trim().toLowerCase() === 'yes';
         if (!baseExists) {
           throw new Error(
@@ -672,7 +672,7 @@ export const openWorktreeCmdWindow = async (
             `Please cleanup this slot and re-assign the task to create a fresh worktree.`
           );
         }
-        
+
         // Now create the subdirectory
         const escapedTarget = targetPath.replace(/"/g, '');
         await runBridgeSyncCommand(candidate, `node -e "const fs=require('fs');fs.mkdirSync(process.argv[1],{recursive:true})" "${escapedTarget}"`, {

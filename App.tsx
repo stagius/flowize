@@ -221,7 +221,7 @@ export default function App() {
         const windowsDrivePattern = /^[a-zA-Z]:[/\\]/;
         // Check for Unix absolute path
         const unixAbsolutePattern = /^\//;
-        
+
         return windowsDrivePattern.test(path) || unixAbsolutePattern.test(path);
     };
 
@@ -306,14 +306,14 @@ export default function App() {
                     const value = slot as Partial<WorktreeSlot>;
                     const id = Number(value.id);
                     if (!Number.isInteger(id) || id < 1) return null;
-                    
+
                     // Rebuild path if it's missing or invalid
                     let slotPath = typeof value.path === 'string' ? value.path : '';
                     if (!slotPath || !isValidSlotPath(slotPath)) {
                         console.warn(`Invalid slot path detected for slot ${id}: "${slotPath}". Rebuilding from worktreeRoot.`);
                         slotPath = buildWorktreeSlotPath(settings.worktreeRoot, id);
                     }
-                    
+
                     return {
                         id,
                         taskId: typeof value.taskId === 'string' ? value.taskId : null,
@@ -436,7 +436,7 @@ export default function App() {
                         setBridgeHealth({ status: 'healthy', endpoint: healthUrl });
                         return;
                     } else {
-                        console.warn(`[bridge:health] ${healthUrl} ok=${payload.ok} — not marking healthy`);
+                        console.warn(`[bridge:health] ${healthUrl} ok=${payload.ok} - not marking healthy`);
                     }
                 } catch (err) {
                     console.warn(`[bridge:health] ${healthUrl} fetch error:`, err instanceof Error ? err.message : String(err));
@@ -444,7 +444,7 @@ export default function App() {
             }
 
             if (active) {
-                console.warn(`[bridge:health] all candidates unreachable — marking unhealthy`);
+                console.warn(`[bridge:health] all candidates unreachable - marking unhealthy`);
                 setBridgeHealth({ status: 'unhealthy' });
             }
         };
@@ -1004,10 +1004,10 @@ export default function App() {
                     setSlots(prev => prev.map(s => s.taskId === taskId ? { ...s, taskId: null } : s));
                 } catch (e: any) {
                     console.error('Worktree cleanup after PR approval failed', e);
-                    
+
                     const blockingProcesses = await getProcessesUsingPath(slot.path, settings);
                     const processList = formatProcessList(blockingProcesses);
-                    
+
                     showAlertDialog(
                         'PR Created, Cleanup Failed',
                         `PR #${prNumber} was created, but worktree cleanup failed.${processList}\n\nClose the processes above, then click "Retry Cleanup".\n\nError: ${e.message}`,

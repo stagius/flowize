@@ -36,11 +36,11 @@ https://github.com/user-attachments/assets/6e185bd8-fd53-4fbc-93b6-929a3bdd355c
 
 Flowize guides you through the complete development workflow:
 
-- **Task Input** — Paste raw specs and generate structured tasks with AI
-- **Issues** — Create GitHub issues or import existing ones
-- **Worktrees** — Assign issues to slots, generate implementation drafts, and push to review
-- **Review** — Open PRs and monitor CI status
-- **Merge** — Merge ready PRs and track history
+- **Task Input** - Paste raw specs and generate structured tasks with AI
+- **Issues** - Create GitHub issues or import existing ones
+- **Worktrees** - Assign issues to slots, generate implementation drafts, and push to review
+- **Review** - Open PRs and monitor CI status
+- **Merge** - Merge ready PRs and track history
 
 ## Tech stack
 
