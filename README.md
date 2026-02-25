@@ -47,7 +47,9 @@ Flowize guides you through the complete development workflow:
 - React 19
 - TypeScript
 - Vite
-- TailwindCSS (via CDN in `index.html`)
+- TailwindCSS 4 with PostCSS
+- @dnd-kit for drag-and-drop
+- lucide-react for icons
 - `@google/genai` for task/implementation generation
 - GitHub REST API for issues/branches/commits/PRs/merge actions
 
@@ -55,6 +57,7 @@ Flowize guides you through the complete development workflow:
 
 - Node.js 18+
 - npm
+- Git
 - GitHub Personal Access Token (for repo sync)
 
 ## Configuration
