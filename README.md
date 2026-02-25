@@ -9,7 +9,9 @@ Flowize is a React + TypeScript interface for running a parallel GitHub workflow
 npm run init
 ```
 
-Open http://localhost:3000 and enter your repo details in Settings.
+Open http://localhost:3000 and login with GitHub (OAuth or manual token).
+
+For OAuth login (optional), update `.env.local` with your GitHub OAuth app credentials.
 
 ## Features
 

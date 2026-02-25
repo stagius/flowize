@@ -261,8 +261,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, bridgeEndp
                 setScopeWarning('');
               }}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all min-h-[44px] ${loginMode === 'oauth'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
             >
               <div className="flex items-center justify-center gap-2">
@@ -278,8 +278,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, bridgeEndp
                 setScopeWarning('');
               }}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all min-h-[44px] ${loginMode === 'manual'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
             >
               <div className="flex items-center justify-center gap-2">
@@ -331,6 +331,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, bridgeEndp
               <div className="mt-4 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
                 <p className="text-xs text-amber-700 dark:text-amber-300">
                   <strong>Note:</strong> OAuth requires the bridge server to be running at {bridgeEndpoint || 'http://127.0.0.1:4141'}
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
+                  <a
+                    href="https://github.com/settings/applications/new"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-amber-600 dark:hover:text-amber-200"
+                  >
+                    Create GitHub OAuth App
+                  </a>
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                  Homepage URL: http://127.0.0.1:4141
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  Callback URL: http://127.0.0.1:4141/github/oauth/callback
                 </p>
               </div>
             </>
