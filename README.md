@@ -6,16 +6,10 @@ Flowize is a React + TypeScript interface for running a parallel GitHub workflow
 ## Quick Start
 
 ```bash
-# One-step setup (installs deps, creates .env, starts app)
 npm run init
-
-# OR two-step setup (if you already have deps)
-npm install
-npm run setup
-npm start
 ```
 
-On first launch, you'll be prompted to log in with GitHub. Click "Connect with GitHub" or manually paste a Personal Access Token in Settings.
+Open http://localhost:3000 and enter your repo details in Settings.
 
 ## Features
 
@@ -56,74 +50,11 @@ Flowize guides you through the complete development workflow:
 
 - Node.js 18+
 - npm
-- A Gemini API key (required for AI generation)
-- A GitHub Personal Access Token (required for GitHub sync actions)
-
-## Platform Support
-
-Flowize works on **Windows, macOS, and Linux**. The local bridge automatically detects your platform and opens the appropriate terminal:
-
-| Platform | Terminal |
-|----------|----------|
-| Windows | Command Prompt (cmd.exe) |
-| macOS | Terminal.app |
-| Linux | gnome-terminal, konsole, xfce4-terminal, mate-terminal, or xterm |
-
-## Getting started
-
-1. Install dependencies:
-   `npm install`
-2. Create `.env.local` in the project root and set the required variables:
-
-```env
-VITE_API_KEY=your_gemini_api_key
-GITHUB_OAUTH_CLIENT_ID=your_github_oauth_client_id
-GITHUB_OAUTH_CLIENT_SECRET=your_github_oauth_client_secret
-GITHUB_OAUTH_SCOPE=read:user repo
-```
-
-3. Start the app:
-   `npm run dev`
-4. Start the local bridge:
-   `npm run bridge:start`
-5. Open `http://localhost:3000`.
-
-## Local Worktree Bridge (required for real filesystem git worktrees)
-
-The UI runs in the browser and cannot execute shell/git commands directly. Start the local bridge and set `Agent Bridge Endpoint` in Settings to `http://127.0.0.1:4141/run`.
-
-Optional bridge environment variables:
-
-- `BRIDGE_PORT` (default: `4141`)
-- `BRIDGE_HOST` (default: `0.0.0.0`)
-- `BRIDGE_ALLOWED_ORIGIN` (default: `*`, or comma-separated origins like `http://localhost:3000,http://127.0.0.1:3000`)
-- `BRIDGE_WORKDIR` (default: current directory)
-
-### GitHub OAuth login (optional, local-only)
-
-If you want to sign in with GitHub and pick repos from your account in Settings, configure a GitHub OAuth App:
-
-1. Create the app with callback URL `http://127.0.0.1:4141/github/oauth/callback`.
-2. Set bridge env vars in shell or in `.env.local` before `npm run bridge:start`:
-   - `GITHUB_OAUTH_CLIENT_ID`
-   - `GITHUB_OAUTH_CLIENT_SECRET`
-   - `GITHUB_OAUTH_SCOPE` (default: `read:user repo`)
-   - `GITHUB_OAUTH_CALLBACK_HOST` (optional, default: `127.0.0.1`)
-   - `GITHUB_OAUTH_REDIRECT_URI` (optional override)
-3. In Flowize settings, use **Connect with GitHub**.
-
-No database is required. Token and selected repo remain local in app settings.
+- GitHub Personal Access Token (for repo sync)
 
 ## Configuration
 
-### Environment variables
-
-- `VITE_API_KEY`: Gemini API key used for AI task analysis and implementation generation.
-- `GITHUB_OAUTH_CLIENT_ID`: GitHub OAuth app client ID.
-- `GITHUB_OAUTH_CLIENT_SECRET`: GitHub OAuth app client secret.
-- `GITHUB_OAUTH_SCOPE`: OAuth scope requested during GitHub auth (for example, `read:user repo`).
-
-AI generation requires `VITE_API_KEY`. If it is missing, AI actions fail with a configuration error.
+The app works without environment variables. For OAuth login, create `.env.local` from `.env.example`.
 
 ### In-app settings
 
@@ -141,10 +72,13 @@ Recommended GitHub token scopes:
 
 ## Available scripts
 
-- `npm run dev` - Start local dev server (port 3000)
-- `npm run build` - Create production build
-- `npm run preview` - Preview production build locally
-- `npm run bridge:start` - Start the local bridge for filesystem/git operations
+- `npm run init` - Install deps, create .env, start app (one command)
+- `npm run setup` - Create `.env.local` from template
+- `npm run start` - Start dev server + local bridge
+- `npm run dev` - Dev server only
+- `npm run bridge:start` - Local bridge only
+- `npm run build` - Production build
+- `npm run preview` - Preview production build
 
 ## Workflow steps in the UI
 
@@ -166,16 +100,12 @@ Recommended GitHub token scopes:
 ## Troubleshooting
 
 ### Bridge shows "OFFLINE"
-- Ensure `npm run bridge:start` is running in a separate terminal
-- Check that the port 4141 is not blocked by firewall
-- Verify the bridge endpoint in Settings matches `http://127.0.0.1:4141/run`
+- The bridge should start automatically with `npm run start`
+- Check that port 4141 is not blocked
+- Verify bridge endpoint in Settings: `http://127.0.0.1:4141/run`
 
 ### Terminal doesn't open on Linux
-- Install a supported terminal emulator:
-  - Ubuntu/Debian: `sudo apt install gnome-terminal`
-  - Fedora: `sudo dnf install gnome-terminal`
-  - Arch: `sudo pacman -S gnome-terminal`
-- Alternatively, install `konsole`, `xfce4-terminal`, or `xterm`
+- Install gnome-terminal, konsole, or xterm
 
 ### Worktree creation fails
 - Ensure the worktree root path exists and is writable
