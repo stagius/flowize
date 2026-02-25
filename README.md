@@ -1,5 +1,9 @@
 # Flowize
 [![Vercel Deployment Status](https://therealsujitk-vercel-badge.vercel.app/?app=flowize)](https://flowize-git.vercel.app)
+[![Version](https://img.shields.io/badge/version-v1.0.0-yellow.svg)](https://github.com/stagius/flowize/releases)
+[![GitHub issues](https://img.shields.io/github/issues/stagius/flowize.svg)](https://gitHub.com/stagius/flowize/issues)
+[![GitHub pull-requests](https://img.shields.io/github/issues-pr/stagius/flowize.svg)](https://gitHub.com/stagius/flowize/pulls)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/stagius/flowize/pulls)
 
 Flowize is a React + TypeScript interface for running a parallel GitHub workflow from raw task input to merged pull request. It helps you organize work across issue intake, worktree assignment, implementation, review, and merge tracking in one UI.
 
