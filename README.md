@@ -1,3 +1,5 @@
+<img width="2548" height="949" alt="thumb_short" src="https://github.com/user-attachments/assets/6023f101-a227-4b97-8e50-b0efa5abbbdf" />
+
 # Flowize
 [![Vercel Deployment Status](https://therealsujitk-vercel-badge.vercel.app/?app=flowize)](https://flowize-git.vercel.app)
 [![Version](https://img.shields.io/badge/version-v1.0.0-yellow.svg)](https://github.com/stagius/flowize/releases)
