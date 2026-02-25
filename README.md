@@ -150,3 +150,7 @@ npm run build
 
 - Git worktree operations run through the local bridge endpoint.
 - GitHub actions are real API calls when a valid token is provided.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
