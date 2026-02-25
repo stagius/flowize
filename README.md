@@ -6,21 +6,13 @@ Flowize is a React + TypeScript interface for running a parallel GitHub workflow
 ## Quick Start
 
 ```bash
-# 1. Clone and install
-git clone <your-fork-url>
-cd flowize
+# One-step setup (installs deps, creates .env, starts app)
+npm run init
+
+# OR two-step setup (if you already have deps)
 npm install
-
-# 2. Create .env.local
-echo "VITE_API_KEY=your_gemini_api_key" > .env.local
-
-# 3. Start the app (terminal 1)
-npm run dev
-
-# 4. Start the local bridge (terminal 2)
-npm run bridge:start
-
-# 5. Open http://localhost:3000
+npm run setup
+npm start
 ```
 
 On first launch, you'll be prompted to log in with GitHub. Click "Connect with GitHub" or manually paste a Personal Access Token in Settings.
