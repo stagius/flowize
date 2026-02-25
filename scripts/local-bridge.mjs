@@ -1,7 +1,9 @@
 import { createServer } from 'http';
 import { exec, spawn } from 'child_process';
 import { randomUUID } from 'crypto';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, watch } from 'fs';
+
+const ENV_FILE = '.env.local';
 
 // ---------------------------------------------------------------------------
 // Logging
@@ -20,14 +22,13 @@ const log = {
 };
 
 const loadLocalEnvFile = () => {
-  const envPath = '.env.local';
-  if (!existsSync(envPath)) {
-    log.debug('.env.local not found, skipping');
+  if (!existsSync(ENV_FILE)) {
+    log.debug(`${ENV_FILE} not found, skipping`);
     return;
   }
 
   try {
-    const content = readFileSync(envPath, 'utf8');
+    const content = readFileSync(ENV_FILE, 'utf8');
     const lines = content.split(/\r?\n/);
     const loaded = [];
 
@@ -41,7 +42,6 @@ const loadLocalEnvFile = () => {
 
       const key = withoutExport.slice(0, separatorIndex).trim();
       if (!key) continue;
-      if (typeof process.env[key] === 'string' && process.env[key].length > 0) continue;
 
       let value = withoutExport.slice(separatorIndex + 1).trim();
       if (
@@ -51,8 +51,10 @@ const loadLocalEnvFile = () => {
         value = value.slice(1, -1);
       }
 
-      process.env[key] = value;
-      loaded.push(key);
+      if (value && value !== `your_${key.toLowerCase()}`) {
+        process.env[key] = value;
+        loaded.push(key);
+      }
     }
 
     if (loaded.length > 0) {
@@ -60,7 +62,6 @@ const loadLocalEnvFile = () => {
     }
   } catch (err) {
     log.warn('.env.local parse error:', err.message);
-    // ignore malformed .env.local; explicit shell env vars still work
   }
 };
 
@@ -73,15 +74,61 @@ const WORKDIR = process.env.BRIDGE_WORKDIR || process.cwd();
 const JOB_TTL_MS = Number(process.env.BRIDGE_JOB_TTL_MS || 30 * 60 * 1000);
 const JOB_MAX_RUNTIME_MS = Number(process.env.BRIDGE_JOB_MAX_RUNTIME_MS || 10 * 60 * 1000);
 const SYNC_MAX_RUNTIME_MS = Number(process.env.BRIDGE_SYNC_MAX_RUNTIME_MS || 5 * 60 * 1000);
-const GITHUB_OAUTH_CLIENT_ID = (process.env.GITHUB_OAUTH_CLIENT_ID || '').trim();
-const GITHUB_OAUTH_CLIENT_SECRET = (process.env.GITHUB_OAUTH_CLIENT_SECRET || '').trim();
-const GITHUB_OAUTH_SCOPE = (process.env.GITHUB_OAUTH_SCOPE || 'read:user repo').trim();
-const GITHUB_OAUTH_CALLBACK_HOST = (process.env.GITHUB_OAUTH_CALLBACK_HOST || '127.0.0.1').trim();
-const GITHUB_OAUTH_REDIRECT_URI = (process.env.GITHUB_OAUTH_REDIRECT_URI || `http://${GITHUB_OAUTH_CALLBACK_HOST}:${PORT}/github/oauth/callback`).trim();
+let GITHUB_OAUTH_CLIENT_ID = (process.env.GITHUB_OAUTH_CLIENT_ID || '').trim();
+let GITHUB_OAUTH_CLIENT_SECRET = (process.env.GITHUB_OAUTH_CLIENT_SECRET || '').trim();
+let GITHUB_OAUTH_SCOPE = (process.env.GITHUB_OAUTH_SCOPE || 'read:user repo').trim();
+let GITHUB_OAUTH_CALLBACK_HOST = (process.env.GITHUB_OAUTH_CALLBACK_HOST || '127.0.0.1').trim();
+let GITHUB_OAUTH_REDIRECT_URI = (process.env.GITHUB_OAUTH_REDIRECT_URI || `http://${GITHUB_OAUTH_CALLBACK_HOST}:${PORT}/github/oauth/callback`).trim();
 const OAUTH_STATE_TTL_MS = Number(process.env.GITHUB_OAUTH_STATE_TTL_MS || 10 * 60 * 1000);
 
 const jobs = new Map();
 const oauthStates = new Map();
+
+let server;
+
+let restartTimeout;
+const restartServer = () => {
+  if (restartTimeout) return;
+  restartTimeout = setTimeout(() => {
+    restartTimeout = null;
+    log.info('.env.local changed, restarting bridge...');
+    if (server) {
+      server.close(() => {
+        log.info('Server closed, reloading env and starting fresh...');
+        loadLocalEnvFile();
+        updateOAuthConstants();
+        startServer();
+      });
+    }
+  }, 500);
+};
+
+const updateOAuthConstants = () => {
+  GITHUB_OAUTH_CLIENT_ID = (process.env.GITHUB_OAUTH_CLIENT_ID || '').trim();
+  GITHUB_OAUTH_CLIENT_SECRET = (process.env.GITHUB_OAUTH_CLIENT_SECRET || '').trim();
+  GITHUB_OAUTH_SCOPE = (process.env.GITHUB_OAUTH_SCOPE || 'read:user repo').trim();
+  GITHUB_OAUTH_CALLBACK_HOST = (process.env.GITHUB_OAUTH_CALLBACK_HOST || '127.0.0.1').trim();
+  GITHUB_OAUTH_REDIRECT_URI = (process.env.GITHUB_OAUTH_REDIRECT_URI || `http://${GITHUB_OAUTH_CALLBACK_HOST}:${PORT}/github/oauth/callback`).trim();
+  
+  if (GITHUB_OAUTH_CLIENT_ID && GITHUB_OAUTH_CLIENT_SECRET) {
+    log.info(`OAuth updated: client_id=${GITHUB_OAUTH_CLIENT_ID} redirect=${GITHUB_OAUTH_REDIRECT_URI}`);
+  } else {
+    log.warn('OAuth disabled - missing client_id or client_secret');
+  }
+};
+
+const watchEnvFile = () => {
+  try {
+    watch(ENV_FILE, (eventType) => {
+      if (eventType === 'change') {
+        restartServer();
+      }
+    });
+    log.info(`Watching ${ENV_FILE} for changes`);
+  } catch (err) {
+    log.warn(`Failed to watch ${ENV_FILE}: ${err.message}`);
+  }
+};
 
 const isOriginAllowed = (origin) => {
   if (!origin) return true;
@@ -566,7 +613,7 @@ const runShellCommand = (command, worktreePath) => {
   });
 };
 
-const server = createServer(async (req, res) => {
+server = createServer(async (req, res) => {
   const origin = req.headers.origin || '';
   const reqId = randomUUID().slice(0, 8);
   log.info(`${req.method} ${req.url} origin=${origin || '(none)'} id=${reqId}`);
@@ -841,15 +888,20 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, HOST, () => {
-  log.info(`listening on http://${HOST}:${PORT}/run`);
-  log.info(`workdir=${WORKDIR}`);
-  log.info(`allowed-origin=${ALLOWED_ORIGIN}`);
-  log.info(`log-level=${LOG_LEVEL} (set BRIDGE_LOG_LEVEL=debug for verbose output)`);
-  log.info(`job-ttl=${JOB_TTL_MS}ms  job-max-runtime=${JOB_MAX_RUNTIME_MS}ms  sync-max-runtime=${SYNC_MAX_RUNTIME_MS}ms`);
-  if (GITHUB_OAUTH_CLIENT_ID && GITHUB_OAUTH_CLIENT_SECRET) {
-    log.info(`github-oauth=enabled  client_id=${GITHUB_OAUTH_CLIENT_ID}  redirect=${GITHUB_OAUTH_REDIRECT_URI}  scope="${GITHUB_OAUTH_SCOPE}"`);
-  } else {
-    log.warn('github-oauth=disabled — set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET in .env.local');
-  }
-});
+const startServer = () => {
+  server.listen(PORT, HOST, () => {
+    log.info(`listening on http://${HOST}:${PORT}/run`);
+    log.info(`workdir=${WORKDIR}`);
+    log.info(`allowed-origin=${ALLOWED_ORIGIN}`);
+    log.info(`log-level=${LOG_LEVEL} (set BRIDGE_LOG_LEVEL=debug for verbose output)`);
+    log.info(`job-ttl=${JOB_TTL_MS}ms  job-max-runtime=${JOB_MAX_RUNTIME_MS}ms  sync-max-runtime=${SYNC_MAX_RUNTIME_MS}ms`);
+    if (GITHUB_OAUTH_CLIENT_ID && GITHUB_OAUTH_CLIENT_SECRET) {
+      log.info(`github-oauth=enabled  client_id=${GITHUB_OAUTH_CLIENT_ID}  redirect=${GITHUB_OAUTH_REDIRECT_URI}  scope="${GITHUB_OAUTH_SCOPE}"`);
+    } else {
+      log.warn('github-oauth=disabled — set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET in .env.local');
+    }
+  });
+};
+
+watchEnvFile();
+startServer();

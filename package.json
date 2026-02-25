@@ -3,10 +3,10 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-"scripts": {
+  "scripts": {
     "setup": "cp .env.example .env.local",
     "init": "npm install && npm run setup && npm start",
-    "start": "npm run dev & npm run bridge:start",
+    "start": "concurrently \"npm run dev\" \"npm run bridge:start\"",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
@@ -32,6 +32,7 @@
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^9.2.1",
     "tsx": "^4.20.6",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
