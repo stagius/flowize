@@ -1334,7 +1334,7 @@ export default function App() {
                 bridgeHealth={bridgeHealth}
                 showToast={showToast}
             />;
-            case 4: return <Step5_Review tasks={tasks} onApprovePR={handleApprovePR} onRequestChanges={handleRequestChanges} onCheckStatus={handleCheckCIStatus} bridgeHealth={bridgeHealth} />;
+            case 4: return <Step5_Review tasks={tasks} onApprovePR={handleApprovePR} onRequestChanges={handleRequestChanges} onCheckStatus={handleCheckCIStatus} bridgeHealth={bridgeHealth} settings={settings} />;
             case 5: return <Step6_Merge tasks={tasks} onMerge={handleMerge} onResolveConflict={handleResolveMergeConflict} onFetchMerged={handleFetchMerged} settings={settings} />;
             default: return <div>Unknown Step</div>;
         }
