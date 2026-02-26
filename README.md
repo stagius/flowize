@@ -37,6 +37,18 @@ Flowize guides you through the complete development workflow:
 - **Review** - Open PRs and monitor CI status
 - **Merge** - Merge ready PRs and track history
 
+
+### Multiple worktrees
+
+https://github.com/user-attachments/assets/208da6f8-f412-42a5-a5a2-87afd4543edd
+
+### Each worktree in a separate terminal
+
+https://github.com/user-attachments/assets/69024d86-ab09-4412-bef5-6ea19ed3a05b
+
+
+
+
 ## Tech stack
 
 - React 19
@@ -50,10 +62,12 @@ Flowize guides you through the complete development workflow:
 
 ## Prerequisites
 
-- Node.js 18+
+- [Node.js 18+](https://nodejs.org/en/download/current)
 - npm
 - Git
 - GitHub Personal Access Token (for repo sync)
+- [Opencode](http://opencode.ai)
+- [Antigravity](https://antigravity.google/download) (we're using the agent not the chat)
 
 ## Configuration
 
