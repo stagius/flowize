@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TaskItem, TaskStatus } from '../types';
+import { AppSettings, TaskItem, TaskStatus } from '../types';
 import { GitPullRequest, CheckCircle2, FileCode, ExternalLink, GitCommit, Loader2, RefreshCw, Server } from 'lucide-react';
 import { ErrorState, LoadingSkeleton } from './ui/AsyncStates';
 
@@ -9,9 +9,10 @@ interface Props {
   onRequestChanges: (taskId: string, feedback: string) => void;
   onCheckStatus: () => Promise<void>;
   bridgeHealth?: { status: 'checking' | 'healthy' | 'unhealthy'; endpoint?: string };
+  settings?: AppSettings;
 }
 
-export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestChanges, onCheckStatus, bridgeHealth }) => {
+export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestChanges, onCheckStatus, bridgeHealth, settings }) => {
   const pendingReview = tasks.filter(t => t.status === TaskStatus.IMPLEMENTED || t.status === TaskStatus.PUSHED);
   const activePRs = tasks.filter(t => t.status === TaskStatus.PR_CREATED || t.status === TaskStatus.PR_MERGED);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -19,6 +20,11 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [isChecking, setIsChecking] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+
+  const buildBranchUrl = (branchName: string): string | null => {
+    if (!branchName || !settings?.repoOwner || !settings?.repoName) return null;
+    return `https://github.com/${settings.repoOwner}/${settings.repoName}/tree/${branchName}`;
+  };
 
   const handleApprove = async (id: string) => {
     setReviewError(null);
@@ -123,7 +129,19 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
                     <span className="font-semibold text-slate-900 dark:text-slate-200">{task.title}</span>
                   </div>
                   <span className="text-[10px] font-mono text-slate-600 dark:text-slate-400 bg-slate-200 dark:bg-slate-950 px-2 py-1 rounded border border-slate-300 dark:border-slate-800">
-                    {task.branchName}
+                    {task.branchName && settings?.repoOwner && settings?.repoName ? (
+                      <a
+                        href={buildBranchUrl(task.branchName) || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {task.branchName}
+                      </a>
+                    ) : (
+                      task.branchName
+                    )}
                   </span>
                 </div>
                 <div className="p-0 bg-slate-50 dark:bg-slate-950 max-h-64 overflow-y-auto custom-scrollbar">
