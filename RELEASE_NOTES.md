@@ -1,3 +1,8 @@
+## Release Notes v1.0.1
+
+### New Features
+- Make branch name clickable on Review page
+
 ## Release Notes v1.0.0
 
 ### New Features
