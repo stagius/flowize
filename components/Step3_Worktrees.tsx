@@ -554,6 +554,7 @@ export const Step3_Worktrees: React.FC<Props> = ({
                 title: `Flowize AG-FULL-${slot.id}`,
                 launchAntigravity: ide === 'antigravity',
                 launchIntellij: ide === 'intellij',
+                ideaHome: settings?.ideaHome,
                 closeAfterStartup: true
             });
         } catch (error) {
@@ -1200,10 +1201,16 @@ export const Step3_Worktrees: React.FC<Props> = ({
                                                                                 Antigravity
                                                                             </button>
                                                                             <button
-                                                                                onClick={() => { setSelectedIde('intellij'); setIsIdeDropdownOpen(false); }}
-                                                                                className={`w-full text-left px-3 py-2 text-xs transition-colors ${selectedIde === 'intellij' ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-900 dark:text-slate-200'}`}
+                                                                                onClick={() => { 
+                                                                                    if (settings?.ideaHome) {
+                                                                                        setSelectedIde('intellij'); 
+                                                                                        setIsIdeDropdownOpen(false); 
+                                                                                    }
+                                                                                }}
+                                                                                disabled={!settings?.ideaHome}
+                                                                                className={`w-full text-left px-3 py-2 text-xs transition-colors ${selectedIde === 'intellij' ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-900 dark:text-slate-200'} ${!settings?.ideaHome ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                             >
-                                                                                IntelliJ
+                                                                                IntelliJ {!settings?.ideaHome && <span className="text-[10px]">(see settings)</span>}
                                                                             </button>
                                                                         </div>
                                                                     )}

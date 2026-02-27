@@ -1419,6 +1419,20 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                   placeholder=".opencode/skills/specflow-worktree-automation/SKILL.md"
                 />
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">IntelliJ IDEA Home</label>
+                <input
+                  type="text"
+                  value={formData.ideaHome || ''}
+                  onChange={e => setFormData({ ...formData, ideaHome: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
+                  placeholder="Z:\idea-git"
+                />
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Path to IntelliJ IDEA installation. If empty, IntelliJ option will be disabled.
+                </p>
+              </div>
             </div>
 
           </div>

@@ -38,6 +38,7 @@ export interface OpenWorktreeCmdOptions {
   closeAfterStartup?: boolean;
   launchAntigravity?: boolean;
   launchIntellij?: boolean;
+  ideaHome?: string;
 }
 
 const DEFAULT_AGENT_SUBDIR = '.agent-workspace';
@@ -710,7 +711,8 @@ export const openWorktreeCmdWindow = async (
           startupCommand,
           closeAfterStartup: options?.closeAfterStartup === true,
           launchAntigravity: options?.launchAntigravity === true,
-          launchIntellij: options?.launchIntellij === true
+          launchIntellij: options?.launchIntellij === true,
+          ideaHome: options?.ideaHome || settings?.ideaHome || ''
         })
       }, 10000);
 

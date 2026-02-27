@@ -231,7 +231,8 @@ const openTerminal = async (
   startupCommand = 'git status',
   closeAfterStartup = false,
   launchAntigravity = false,
-  launchIntellij = false
+  launchIntellij = false,
+  ideaHome = ''
 ) => {
   if (!worktreePath) {
     return { success: false, error: 'Missing worktreePath' };
@@ -246,7 +247,7 @@ const openTerminal = async (
     : 'git status';
 
   if (process.platform === 'win32') {
-    return openWindowsTerminal(worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity, launchIntellij);
+    return openWindowsTerminal(worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity, launchIntellij, ideaHome);
   }
 
   if (process.platform === 'darwin') {
@@ -256,7 +257,7 @@ const openTerminal = async (
   return openLinuxTerminal(worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity);
 };
 
-const openWindowsTerminal = async (worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity, launchIntellij) => {
+const openWindowsTerminal = async (worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity, launchIntellij, ideaHome = '') => {
   const normalizedPath = /^[a-zA-Z]:\//.test(worktreePath)
     ? worktreePath.replace(/\//g, '\\')
     : worktreePath;
@@ -305,7 +306,10 @@ const openWindowsTerminal = async (worktreePath, title, bootCommand, closeAfterS
   }
 
   if (launchIntellij) {
-    const ideaPath = 'Z:\\idea-git\\bin\\idea64.exe';
+    if (!ideaHome) {
+      return { success: false, error: 'IntelliJ IDEA path not configured. Set IDEA_HOME in Settings.' };
+    }
+    const ideaPath = path.join(ideaHome, 'bin', 'idea64.exe');
     const ideaConfig = process.env.USERPROFILE + '\\.idea-git-only';
     log.info(`[openIDE] Launching IntelliJ: ${ideaPath} with ${escapedPath}`);
     const ideChild = spawn(ideaPath, [
@@ -880,11 +884,12 @@ server = createServer(async (req, res) => {
       const closeAfterStartup = body.closeAfterStartup === true;
       const launchAntigravity = body.launchAntigravity === true;
       const launchIntellij = body.launchIntellij === true;
+      const ideaHome = typeof body.ideaHome === 'string' ? body.ideaHome.trim() : '';
 
-      log.info(`[${reqId}] open-terminal - path="${worktreePath}" title="${title}" startup="${startupCommand}" close=${closeAfterStartup} antigravity=${launchAntigravity} intellij=${launchIntellij}`);
+      log.info(`[${reqId}] open-terminal - path="${worktreePath}" title="${title}" startup="${startupCommand}" close=${closeAfterStartup} antigravity=${launchAntigravity} intellij=${launchIntellij} ideaHome="${ideaHome}"`);
 
       try {
-        const result = await openTerminal(worktreePath, title, startupCommand, closeAfterStartup, launchAntigravity, launchIntellij);
+        const result = await openTerminal(worktreePath, title, startupCommand, closeAfterStartup, launchAntigravity, launchIntellij, ideaHome);
         log.info(`[${reqId}] open-terminal - result: success=${result.success}${result.error ? ` error="${result.error}"` : ''}`);
         writeJson(res, result.success ? 200 : 400, result, origin);
       } catch (error) {
