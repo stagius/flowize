@@ -37,6 +37,7 @@ export interface OpenWorktreeCmdOptions {
   copyTemplatedCommandToClipboard?: boolean;
   closeAfterStartup?: boolean;
   launchAntigravity?: boolean;
+  launchIntellij?: boolean;
 }
 
 const DEFAULT_AGENT_SUBDIR = '.agent-workspace';
@@ -708,7 +709,8 @@ export const openWorktreeCmdWindow = async (
           title,
           startupCommand,
           closeAfterStartup: options?.closeAfterStartup === true,
-          launchAntigravity: options?.launchAntigravity === true
+          launchAntigravity: options?.launchAntigravity === true,
+          launchIntellij: options?.launchIntellij === true
         })
       }, 10000);
 

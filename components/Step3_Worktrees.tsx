@@ -295,8 +295,34 @@ export const Step3_Worktrees: React.FC<Props> = ({
     const [cleaningSlot, setCleaningSlot] = useState<number | null>(null);
     const [openingAgentWorkspaceSlot, setOpeningAgentWorkspaceSlot] = useState<number | null>(null);
     const [openingFullAgentSlot, setOpeningFullAgentSlot] = useState<number | null>(null);
+    const [selectedIde, setSelectedIde] = useState<'antigravity' | 'intellij'>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('flowize-selected-ide');
+            if (saved === 'antigravity' || saved === 'intellij') return saved;
+        }
+        return 'antigravity';
+    });
+    const [isIdeDropdownOpen, setIsIdeDropdownOpen] = useState(false);
     const [copiedCmdTaskId, setCopiedCmdTaskId] = useState<string | null>(null);
     const [copiedPathSlotId, setCopiedPathSlotId] = useState<number | null>(null);
+    const ideDropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!isIdeDropdownOpen) return;
+        const handleClickOutside = (event: MouseEvent) => {
+            if (ideDropdownRef.current && !ideDropdownRef.current.contains(event.target as Node)) {
+                setIsIdeDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isIdeDropdownOpen]);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('flowize-selected-ide', selectedIde);
+        }
+    }, [selectedIde]);
 
     // Terminal State
     const [activeTerminalSlotId, setActiveTerminalSlotId] = useState<number | null>(null);
@@ -520,19 +546,20 @@ export const Step3_Worktrees: React.FC<Props> = ({
         }
     };
 
-    const handleOpenFullAgentIde = async (slot: WorktreeSlot) => {
+    const handleOpenFullAgentIde = async (slot: WorktreeSlot, ide: 'antigravity' | 'intellij' = 'antigravity') => {
         setOpeningFullAgentSlot(slot.id);
 
         try {
             await openWorktreeCmdWindow(settings, slot, {
                 title: `Flowize AG-FULL-${slot.id}`,
-                launchAntigravity: true,
+                launchAntigravity: ide === 'antigravity',
+                launchIntellij: ide === 'intellij',
                 closeAfterStartup: true
             });
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            console.error('Failed to open full Anti-Gravity IDE:', error);
-            showToast?.(`Failed to open full Anti-Gravity IDE for this slot.\n${message}`, 'error');
+            console.error('Failed to open IDE:', error);
+            showToast?.(`Failed to open IDE for this slot.\n${message}`, 'error');
         } finally {
             setOpeningFullAgentSlot((current) => (current === slot.id ? null : current));
         }
@@ -1144,17 +1171,44 @@ export const Step3_Worktrees: React.FC<Props> = ({
 
                                                         {/* Mobile: Agent actions Group */}
                                                         <div className="flex gap-2 flex-1 sm:contents">
-                                                            <button
-                                                                onClick={() => handleOpenFullAgentIde(slot)}
-                                                                disabled={openingFullAgentSlot === slot.id}
-                                                                aria-busy={openingFullAgentSlot === slot.id}
-                                                                aria-label="Open IDE"
-                                                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors shadow-lg shadow-indigo-900/20"
-                                                            >
-                                                                {openingFullAgentSlot === slot.id ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Terminal className="w-4 h-4" aria-hidden="true" />}
-                                                                <span className="hidden sm:inline">Open IDE</span>
-                                                                <span className="sm:hidden">IDE</span>
-                                                            </button>
+                                                            <div ref={ideDropdownRef} className="relative inline-flex flex-1 sm:flex-none">
+                                                                <button
+                                                                    onClick={() => handleOpenFullAgentIde(slot, selectedIde)}
+                                                                    disabled={openingFullAgentSlot === slot.id}
+                                                                    aria-busy={openingFullAgentSlot === slot.id}
+                                                                    aria-label="Open IDE"
+                                                                    className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-l-lg text-xs md:text-sm font-medium transition-colors shadow-lg shadow-indigo-900/20 h-full"
+                                                                >
+                                                                    {openingFullAgentSlot === slot.id ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Terminal className="w-4 h-4" aria-hidden="true" />}
+                                                                    <span className="hidden sm:inline">Open IDE</span>
+                                                                    <span className="sm:hidden">IDE</span>
+                                                                </button>
+                                                                <div className="relative h-full">
+                                                                    <button 
+                                                                        onClick={() => setIsIdeDropdownOpen(!isIdeDropdownOpen)}
+                                                                        className="h-full px-2 bg-indigo-700 hover:bg-indigo-600 rounded-r-lg flex items-center border-l border-indigo-500"
+                                                                        disabled={openingFullAgentSlot === slot.id}
+                                                                    >
+                                                                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                                    </button>
+                                                                    {isIdeDropdownOpen && (
+                                                                        <div className="absolute right-0 top-full mt-1 z-50 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 shadow-2xl min-w-[140px] overflow-hidden">
+                                                                            <button
+                                                                                onClick={() => { setSelectedIde('antigravity'); setIsIdeDropdownOpen(false); }}
+                                                                                className={`w-full text-left px-3 py-2 text-xs transition-colors ${selectedIde === 'antigravity' ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-900 dark:text-slate-200'}`}
+                                                                            >
+                                                                                Antigravity
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => { setSelectedIde('intellij'); setIsIdeDropdownOpen(false); }}
+                                                                                className={`w-full text-left px-3 py-2 text-xs transition-colors ${selectedIde === 'intellij' ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-900 dark:text-slate-200'}`}
+                                                                            >
+                                                                                IntelliJ
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
                                                         </div>
 
                                                         <button

@@ -2,6 +2,11 @@ import { createServer } from 'http';
 import { exec, spawn } from 'child_process';
 import { randomUUID } from 'crypto';
 import { existsSync, readFileSync, writeFileSync, watch } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const ENV_FILE = '.env.local';
 
@@ -225,7 +230,8 @@ const openTerminal = async (
   title = 'Flowize Worktree',
   startupCommand = 'git status',
   closeAfterStartup = false,
-  launchAntigravity = false
+  launchAntigravity = false,
+  launchIntellij = false
 ) => {
   if (!worktreePath) {
     return { success: false, error: 'Missing worktreePath' };
@@ -240,7 +246,7 @@ const openTerminal = async (
     : 'git status';
 
   if (process.platform === 'win32') {
-    return openWindowsTerminal(worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity);
+    return openWindowsTerminal(worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity, launchIntellij);
   }
 
   if (process.platform === 'darwin') {
@@ -250,7 +256,7 @@ const openTerminal = async (
   return openLinuxTerminal(worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity);
 };
 
-const openWindowsTerminal = async (worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity) => {
+const openWindowsTerminal = async (worktreePath, title, bootCommand, closeAfterStartup, launchAntigravity, launchIntellij) => {
   const normalizedPath = /^[a-zA-Z]:\//.test(worktreePath)
     ? worktreePath.replace(/\//g, '\\')
     : worktreePath;
@@ -263,22 +269,55 @@ const openWindowsTerminal = async (worktreePath, title, bootCommand, closeAfterS
     .trim() || 'Flowize Worktree';
 
   if (launchAntigravity) {
-    const ideChild = spawn(shell, [
-      '/d',
-      '/c',
-      'start',
-      '""',
-      '/B',
-      '/D',
-      escapedPath,
-      'antigravity',
-      '--new-window',
-      '.'
+    log.info(`[openIDE] Launching Antigravity for ${escapedPath}`);
+    const shell = process.env.ComSpec || 'cmd.exe';
+    const antigravityChild = spawn(shell, ['/c', 'start', 'antigravity', '--new-window', '.'], {
+      cwd: escapedPath,
+      detached: true,
+      windowsHide: false,
+      stdio: 'inherit',
+      env: process.env
+    });
+    antigravityChild.unref();
+
+    return await new Promise((resolve) => {
+      let settled = false;
+      const finish = (payload) => {
+        if (settled) return;
+        settled = true;
+        resolve(payload);
+      };
+
+      antigravityChild.once('error', (error) => {
+        finish({ success: false, error: `Failed to launch Antigravity: ${error.message}` });
+      });
+
+      antigravityChild.once('close', (code) => {
+        if (typeof code === 'number' && code !== 0) {
+          finish({ success: false, error: `Failed to launch Antigravity (exit code ${code})` });
+          return;
+        }
+        finish({ success: true });
+      });
+
+      setTimeout(() => finish({ success: true }), 250);
+    });
+  }
+
+  if (launchIntellij) {
+    const ideaPath = 'Z:\\idea-git\\bin\\idea64.exe';
+    const ideaConfig = process.env.USERPROFILE + '\\.idea-git-only';
+    log.info(`[openIDE] Launching IntelliJ: ${ideaPath} with ${escapedPath}`);
+    const ideChild = spawn(ideaPath, [
+      '-Didea.config.path=' + ideaConfig + '\\config',
+      '-Didea.system.path=' + ideaConfig + '\\system',
+      '-Didea.plugins.path=' + ideaConfig + '\\plugins',
+      escapedPath
     ], {
       cwd: escapedPath,
       detached: true,
-      windowsHide: true,
-      stdio: 'ignore',
+      windowsHide: false,
+      stdio: 'inherit',
       env: process.env
     });
     ideChild.unref();
@@ -292,12 +331,12 @@ const openWindowsTerminal = async (worktreePath, title, bootCommand, closeAfterS
       };
 
       ideChild.once('error', (error) => {
-        finish({ success: false, error: `Failed to launch Antigravity: ${error.message}` });
+        finish({ success: false, error: `Failed to launch IDE: ${error.message}` });
       });
 
       ideChild.once('close', (code) => {
         if (typeof code === 'number' && code !== 0) {
-          finish({ success: false, error: `Failed to launch Antigravity (exit code ${code})` });
+          finish({ success: false, error: `Failed to launch IDE (exit code ${code})` });
           return;
         }
         finish({ success: true });
@@ -434,7 +473,7 @@ const openLinuxTerminal = async (worktreePath, title, bootCommand, closeAfterSta
   ];
 
   if (launchAntigravity) {
-    bootCommand = `antigravity --new-window .`;
+    bootCommand = `launch-idea-git.bat "${escapedPath}"`;
   }
 
   const script = `cd "${escapedPath}" && echo "=== ${escapedTitle} ===" && echo "" && ${bootCommand}${closeAfterStartup ? '' : ' && exec bash'}`;
@@ -840,11 +879,12 @@ server = createServer(async (req, res) => {
       const startupCommand = typeof body.startupCommand === 'string' ? body.startupCommand.trim() : 'git status';
       const closeAfterStartup = body.closeAfterStartup === true;
       const launchAntigravity = body.launchAntigravity === true;
+      const launchIntellij = body.launchIntellij === true;
 
-      log.info(`[${reqId}] open-terminal - path="${worktreePath}" title="${title}" startup="${startupCommand}" close=${closeAfterStartup} antigravity=${launchAntigravity}`);
+      log.info(`[${reqId}] open-terminal - path="${worktreePath}" title="${title}" startup="${startupCommand}" close=${closeAfterStartup} antigravity=${launchAntigravity} intellij=${launchIntellij}`);
 
       try {
-        const result = await openTerminal(worktreePath, title, startupCommand, closeAfterStartup, launchAntigravity);
+        const result = await openTerminal(worktreePath, title, startupCommand, closeAfterStartup, launchAntigravity, launchIntellij);
         log.info(`[${reqId}] open-terminal - result: success=${result.success}${result.error ? ` error="${result.error}"` : ''}`);
         writeJson(res, result.success ? 200 : 400, result, origin);
       } catch (error) {
