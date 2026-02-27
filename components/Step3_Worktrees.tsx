@@ -302,21 +302,21 @@ export const Step3_Worktrees: React.FC<Props> = ({
         }
         return 'antigravity';
     });
-    const [isIdeDropdownOpen, setIsIdeDropdownOpen] = useState(false);
+    const [openIdeDropdownSlot, setOpenIdeDropdownSlot] = useState<number | null>(null);
     const [copiedCmdTaskId, setCopiedCmdTaskId] = useState<string | null>(null);
     const [copiedPathSlotId, setCopiedPathSlotId] = useState<number | null>(null);
     const ideDropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (!isIdeDropdownOpen) return;
+        if (openIdeDropdownSlot === null) return;
         const handleClickOutside = (event: MouseEvent) => {
             if (ideDropdownRef.current && !ideDropdownRef.current.contains(event.target as Node)) {
-                setIsIdeDropdownOpen(false);
+                setOpenIdeDropdownSlot(null);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isIdeDropdownOpen]);
+    }, [openIdeDropdownSlot]);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -1172,50 +1172,50 @@ export const Step3_Worktrees: React.FC<Props> = ({
 
                                                         {/* Mobile: Agent actions Group */}
                                                         <div className="flex gap-2 flex-1 sm:contents">
-                                                            <div ref={ideDropdownRef} className="relative inline-flex flex-1 sm:flex-none">
-                                                                <button
-                                                                    onClick={() => handleOpenFullAgentIde(slot, selectedIde)}
-                                                                    disabled={openingFullAgentSlot === slot.id}
-                                                                    aria-busy={openingFullAgentSlot === slot.id}
-                                                                    aria-label="Open IDE"
-                                                                    className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-l-lg text-xs md:text-sm font-medium transition-colors shadow-lg shadow-indigo-900/20 h-full"
-                                                                >
-                                                                    {openingFullAgentSlot === slot.id ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Terminal className="w-4 h-4" aria-hidden="true" />}
-                                                                    <span className="hidden sm:inline">Open IDE</span>
-                                                                    <span className="sm:hidden">IDE</span>
-                                                                </button>
-                                                                <div className="relative h-full">
-                                                                    <button 
-                                                                        onClick={() => setIsIdeDropdownOpen(!isIdeDropdownOpen)}
-                                                                        className="h-full px-2 bg-indigo-700 hover:bg-indigo-600 rounded-r-lg flex items-center border-l border-indigo-500"
+                                                                <div ref={ideDropdownRef} className="relative inline-flex flex-1 sm:flex-none">
+                                                                    <button
+                                                                        onClick={() => handleOpenFullAgentIde(slot, selectedIde)}
                                                                         disabled={openingFullAgentSlot === slot.id}
+                                                                        aria-busy={openingFullAgentSlot === slot.id}
+                                                                        aria-label="Open IDE"
+                                                                        className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-l-lg text-xs md:text-sm font-medium transition-colors shadow-lg shadow-indigo-900/20 h-full"
                                                                     >
-                                                                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                                        {openingFullAgentSlot === slot.id ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Terminal className="w-4 h-4" aria-hidden="true" />}
+                                                                        <span className="hidden sm:inline">Open IDE</span>
+                                                                        <span className="sm:hidden">IDE</span>
                                                                     </button>
-                                                                    {isIdeDropdownOpen && (
-                                                                        <div className="absolute right-0 top-full mt-1 z-50 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 shadow-2xl min-w-[140px] overflow-hidden">
-                                                                            <button
-                                                                                onClick={() => { setSelectedIde('antigravity'); setIsIdeDropdownOpen(false); }}
-                                                                                className={`w-full text-left px-3 py-2 text-xs transition-colors ${selectedIde === 'antigravity' ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-900 dark:text-slate-200'}`}
-                                                                            >
-                                                                                Antigravity
-                                                                            </button>
-                                                                            <button
-                                                                                onClick={() => { 
-                                                                                    if (settings?.ideaHome) {
-                                                                                        setSelectedIde('intellij'); 
-                                                                                        setIsIdeDropdownOpen(false); 
-                                                                                    }
-                                                                                }}
-                                                                                disabled={!settings?.ideaHome}
-                                                                                className={`w-full text-left px-3 py-2 text-xs transition-colors ${selectedIde === 'intellij' ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-900 dark:text-slate-200'} ${!settings?.ideaHome ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                                            >
-                                                                                IntelliJ {!settings?.ideaHome && <span className="text-[10px]">(see settings)</span>}
-                                                                            </button>
-                                                                        </div>
-                                                                    )}
+                                                                    <div className="relative h-full">
+                                                                        <button 
+                                                                            onClick={() => setOpenIdeDropdownSlot(openIdeDropdownSlot === slot.id ? null : slot.id)}
+                                                                            className="h-full px-2 bg-indigo-700 hover:bg-indigo-600 rounded-r-lg flex items-center border-l border-indigo-500"
+                                                                            disabled={openingFullAgentSlot === slot.id}
+                                                                        >
+                                                                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                                        </button>
+                                                                        {openIdeDropdownSlot === slot.id && (
+                                                                            <div className="absolute right-0 top-full mt-1 z-50 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 shadow-2xl min-w-[140px] overflow-hidden">
+                                                                                <button
+                                                                                    onClick={() => { setSelectedIde('antigravity'); setOpenIdeDropdownSlot(null); }}
+                                                                                    className={`w-full text-left px-3 py-2 text-xs transition-colors ${selectedIde === 'antigravity' ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-900 dark:text-slate-200'}`}
+                                                                                >
+                                                                                    Antigravity
+                                                                                </button>
+                                                                                <button
+                                                                                    onClick={() => { 
+                                                                                        if (settings?.ideaHome) {
+                                                                                            setSelectedIde('intellij'); 
+                                                                                            setOpenIdeDropdownSlot(null); 
+                                                                                        }
+                                                                                    }}
+                                                                                    disabled={!settings?.ideaHome}
+                                                                                    className={`w-full text-left px-3 py-2 text-xs transition-colors ${selectedIde === 'intellij' ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-900 dark:text-slate-200'} ${!settings?.ideaHome ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                                >
+                                                                                    IntelliJ {!settings?.ideaHome && <span className="text-[10px]">(see settings)</span>}
+                                                                                </button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
                                                         </div>
 
                                                         <button
