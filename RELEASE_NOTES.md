@@ -1,3 +1,10 @@
+## Release Notes v1.0.2
+
+### New Features
+- IDE dropdown: Select between Antigravity and IntelliJ IDEA when opening worktrees
+- LocalStorage persistence for IDE selection preference
+- Configurable IntelliJ IDEA Home path in Settings
+
 ## Release Notes v1.0.1
 
 ### New Features
