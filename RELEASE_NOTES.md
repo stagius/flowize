@@ -1,3 +1,8 @@
+## Release Notes v1.0.3
+
+### New Features
+- Enable Click Interaction on System Status Section to Open Settings
+
 ## Release Notes v1.0.2
 
 ### New Features
