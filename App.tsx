@@ -266,6 +266,18 @@ export default function App() {
         return `${trimmed}${suffix}`;
     };
 
+    const buildWorktreeIssuePath = (root: string, issueNumber: number): string => {
+        const suffix = `-wt-${issueNumber}`;
+
+        if (root.includes('\\')) {
+            const trimmed = root.endsWith('\\') ? root.slice(0, -1) : root;
+            return `${trimmed}${suffix}`;
+        }
+
+        const trimmed = root.endsWith('/') ? root.slice(0, -1) : root;
+        return `${trimmed}${suffix}`;
+    };
+
     const buildDefaultSlots = (root: string, count: number): WorktreeSlot[] => {
         return Array.from({ length: count }, (_, i) => ({
             id: i + 1,
@@ -379,7 +391,8 @@ export default function App() {
         setSlots(prev => {
             const next = prev.map(slot => {
                 if (slot.taskId && !taskIds.has(slot.taskId)) {
-                    return { ...slot, taskId: null };
+                    // Task removed — revert path to slot-number-based placeholder
+                    return { ...slot, taskId: null, path: buildWorktreeSlotPath(settings.worktreeRoot, slot.id) };
                 }
                 return slot;
             });
@@ -396,10 +409,14 @@ export default function App() {
             for (let i = 1; i <= settings.maxWorktrees; i++) {
                 const existing = prev.find(p => p.id === i);
                 if (existing) {
-                    // Keep existing assignment, update path if needed
+                    // Keep existing assignment; rebuild path using issue number if slot is assigned
+                    const assignedTask = existing.taskId ? tasks.find(t => t.id === existing.taskId) : null;
+                    const updatedPath = assignedTask?.issueNumber
+                        ? buildWorktreeIssuePath(settings.worktreeRoot, assignedTask.issueNumber)
+                        : buildWorktreeSlotPath(settings.worktreeRoot, i);
                     newSlots.push({
                         ...existing,
-                        path: buildWorktreeSlotPath(settings.worktreeRoot, i)
+                        path: updatedPath
                     });
                 } else {
                     // Create new slot
@@ -803,6 +820,13 @@ export default function App() {
         const branchId = taskItem?.issueNumber ?? taskId;
         const branchName = `feat/${taskItem?.group.toLowerCase().replace(/\s+/g, '-')}-${branchId}`;
 
+        // Use issue number for the worktree directory name if available, otherwise fall back to slot number
+        const issueBasedPath = taskItem?.issueNumber
+            ? buildWorktreeIssuePath(settings.worktreeRoot, taskItem.issueNumber)
+            : buildWorktreeSlotPath(settings.worktreeRoot, slotId);
+
+        setSlots(prev => prev.map(s => s.id === slotId ? { ...s, taskId, path: issueBasedPath } : s));
+
         setTasks(prev => prev.map(t => {
             if (t.id === taskId) {
                 return {
@@ -816,7 +840,10 @@ export default function App() {
         }));
 
         // 2. Perform git operations via local bridge
-        const currentSlot = slots.find(s => s.id === slotId) || { id: slotId, path: buildWorktreeSlotPath(settings.worktreeRoot, slotId), taskId };
+        // Use the issue-based path for the slot (already updated in state above)
+        const currentSlot = slots.find(s => s.id === slotId)
+            ? { ...slots.find(s => s.id === slotId)!, path: issueBasedPath, taskId }
+            : { id: slotId, path: issueBasedPath, taskId };
         const task = tasks.find(t => t.id === taskId);
 
         if (task) {
