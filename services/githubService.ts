@@ -536,6 +536,21 @@ export const fetchPullRequestDetails = async (settings: AppSettings, prNumber: n
     return response.json();
 };
 
+export const closePullRequest = async (settings: AppSettings, prNumber: number): Promise<void> => {
+    const token = getGithubToken(settings);
+    if (!token) throw new Error("GitHub Token not configured");
+
+    const response = await fetch(`https://api.github.com/repos/${settings.repoOwner}/${settings.repoName}/pulls/${prNumber}`, {
+        method: 'PATCH',
+        headers: getHeaders(token),
+        body: JSON.stringify({ state: 'closed' })
+    });
+
+    if (!response.ok) {
+        await handleGithubError(response, `Close Pull Request (${prNumber})`);
+    }
+};
+
 export const fetchCommitStatus = async (settings: AppSettings, ref: string) => {
     const token = getGithubToken(settings);
     if (!token) throw new Error("GitHub Token not configured");
@@ -600,4 +615,19 @@ export const fetchRepositoryBranches = async (token: string, owner: string, repo
     }
 
     return response.json();
+};
+
+export const closeIssue = async (settings: AppSettings, issueNumber: number): Promise<void> => {
+    const token = getGithubToken(settings);
+    if (!token) throw new Error("GitHub Token not configured");
+
+    const response = await fetch(`https://api.github.com/repos/${settings.repoOwner}/${settings.repoName}/issues/${issueNumber}`, {
+        method: 'PATCH',
+        headers: getHeaders(token),
+        body: JSON.stringify({ state: 'closed' })
+    });
+
+    if (!response.ok) {
+        await handleGithubError(response, `Close Issue (${issueNumber})`);
+    }
 };

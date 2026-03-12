@@ -10,7 +10,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { LoginPage } from './components/LoginPage';
 import { AlertDialog, AlertDialogState, ConfirmDialog, ConfirmDialogState, DialogTone } from './components/ui/Dialogs';
 import { ToastItem, ToastStack, ToastTone } from './components/ui/ToastStack';
-import { createGithubIssue, fetchGithubIssues, createBranch, getBSHA, commitFile, createPullRequest, mergePullRequest, fetchMergedPRs, fetchOpenPRs, fetchCommitStatus, fetchAuthenticatedUser, fetchPullRequestDetails } from './services/githubService';
+import { createGithubIssue, fetchGithubIssues, createBranch, getBSHA, commitFile, createPullRequest, mergePullRequest, fetchMergedPRs, fetchOpenPRs, fetchCommitStatus, fetchAuthenticatedUser, fetchPullRequestDetails, closePullRequest, closeIssue } from './services/githubService';
 import { createWorktree, pruneWorktree, pushWorktreeBranch, forcePushWorktreeBranchWithLease } from './services/gitService';
 import { getProcessesUsingPath, formatProcessList } from './services/processDetection';
 import { GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -544,6 +544,60 @@ export default function App() {
 
     const handleDeleteTask = (taskId: string) => {
         setTasks(prev => prev.filter(task => !(task.id === taskId && task.status === TaskStatus.FORMATTED)));
+    };
+
+    const handleDeletePR = async (taskId: string) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task || !task.prNumber) return;
+
+        const confirmed = await askConfirmation({
+            title: 'Close Pull Request?',
+            message: `Are you sure you want to close PR #${task.prNumber} "${task.title}"? This will close the PR on GitHub and remove it from the local list.`,
+            confirmLabel: 'Close PR',
+            cancelLabel: 'Cancel',
+            tone: 'warning'
+        });
+        if (!confirmed) return;
+
+        if (hasGithubToken) {
+            try {
+                await closePullRequest(settings, task.prNumber);
+            } catch (error: any) {
+                console.error('Failed to close PR on GitHub', error);
+                showAlertDialog('Close PR Failed', `Could not close PR #${task.prNumber} on GitHub: ${error.message}`, 'error');
+                return;
+            }
+        }
+
+        setTasks(prev => prev.filter(t => t.id !== taskId));
+        showToast(`PR #${task.prNumber} closed and removed.`, 'success');
+    };
+
+    const handleDeleteIssue = async (taskId: string) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task || !task.issueNumber) return;
+
+        const confirmed = await askConfirmation({
+            title: 'Close Issue?',
+            message: `Are you sure you want to close issue #${task.issueNumber} "${task.title}"? This will close the issue on GitHub and remove it from the local list.`,
+            confirmLabel: 'Close Issue',
+            cancelLabel: 'Cancel',
+            tone: 'warning'
+        });
+        if (!confirmed) return;
+
+        if (hasGithubToken) {
+            try {
+                await closeIssue(settings, task.issueNumber);
+            } catch (error: any) {
+                console.error('Failed to close issue on GitHub', error);
+                showAlertDialog('Close Issue Failed', `Could not close issue #${task.issueNumber} on GitHub: ${error.message}`, 'error');
+                return;
+            }
+        }
+
+        setTasks(prev => prev.filter(t => t.id !== taskId));
+        showToast(`Issue #${task.issueNumber} closed and removed.`, 'success');
     };
 
     const handleSaveSettings = (next: AppSettings) => {
@@ -1322,7 +1376,7 @@ export default function App() {
     const renderContent = () => {
         switch (currentStep) {
             case 1: return <Step1_Input onTasksGenerated={handleTasksGenerated} existingTasks={tasks} model={settings.model} geminiApiKey={settings.geminiApiKey} />;
-            case 2: return <Step2_Issues tasks={tasks} onPromoteToIssue={handlePromoteToIssue} onPromoteAll={handlePromoteAllIssues} syncingTaskIds={syncingTaskIds} onFetchRemote={handleFetchRemote} onEditTask={handleEditTask} onDeleteTask={handleDeleteTask} />;
+            case 2: return <Step2_Issues tasks={tasks} onPromoteToIssue={handlePromoteToIssue} onPromoteAll={handlePromoteAllIssues} syncingTaskIds={syncingTaskIds} onFetchRemote={handleFetchRemote} onEditTask={handleEditTask} onDeleteTask={handleDeleteTask} onDeletePR={handleDeletePR} onDeleteIssue={handleDeleteIssue} />;
             case 3: return <Step3_Worktrees
                 tasks={tasks}
                 slots={slots}
