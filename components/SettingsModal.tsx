@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useId, useCallback } from 'react';
 import { AppSettings } from '../types';
-import { X, Save, Github, FolderOpen, GitBranch, Terminal, Key, ShieldCheck, AlertTriangle, Cpu, Lock, Loader2, CheckCircle2, XCircle, Search, Copy, RefreshCw, FolderOpenDot, ChevronDown } from 'lucide-react';
+import { X, Save, Github, FolderOpen, GitBranch, Terminal, Key, ShieldCheck, AlertTriangle, Cpu, Lock, Loader2, CheckCircle2, XCircle, Search, Copy, RefreshCw, FolderOpenDot, ChevronDown, LogOut, Server, Trash2 } from 'lucide-react';
 import { fetchAuthenticatedUser, fetchUserRepositories, fetchRepositoryBranches, GithubAuthenticatedUser, GithubRepository, GithubBranch } from '../services/githubService';
 import { useFocusTrap } from './ui/hooks/useFocusTrap';
 import { ConfirmDialog } from './ui/Dialogs';
@@ -962,8 +962,9 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                         <button
                           type="button"
                           onClick={handleDisconnectGithub}
-                          className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 whitespace-nowrap min-h-[44px]"
+                          className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 whitespace-nowrap min-h-[44px] inline-flex items-center gap-1.5"
                         >
+                          <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
                           Disconnect
                         </button>
                       )}
@@ -1321,11 +1322,11 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                       type="button"
                       onClick={handleTestBridge}
                       disabled={bridgeTest.status === 'testing'}
-                      className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed min-h-[44px]"
+                      className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed min-h-[44px] inline-flex items-center gap-1.5"
                     >
                       {bridgeTest.status === 'testing' ? (
                         <span className="inline-flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Testing</span>
-                      ) : 'Test bridge'}
+                      ) : <><Server className="w-3 h-3" aria-hidden="true" /> Test bridge</>}
                     </button>
                   </div>
                   <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -1372,7 +1373,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                           type="button"
                           onClick={handleTestBridge}
                           disabled={bridgeTest.status === 'testing'}
-                          className="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 rounded-lg border border-indigo-500/30 text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed min-h-[44px]"
+                          className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap min-h-[44px]"
                         >
                           {bridgeTest.status === 'testing' ? (
                             <span className="inline-flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Re-testing...</span>
@@ -1445,8 +1446,9 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 onClearLocalSession();
                 onClose();
               }}
-              className="mr-auto px-4 py-2 text-sm font-medium text-rose-600 dark:text-rose-300 hover:text-rose-700 dark:hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg transition-colors min-h-[44px]"
+              className="mr-auto px-4 py-2 text-sm font-medium text-rose-600 dark:text-rose-300 hover:text-rose-700 dark:hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg transition-colors min-h-[44px] inline-flex items-center gap-2"
             >
+              <Trash2 className="w-4 h-4" aria-hidden="true" />
               <span className="sm:hidden">Clear</span>
               <span className="hidden sm:inline">Clear Local Session</span>
             </button>
@@ -1465,8 +1467,9 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors hidden lg:flex items-center min-h-[44px]"
+              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors hidden lg:flex items-center gap-2 min-h-[44px]"
             >
+              <X className="w-4 h-4" aria-hidden="true" />
               Cancel
             </button>
             <button
