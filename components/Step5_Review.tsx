@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppSettings, TaskItem, TaskStatus } from '../types';
-import { GitPullRequest, CheckCircle2, FileCode, ExternalLink, GitCommit, Loader2, RefreshCw, Server } from 'lucide-react';
+import { GitPullRequest, CheckCircle2, FileCode, ExternalLink, GitCommit, Loader2, RefreshCw, Server, ChevronDown, ChevronUp } from 'lucide-react';
 import { ErrorState, LoadingSkeleton } from './ui/AsyncStates';
+
+const REMOTE_HOST_COLLAPSED_KEY = 'flowize.step5.remote-review-host-collapsed.v1';
 
 interface Props {
   tasks: TaskItem[];
@@ -49,6 +51,15 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [isChecking, setIsChecking] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [isRemoteHostCollapsed, setIsRemoteHostCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try { return window.localStorage.getItem(REMOTE_HOST_COLLAPSED_KEY) === 'true'; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(REMOTE_HOST_COLLAPSED_KEY, String(isRemoteHostCollapsed)); }
+    catch {}
+  }, [isRemoteHostCollapsed]);
   const hostReady = bridgeHealth?.status === 'healthy';
   const remoteReady = Boolean(bridgeHealth?.typedActions?.includes('flowize-push-worktree-branch'));
 
@@ -132,7 +143,19 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
             }`}>
             {hostReady ? 'Remote review ready' : bridgeHealth?.status === 'checking' ? 'Checking host...' : 'Remote host unavailable'}
           </div>
+          <button
+            type="button"
+            onClick={() => setIsRemoteHostCollapsed((prev) => !prev)}
+            className="ml-1 inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+            aria-label={isRemoteHostCollapsed ? 'Expand remote review host' : 'Collapse remote review host'}
+            title={isRemoteHostCollapsed ? 'Expand remote review host' : 'Collapse remote review host'}
+          >
+            {isRemoteHostCollapsed
+              ? <ChevronDown className="w-4 h-4" aria-hidden="true" />
+              : <ChevronUp className="w-4 h-4" aria-hidden="true" />}
+          </button>
         </div>
+        {!isRemoteHostCollapsed && (
         <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
           <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-3">
             <div className="uppercase tracking-wider text-slate-500 dark:text-slate-500 font-semibold text-[10px]">Bridge</div>
@@ -154,6 +177,7 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
             <div className="mt-1 text-slate-600 dark:text-slate-400">Uptime: {typeof bridgeHealth?.diagnostics?.uptimeMs === 'number' ? `${Math.floor(bridgeHealth.diagnostics.uptimeMs / 1000)}s` : 'unknown'} | Log level: {bridgeHealth?.diagnostics?.logLevel || 'unknown'}</div>
           </div>
         </div>
+        )}
       </div>
 
       {/* Pending Reviews */}
