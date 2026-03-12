@@ -26,6 +26,8 @@ export interface TaskItem {
   implementationDetails?: string;
   agentLogs?: string;
   agentLastCommand?: string;
+  agentSessionId?: string;
+  agentJobId?: string;
   agentRunState?: 'idle' | 'running' | 'succeeded' | 'failed' | 'cancelled';
   vercelStatus?: 'pending' | 'success' | 'failed';
   mergeConflict?: boolean;
@@ -49,6 +51,7 @@ export interface AppSettings {
   agentCommand?: string;
   agentName?: string;
   agentEndpoint?: string;
+  bridgeAuthToken?: string;
   agentSubdir?: string;
   agentSkillFile?: string;
   model?: string;

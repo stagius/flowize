@@ -1,36 +1,14 @@
 import { AppSettings, TaskItem, WorktreeSlot } from '../types';
 import { getProcessesUsingPath, formatProcessList } from './processDetection';
 import { openWorktreeCmdWindow } from './agentService';
+import { getBridgeAuthToken, getBridgeCandidates, getBridgeRequestHeaders } from './bridgeClient';
 
 /**
  * Executes git operations through the configured local bridge endpoint.
  */
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 const DEFAULT_AGENT_SUBDIR = '.agent-workspace';
 const DEFAULT_SKILL_FILE = '.opencode/skills/specflow-worktree-automation/SKILL.md';
-
-const normalizeWorktreePath = (value: string): string => {
-  return value.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
-};
-
-const parseWorktreeList = (porcelainOutput: string): Array<{ path: string; branch?: string }> => {
-  const blocks = porcelainOutput
-    .split('\n\n')
-    .map((block) => block.trim())
-    .filter((block) => block.length > 0);
-
-  return blocks.map((block) => {
-    const lines = block.split('\n');
-    const pathLine = lines.find((line) => line.startsWith('worktree '));
-    const branchLine = lines.find((line) => line.startsWith('branch refs/heads/'));
-    return {
-      path: pathLine ? pathLine.replace('worktree ', '').trim() : '',
-      branch: branchLine ? branchLine.replace('branch refs/heads/', '').trim() : undefined
-    };
-  }).filter((item) => item.path.length > 0);
-};
 
 const fillTemplate = (template: string, values: Record<string, string>): string => {
   return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, key: string) => values[key] ?? '');
@@ -82,24 +60,6 @@ const ensurePrintLogsFlag = (command: string): string => {
   return `${command} --print-logs`;
 };
 
-const encodeBase64 = (value: string): string => {
-  if (typeof window !== 'undefined' && typeof window.btoa === 'function') {
-    const bytes = new TextEncoder().encode(value);
-    let binary = '';
-    for (const byte of bytes) {
-      binary += String.fromCharCode(byte);
-    }
-    return window.btoa(binary);
-  }
-
-  const maybeBuffer = (globalThis as { Buffer?: { from: (input: string, encoding: string) => { toString: (encoding: string) => string } } }).Buffer;
-  if (maybeBuffer) {
-    return maybeBuffer.from(value, 'utf-8').toString('base64');
-  }
-
-  throw new Error('Unable to encode startup issue description to base64 in this runtime.');
-};
-
 const buildIssueDescription = (task: TaskItem): string => {
   const lines = [
     `# Issue #${task.issueNumber ?? 'unknown'}: ${task.title}`,
@@ -116,26 +76,53 @@ const buildIssueDescription = (task: TaskItem): string => {
   return lines.join('\n');
 };
 
+const postBridgeAction = async <T>(settings: AppSettings, action: string, payload: Record<string, unknown>): Promise<T> => {
+  const endpoint = settings.agentEndpoint?.trim();
+  if (!endpoint) {
+    throw new Error('Agent Bridge Endpoint is not configured.');
+  }
+
+  const candidates = getBridgeCandidates(endpoint);
+  const headers = getBridgeRequestHeaders(getBridgeAuthToken(settings), {
+    'Content-Type': 'application/json'
+  });
+  let lastError = '';
+
+  for (const candidate of candidates) {
+    try {
+      const response = await fetch(candidate, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ action, ...payload })
+      });
+
+      const raw = await response.text();
+      const data = raw ? JSON.parse(raw) as T & { success?: boolean; error?: string } : {} as T & { success?: boolean; error?: string };
+
+      if (!response.ok || data?.success === false) {
+        throw new Error(data?.error || `Bridge returned ${response.status} for ${action}`);
+      }
+
+      return data as T;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  throw new Error(lastError || `Unable to execute bridge action ${action}`);
+};
+
 const copyBaseContextToWorktree = async (settings: AppSettings, slotPath: string, branchName?: string): Promise<void> => {
   if (!settings.agentEndpoint) {
     return;
   }
 
   const sourcePath = settings.worktreeRoot;
-  const copyEnvCommand =
-    `node -e "const fs=require('fs');const path=require('path');` +
-    `const src=process.argv[1];const dst=process.argv[2];` +
-    `if(!fs.existsSync(src)||!fs.existsSync(dst)){process.exit(0);}` +
-    `for(const name of fs.readdirSync(src)){` +
-    `if(!name.startsWith('.env'))continue;` +
-    `const from=path.join(src,name);` +
-    `try{if(fs.statSync(from).isFile()){fs.copyFileSync(from,path.join(dst,name));}}catch{}` +
-    `}" "${sourcePath}" "${slotPath}"`;
-
   console.log(`[GitService] Copying .env* files from ${sourcePath} to ${slotPath}`);
-  await runBridgeCommand(settings, copyEnvCommand, {
-    worktreePath: slotPath,
-    branch: branchName
+  await postBridgeAction(settings, 'flowize-copy-worktree-context', {
+    sourcePath,
+    targetPath: slotPath,
+    branchName
   });
 
   console.log('[GitService] Skipping full .opencode copy for clean worktrees');
@@ -153,85 +140,39 @@ const setupAgentWorkspace = async (settings: AppSettings, slotPath: string, task
   const sourceSkillFile = resolvePathForWorktree(slotPath, configuredSkillFile);
   const skillFile = joinPath(agentWorkspace, 'SKILL.md');
   const issueDescriptionContent = buildIssueDescription(task);
-  const issueDescriptionB64 = encodeBase64(issueDescriptionContent);
-  const fallbackSkillB64 = encodeBase64([
-    '# Flowize Agent Skill Fallback',
+  const fallbackSkillContent = [
+    '# Flowize Agent Workflow',
     '',
-    '- Read issue-description.md and implement only requested scope.',
-    '- Keep changes minimal and consistent with existing code style.',
-    '- Return clear implementation output and verification notes.'
-  ].join('\n'));
-
-  const ensureWorkspaceCommand =
-    `node -e "const fs=require('fs');const path=require('path');` +
-    `const dir=process.argv[1];const issueFile=process.argv[2];const issueB64=process.argv[3]||'';` +
-    `const srcSkill=process.argv[4]||'';const dstSkill=process.argv[5]||'';const fallbackB64=process.argv[6]||'';` +
-    `const issueContent=Buffer.from(issueB64,'base64').toString('utf8');` +
-    `const fallbackSkill=Buffer.from(fallbackB64,'base64').toString('utf8');` +
-    `if(!fs.existsSync(dir))fs.mkdirSync(dir,{recursive:true});` +
-    `fs.writeFileSync(issueFile,issueContent,'utf8');` +
-    `let skillContent='';` +
-    `try{if(srcSkill&&fs.existsSync(srcSkill)&&fs.statSync(srcSkill).isFile()){skillContent=fs.readFileSync(srcSkill,'utf8');}}catch{}` +
-    `if(!skillContent.trim())skillContent=fallbackSkill;` +
-    `if(dstSkill){fs.writeFileSync(dstSkill,skillContent,'utf8');}` +
-    `" "${agentWorkspace}" "${issueDescriptionFile}" "${issueDescriptionB64}" "${sourceSkillFile}" "${skillFile}" "${fallbackSkillB64}"`;
-
-  console.log(`[GitService] Setting up agent workspace at ${agentWorkspace}`);
-  await runBridgeCommand(settings, ensureWorkspaceCommand, {
-    worktreePath: slotPath,
-    branch: task.branchName,
-    issueNumber: task.issueNumber,
-    issueDescriptionFile
-  });
-
-  // Add agent subdir to .gitignore
+    '## 1. Start — load the prompt-contracts skill',
+    'Read and follow ./skills/prompt-contracts.md before doing anything else.',
+    '',
+    '## 2. Plan — for non-trivial tasks, load pro-workflow-core and subagent-verification-loops',
+    'Read ./skills/pro-workflow-core.md',
+    'Read ./skills/subagent-verification-loops.md',
+    '',
+    '## 3. Implement',
+    '- Read issue-description.md and implement only the requested scope.',
+    '- Keep changes minimal and consistent with the existing code style.',
+    '',
+    '## 4. Finish — load the smart-commit skill',
+    'Read and follow ./skills/smart-commit.md when implementation is complete.'
+  ].join('\n');
   const gitignorePath = joinPath(slotPath, '.gitignore');
   const gitignoreEntry = `${subdir}/`;
-  const updateGitignoreCommand =
-    `node -e "const fs=require('fs');const path=process.argv[1];const entry=process.argv[2];` +
-    `let content='';try{content=fs.readFileSync(path,'utf8');}catch{}` +
-    `const lines=content.split('\\n');` +
-    `if(!lines.some(l=>l.trim()===entry)){` +
-    `if(content && !content.endsWith('\\n'))content+='\\n';` +
-    `content+=entry+'\\n';` +
-    `fs.writeFileSync(path,content,'utf8');` +
-    `console.log('Added '+entry+' to .gitignore');` +
-    `}else{console.log(entry+' already in .gitignore');}` +
-    `" "${gitignorePath}" "${gitignoreEntry}"`;
 
-  console.log(`[GitService] Adding ${subdir} to .gitignore`);
-  await runBridgeCommand(settings, updateGitignoreCommand, {
-    worktreePath: slotPath,
-    branch: task.branchName
+  console.log(`[GitService] Setting up agent workspace at ${agentWorkspace}`);
+  await postBridgeAction(settings, 'flowize-ensure-agent-workspace', {
+    agentWorkspace,
+    issueDescriptionFile,
+    issueDescriptionContent,
+    sourceSkillFile,
+    skillFile,
+    fallbackSkillContent,
+    gitignorePath,
+    gitignoreEntry
   });
 
   console.log(`[GitService] Agent workspace ready at ${agentWorkspace}`);
-};
-
-const getBridgeCandidates = (endpoint: string): string[] => {
-  const trimmed = endpoint.trim().replace(/\/+$/, '');
-  const withRun = trimmed.endsWith('/run') ? trimmed : `${trimmed}/run`;
-  const withoutRun = trimmed.endsWith('/run') ? trimmed.slice(0, -4) : trimmed;
-  const browserHost = typeof window !== 'undefined' ? window.location.hostname : '';
-
-  const alternates = [withRun, withoutRun]
-    .flatMap((value) => {
-      const hostAlternates = [value];
-      if (value.includes('127.0.0.1')) {
-        hostAlternates.push(value.replace('127.0.0.1', 'localhost'));
-      }
-      if (value.includes('localhost')) {
-        hostAlternates.push(value.replace('localhost', '127.0.0.1'));
-      }
-      if (browserHost && !value.includes(browserHost)) {
-        hostAlternates.push(value.replace('127.0.0.1', browserHost));
-        hostAlternates.push(value.replace('localhost', browserHost));
-      }
-      return hostAlternates;
-    })
-    .filter((value) => value.length > 0);
-
-  return Array.from(new Set(alternates));
 };
 
 export const runBridgeCommand = async (settings: AppSettings, command: string, context: Record<string, unknown> = {}) => {
@@ -241,6 +182,9 @@ export const runBridgeCommand = async (settings: AppSettings, command: string, c
   }
 
   const candidates = getBridgeCandidates(endpoint);
+  const headers = getBridgeRequestHeaders(getBridgeAuthToken(settings), {
+    'Content-Type': 'application/json'
+  });
   let lastError = '';
   let hadHttpResponse = false;
   console.log(`[bridge:git] command="${command.slice(0, 120)}${command.length > 120 ? '…' : ''}" candidates=[${candidates.join(', ')}]`);
@@ -249,9 +193,7 @@ export const runBridgeCommand = async (settings: AppSettings, command: string, c
     try {
       const response = await fetch(candidate, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({
           command,
           mode: 'shell',
@@ -345,47 +287,7 @@ const isNotWorktreeError = (message: string): boolean => {
   return normalized.includes('is not a working tree') || normalized.includes('not a working tree');
 };
 
-const tryRemoveDirectory = async (settings: AppSettings, targetPath: string, branchName?: string): Promise<boolean> => {
-  const removeCommand = `node -e "const fs=require('fs');fs.rmSync(process.argv[1], { recursive: true, force: true });" "${targetPath}"`;
-  const retryDelays = [0, 500, 1200, 2500, 5000];
-  let lastErrorMessage = '';
 
-  for (const waitMs of retryDelays) {
-    if (waitMs > 0) {
-      await delay(waitMs);
-    }
-
-    try {
-      await runBridgeCommand(settings, removeCommand, {
-        worktreePath: targetPath,
-        branch: branchName
-      });
-      return true;
-    } catch (error) {
-      lastErrorMessage = getErrorMessage(error);
-      if (!isDirectoryBusyError(lastErrorMessage)) {
-        throw error;
-      }
-    }
-  }
-
-  const processes = await getProcessesUsingPath(targetPath, settings);
-  console.log(`[GitService] Process detection for ${targetPath}: found ${processes.length} process(es)`);
-  const processInfo = formatProcessList(processes);
-  console.warn(`[GitService] Directory still busy, skipped physical delete for ${targetPath}: ${lastErrorMessage}${processInfo}`);
-  return false;
-};
-
-const buildWorktreeStartupCommand = async (
-  settings: AppSettings,
-  task: TaskItem,
-  slot: WorktreeSlot
-): Promise<string | undefined> => {
-  void task;
-  void slot;
-  const agentName = settings.agentName?.trim().replace(/"/g, '');
-  return agentName ? `opencode --agent "${agentName}"` : 'opencode';
-};
 
 export const createWorktree = async (settings: AppSettings, task: TaskItem, slot: WorktreeSlot): Promise<void> => {
   console.log(`[GitService] Initializing worktree for ${task.branchName}`);
@@ -394,95 +296,27 @@ export const createWorktree = async (settings: AppSettings, task: TaskItem, slot
   // Note: Use worktreeRoot (main repo) as working directory since slot.path doesn't exist yet
   console.log(`> git fetch origin`);
   if (settings.agentEndpoint) {
-    await runBridgeCommand(settings, 'git fetch origin', {
-      worktreePath: settings.worktreeRoot,
-      branch: task.branchName
-    });
-
-    await runBridgeCommand(settings, 'git worktree prune', {
-      worktreePath: settings.worktreeRoot,
-      branch: task.branchName
-    });
-
-    const listPayload = await runBridgeCommand(settings, 'git worktree list --porcelain', {
-      worktreePath: settings.worktreeRoot,
-      branch: task.branchName
-    }) as { stdout?: string } | null;
-
-    const worktrees = parseWorktreeList(String(listPayload?.stdout ?? ''));
-    const targetPath = normalizeWorktreePath(slot.path);
-    const existingAtPath = worktrees.find((item) => normalizeWorktreePath(item.path) === targetPath);
-
-    if (existingAtPath) {
-      if (existingAtPath.branch === task.branchName) {
-        console.log(`[GitService] Reusing existing worktree ${slot.path} on ${task.branchName}`);
-        await copyBaseContextToWorktree(settings, slot.path, task.branchName);
-        await setupAgentWorkspace(settings, slot.path, task);
-        const startupCommand = await buildWorktreeStartupCommand(settings, task, slot);
-        await openWorktreeCmdWindow(settings, slot, {
-          subdir: settings.agentSubdir?.trim() || DEFAULT_AGENT_SUBDIR,
-          title: `Flowize AG-${slot.id}`,
-          startupCommand,
-          task,
-          copyTemplatedCommandToClipboard: true,
-          ensureDirectory: true
-        });
-        return;
+    const result = await postBridgeAction<{ reused?: boolean; worktreePath?: string; branchName?: string }>(
+      settings,
+      'flowize-create-worktree',
+      {
+        repoPath: settings.worktreeRoot,
+        targetPath: slot.path,
+        branchName: task.branchName,
+        defaultBranch: settings.defaultBranch
       }
-      throw new Error(
-        `Target path already mapped to branch '${existingAtPath.branch ?? 'unknown'}'. ` +
-        `Cleanup slot path '${slot.path}' before reassigning.`
-      );
+    );
+
+    if (result.reused) {
+      console.log(`[GitService] Reusing existing worktree ${slot.path} on ${task.branchName}`);
     }
-
-    const branchInUse = worktrees.find((item) => item.branch === task.branchName);
-    if (branchInUse) {
-      throw new Error(
-        `Branch '${task.branchName}' is already checked out at '${branchInUse.path}'. ` +
-        'Use that worktree, or cleanup it before reassigning.'
-      );
-    }
-
-    const pathExistsPayload = await runBridgeCommand(
-      settings,
-      `node -e "const fs=require('fs');process.stdout.write(fs.existsSync(process.argv[1])?'yes':'no')" "${slot.path}"`,
-      { worktreePath: settings.worktreeRoot, branch: task.branchName }
-    ) as { stdout?: string } | null;
-
-    const pathExists = String(pathExistsPayload?.stdout ?? '').trim().toLowerCase() === 'yes';
-    if (pathExists) {
-      throw new Error(
-        `Target directory '${slot.path}' already exists but is not a managed git worktree. ` +
-        'Remove or rename it, then retry.'
-      );
-    }
-
-    const branchExistsPayload = await runBridgeCommand(
-      settings,
-      `git show-ref --verify --quiet "refs/heads/${task.branchName}" && echo yes || echo no`,
-      { worktreePath: settings.worktreeRoot, branch: task.branchName }
-    ) as { stdout?: string } | null;
-
-    const branchExists = String(branchExistsPayload?.stdout ?? '').trim().toLowerCase() === 'yes';
-
-    const cmd = branchExists
-      ? `git worktree add "${slot.path}" "${task.branchName}"`
-      : `git worktree add -b "${task.branchName}" "${slot.path}" "origin/${settings.defaultBranch}"`;
-    console.log(`> ${cmd}`);
-    await runBridgeCommand(settings, cmd, {
-      worktreePath: settings.worktreeRoot,
-      branch: task.branchName
-    });
 
     await copyBaseContextToWorktree(settings, slot.path, task.branchName);
     await setupAgentWorkspace(settings, slot.path, task);
-    const startupCommand = await buildWorktreeStartupCommand(settings, task, slot);
     await openWorktreeCmdWindow(settings, slot, {
       subdir: settings.agentSubdir?.trim() || DEFAULT_AGENT_SUBDIR,
       title: `Flowize AG-${slot.id}`,
-      startupCommand,
       task,
-      copyTemplatedCommandToClipboard: true,
       ensureDirectory: true
     });
   } else {
@@ -499,9 +333,10 @@ export const pruneWorktree = async (slot: WorktreeSlot, branchName?: string, set
     console.log(`> git push origin ${branchName}`);
     if (settings?.agentEndpoint) {
       try {
-        await runBridgeCommand(settings, `git push origin "${branchName}"`, {
+        await postBridgeAction(settings, 'flowize-push-worktree-branch', {
           worktreePath: slot.path,
-          branch: branchName
+          branchName,
+          forceWithLease: false
         });
       } catch (error) {
         console.warn(`[GitService] push skipped during cleanup: ${getErrorMessage(error)}`);
@@ -513,68 +348,23 @@ export const pruneWorktree = async (slot: WorktreeSlot, branchName?: string, set
 
   console.log(`> git worktree remove --force ${slot.path}`);
   if (settings?.agentEndpoint) {
-    const removeCommand = `git worktree remove --force "${slot.path}"`;
-    const retryDelays = [0, 800, 1800, 3500];
-    let removed = false;
-
-    for (const waitMs of retryDelays) {
-      if (waitMs > 0) {
-        await delay(waitMs);
-      }
-
-      try {
-        await runBridgeCommand(settings, removeCommand, {
-          worktreePath: settings.worktreeRoot,
-          branch: branchName
-        });
-        removed = true;
-        break;
-      } catch (error) {
-        const message = getErrorMessage(error);
-        if (isNotWorktreeError(message)) {
-          console.warn(`[GitService] path not a git worktree, removing directory: ${slot.path}`);
-          await tryRemoveDirectory(settings, slot.path, branchName);
-          removed = true;
-          break;
-        }
-
-        if (isDirectoryBusyError(message)) {
-          const processes = await getProcessesUsingPath(slot.path, settings);
-          const processInfo = formatProcessList(processes);
-          console.warn(`[GitService] Worktree still busy, retrying remove for ${slot.path}: ${message}${processInfo}`);
-          continue;
-        }
-
-        throw error;
-      }
-    }
-
-    if (!removed) {
-      await tryRemoveDirectory(settings, slot.path, branchName);
-    }
-  } else {
-    throw new Error('No local bridge endpoint configured. Real worktree cleanup requires Agent Bridge Endpoint.');
-  }
-
-  console.log(`> git worktree prune`);
-  if (settings?.agentEndpoint) {
     try {
-      await runBridgeCommand(settings, 'git worktree prune', {
-        worktreePath: settings.worktreeRoot,
-        branch: branchName
+      await postBridgeAction(settings, 'flowize-cleanup-worktree', {
+        repoPath: settings.worktreeRoot,
+        targetPath: slot.path
       });
     } catch (error) {
       const message = getErrorMessage(error);
       if (isDirectoryBusyError(message)) {
         const processes = await getProcessesUsingPath(slot.path, settings);
         const processInfo = formatProcessList(processes);
-        console.warn(`[GitService] git worktree prune skipped while path is busy: ${message}${processInfo}`);
-      } else {
+        console.warn(`[GitService] Worktree still busy during typed cleanup for ${slot.path}: ${message}${processInfo}`);
         throw error;
       }
+      throw error;
     }
   } else {
-    throw new Error('No local bridge endpoint configured. Real worktree prune requires Agent Bridge Endpoint.');
+    throw new Error('No local bridge endpoint configured. Real worktree cleanup requires Agent Bridge Endpoint.');
   }
 };
 
@@ -587,92 +377,11 @@ export const pushWorktreeBranch = async (slot: WorktreeSlot, branchName: string,
     throw new Error('No local bridge endpoint configured. Worktree branch push requires Agent Bridge Endpoint.');
   }
 
-  const commitMessage = `chore: sync worktree updates for ${branchName}`;
-  const commitCommand = `git add -A && git diff --cached --quiet || git commit -m "${commitMessage.replace(/"/g, '')}"`;
-
-  await runBridgeCommand(settings, commitCommand, {
+  await postBridgeAction(settings, 'flowize-push-worktree-branch', {
     worktreePath: slot.path,
-    branch: branchName
+    branchName,
+    forceWithLease: false
   });
-
-  const syncWithRemoteBranch = async (): Promise<void> => {
-    // First check if remote branch exists
-    const remoteExistsPayload = await runBridgeCommand(
-      settings,
-      `git show-ref --verify --quiet "refs/remotes/origin/${branchName}" && echo yes || echo no`,
-      {
-        worktreePath: slot.path,
-        branch: branchName
-      }
-    ) as { stdout?: string } | null;
-
-    const remoteExists = String(remoteExistsPayload?.stdout ?? '').trim().toLowerCase() === 'yes';
-    if (!remoteExists) {
-      console.log(`[GitService] Remote branch ${branchName} does not exist yet, skipping sync`);
-      return;
-    }
-
-    // Remote branch exists, fetch and rebase
-    await runBridgeCommand(settings, `git fetch origin "${branchName}"`, {
-      worktreePath: slot.path,
-      branch: branchName
-    });
-
-    try {
-      await runBridgeCommand(settings, `git rebase "origin/${branchName}"`, {
-        worktreePath: slot.path,
-        branch: branchName
-      });
-    } catch (error) {
-      try {
-        await runBridgeCommand(settings, 'git rebase --abort', {
-          worktreePath: slot.path,
-          branch: branchName
-        });
-      } catch {
-        // Ignore abort failure; keep original rebase error context.
-      }
-
-      const message = getErrorMessage(error);
-      throw new Error(
-        `Remote branch '${branchName}' has newer commits and auto-rebase failed. ` +
-        `Resolve conflicts in the worktree and retry push. Details: ${message}`
-      );
-    }
-  };
-
-  await syncWithRemoteBranch();
-
-  try {
-    await runBridgeCommand(settings, `git push -u origin "${branchName}"`, {
-      worktreePath: slot.path,
-      branch: branchName
-    });
-  } catch (error) {
-    const message = getErrorMessage(error);
-    // Check if it's a "remote ref does not exist" error
-    const remoteRefMissing = /couldn't find remote ref|unknown revision|invalid refspec/i.test(message);
-    if (remoteRefMissing) {
-      // First push for this branch, retry the push
-      console.log(`[GitService] First push for branch ${branchName}, retrying...`);
-      await runBridgeCommand(settings, `git push -u origin "${branchName}"`, {
-        worktreePath: slot.path,
-        branch: branchName
-      });
-      return;
-    }
-
-    const needsSyncRetry = /fetch first|non-fast-forward|failed to push some refs/i.test(message);
-    if (!needsSyncRetry) {
-      throw error;
-    }
-
-    await syncWithRemoteBranch();
-    await runBridgeCommand(settings, `git push -u origin "${branchName}"`, {
-      worktreePath: slot.path,
-      branch: branchName
-    });
-  }
 };
 
 export const forcePushWorktreeBranchWithLease = async (slot: WorktreeSlot, branchName: string, settings?: AppSettings): Promise<void> => {
@@ -684,8 +393,9 @@ export const forcePushWorktreeBranchWithLease = async (slot: WorktreeSlot, branc
     throw new Error('No local bridge endpoint configured. Worktree branch push requires Agent Bridge Endpoint.');
   }
 
-  await runBridgeCommand(settings, `git push --force-with-lease -u origin "${branchName}"`, {
+  await postBridgeAction(settings, 'flowize-push-worktree-branch', {
     worktreePath: slot.path,
-    branch: branchName
+    branchName,
+    forceWithLease: true
   });
 };

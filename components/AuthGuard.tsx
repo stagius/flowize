@@ -5,6 +5,7 @@ import { LoginPage } from './LoginPage';
 interface AuthGuardProps {
     children: ReactNode;
     bridgeEndpoint: string;
+    bridgeAuthToken?: string;
     toasts?: ReactNode;
 }
 
@@ -23,6 +24,7 @@ interface AuthGuardProps {
 export const AuthGuard: React.FC<AuthGuardProps> = ({ 
     children, 
     bridgeEndpoint,
+    bridgeAuthToken,
     toasts 
 }) => {
     const { isAuthenticated, login } = useAuth();
@@ -34,6 +36,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
                 <LoginPage 
                     onLoginSuccess={login}
                     bridgeEndpoint={bridgeEndpoint}
+                    bridgeAuthToken={bridgeAuthToken}
                 />
                 {toasts}
             </>

@@ -1,4 +1,13 @@
 import { AppSettings, TaskItem, WorktreeSlot } from '../types';
+import { getBridgeAuthToken, getBridgeBaseUrl, getBridgeCandidates, getBridgeRequestHeaders } from './bridgeClient';
+
+/** Thrown when a job is explicitly cancelled so callers can distinguish it from real failures. */
+class CancelledError extends Error {
+  constructor(msg = 'Job cancelled') {
+    super(msg);
+    this.name = 'CancelledError';
+  }
+}
 
 interface AgentRunResponse {
   implementation?: string;
@@ -12,13 +21,36 @@ interface AgentRunResponse {
   pid?: number | null;
   startedAt?: number;
   updatedAt?: number;
+  sessionId?: string;
 }
 
 export interface AgentImplementationResult {
   success: boolean;
+  cancelled?: boolean;
   implementation: string;
   logs: string;
   command: string;
+  jobId?: string;
+  sessionId?: string;
+}
+
+export interface AgentSessionState {
+  success?: boolean;
+  done?: boolean;
+  exitCode?: number;
+  stdout?: string;
+  stderr?: string;
+  error?: string;
+  pid?: number | null;
+  startedAt?: number;
+  updatedAt?: number;
+  jobId?: string;
+  sessionId?: string;
+  command?: string;
+  status?: string;
+  branch?: string;
+  worktreePath?: string;
+  title?: string;
 }
 
 interface AgentProgress {
@@ -26,6 +58,26 @@ interface AgentProgress {
   done: boolean;
   success: boolean;
   jobId?: string;
+  sessionId?: string;
+}
+
+interface PreparedAgentRunPayload {
+  command: string;
+  agentWorkspace: string;
+  issueDescriptionFile: string;
+  skillFile: string;
+  issueDescriptionContent: string;
+  fallbackSkillContent: string;
+  sourceSkillFile: string;
+}
+
+interface AgentWorkspaceSetupPayload {
+  agentWorkspace: string;
+  issueDescriptionFile: string;
+  skillFile: string;
+  issueDescriptionContent: string;
+  fallbackSkillContent: string;
+  sourceSkillFile: string;
 }
 
 export interface OpenWorktreeCmdOptions {
@@ -46,32 +98,6 @@ const DEFAULT_SKILL_FILE = '.opencode/skills/specflow-worktree-automation/SKILL.
 const AGENT_POLL_INTERVAL_MS = 800;
 const AGENT_POLL_MAX_ATTEMPTS = 900;
 const AGENT_STALE_OUTPUT_TIMEOUT_MS = 5 * 60 * 1000;
-
-const getBridgeCandidates = (endpoint: string): string[] => {
-  const trimmed = endpoint.trim().replace(/\/+$/, '');
-  const withRun = trimmed.endsWith('/run') ? trimmed : `${trimmed}/run`;
-  const withoutRun = trimmed.endsWith('/run') ? trimmed.slice(0, -4) : trimmed;
-  const browserHost = typeof window !== 'undefined' ? window.location.hostname : '';
-
-  const alternates = [withRun, withoutRun]
-    .flatMap((value) => {
-      const hostAlternates = [value];
-      if (value.includes('127.0.0.1')) {
-        hostAlternates.push(value.replace('127.0.0.1', 'localhost'));
-      }
-      if (value.includes('localhost')) {
-        hostAlternates.push(value.replace('localhost', '127.0.0.1'));
-      }
-      if (browserHost && !value.includes(browserHost)) {
-        hostAlternates.push(value.replace('127.0.0.1', browserHost));
-        hostAlternates.push(value.replace('localhost', browserHost));
-      }
-      return hostAlternates;
-    })
-    .filter((value) => value.length > 0);
-
-  return Array.from(new Set(alternates));
-};
 
 const fillTemplate = (template: string, values: Record<string, string>): string => {
   return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, key: string) => values[key] ?? '');
@@ -164,6 +190,105 @@ const buildIssueDescription = (task: TaskItem): string => {
   return lines.join('\n');
 };
 
+const buildPreparedAgentRunPayload = (
+  task: TaskItem,
+  slot: WorktreeSlot,
+  settings?: AppSettings
+): PreparedAgentRunPayload => {
+  const subdir = settings?.agentSubdir?.trim() || DEFAULT_AGENT_SUBDIR;
+  const agentWorkspace = joinPath(slot.path, subdir);
+  const issueDescriptionFile = joinPath(joinPath(slot.path, subdir), 'issue-description.md');
+  const configuredSkillFile = settings?.agentSkillFile?.trim() || DEFAULT_SKILL_FILE;
+  const sourceSkillFile = resolvePathForWorktree(slot.path, configuredSkillFile);
+  const skillFile = joinPath(agentWorkspace, 'SKILL.md');
+  const issueDescriptionContent = buildIssueDescription(task);
+  const fallbackSkillContent = [
+    '# Flowize Agent Workflow',
+    '',
+    '## 1. Start — load the prompt-contracts skill',
+    'Read and follow ./skills/prompt-contracts.md before doing anything else.',
+    '',
+    '## 2. Plan — for non-trivial tasks, load pro-workflow-core and subagent-verification-loops',
+    'Read ./skills/pro-workflow-core.md',
+    'Read ./skills/subagent-verification-loops.md',
+    '',
+    '## 3. Implement',
+    '- Read issue-description.md and implement only the requested scope.',
+    '- Keep changes minimal and consistent with the existing code style.',
+    '',
+    '## 4. Finish — load the smart-commit skill',
+    'Read and follow ./skills/smart-commit.md when implementation is complete.'
+  ].join('\n');
+
+  const shellWorktreePath = toShellPath(slot.path);
+  const shellAgentWorkspace = toShellPath(agentWorkspace);
+  const shellIssueDescriptionFile = toShellPath(issueDescriptionFile);
+  const shellSkillFile = toShellPath(skillFile);
+  const commandTemplate = settings?.agentCommand?.trim() || '';
+  const command = ensureWindowsDriveSwitch(ensurePrintLogsFlag(fillTemplate(commandTemplate, {
+    issueNumber: String(task.issueNumber),
+    branch: task.branchName || '',
+    title: task.title,
+    worktreePath: shellWorktreePath,
+    agentWorkspace: shellAgentWorkspace,
+    agentName: settings?.agentName?.trim() || '',
+    agentFlag: settings?.agentName?.trim() ? `--agent "${settings?.agentName?.trim()}"` : '',
+    issueDescriptionFile: shellIssueDescriptionFile,
+    briefFile: shellIssueDescriptionFile,
+    skillFile: shellSkillFile
+  })), shellWorktreePath);
+
+  return {
+    command,
+    agentWorkspace,
+    issueDescriptionFile,
+    skillFile,
+    issueDescriptionContent,
+    fallbackSkillContent,
+    sourceSkillFile
+  };
+};
+
+const buildAgentWorkspaceSetupPayload = (
+  task: TaskItem | undefined,
+  slot: WorktreeSlot,
+  settings?: AppSettings
+): AgentWorkspaceSetupPayload => {
+  const subdir = settings?.agentSubdir?.trim() || DEFAULT_AGENT_SUBDIR;
+  const agentWorkspace = joinPath(slot.path, subdir);
+  const issueDescriptionFile = joinPath(joinPath(slot.path, subdir), 'issue-description.md');
+  const configuredSkillFile = settings?.agentSkillFile?.trim() || DEFAULT_SKILL_FILE;
+  const sourceSkillFile = resolvePathForWorktree(slot.path, configuredSkillFile);
+  const skillFile = joinPath(agentWorkspace, 'SKILL.md');
+  const issueDescriptionContent = task ? buildIssueDescription(task) : '';
+  const fallbackSkillContent = [
+    '# Flowize Agent Workflow',
+    '',
+    '## 1. Start — load the prompt-contracts skill',
+    'Read and follow ./skills/prompt-contracts.md before doing anything else.',
+    '',
+    '## 2. Plan — for non-trivial tasks, load pro-workflow-core and subagent-verification-loops',
+    'Read ./skills/pro-workflow-core.md',
+    'Read ./skills/subagent-verification-loops.md',
+    '',
+    '## 3. Implement',
+    '- Read issue-description.md and implement only the requested scope.',
+    '- Keep changes minimal and consistent with the existing code style.',
+    '',
+    '## 4. Finish — load the smart-commit skill',
+    'Read and follow ./skills/smart-commit.md when implementation is complete.'
+  ].join('\n');
+
+  return {
+    agentWorkspace,
+    issueDescriptionFile,
+    skillFile,
+    issueDescriptionContent,
+    fallbackSkillContent,
+    sourceSkillFile
+  };
+};
+
 const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs: number): Promise<Response> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -180,16 +305,17 @@ const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs: nu
 const runBridgeSyncCommand = async (
   endpoint: string,
   command: string,
-  context: Record<string, unknown> = {}
+  context: Record<string, unknown> = {},
+  settings?: AppSettings
 ): Promise<AgentRunResponse> => {
   console.log(`[bridge:sync] POST ${endpoint} command="${command.slice(0, 120)}${command.length > 120 ? '…' : ''}"`);
   let response: Response;
   try {
     response = await fetchWithTimeout(endpoint, {
       method: 'POST',
-      headers: {
+      headers: getBridgeRequestHeaders(getBridgeAuthToken(settings), {
         'Content-Type': 'application/json'
-      },
+      }),
       body: JSON.stringify({
         command,
         mode: 'shell',
@@ -260,16 +386,27 @@ const pollAsyncJob = async (
   command: string,
   jobId: string,
   settings?: AppSettings,
-  onProgress?: (progress: AgentProgress) => void
+  onProgress?: (progress: AgentProgress) => void,
+  signal?: AbortSignal
 ): Promise<AgentRunResponse> => {
-  const base = endpoint.endsWith('/run') ? endpoint.slice(0, -4) : endpoint;
+  const base = getBridgeBaseUrl(endpoint);
   const logsUrl = `${base}/logs?jobId=${encodeURIComponent(jobId)}`;
   console.log(`[bridge:poll] starting poll for jobId=${jobId} url=${logsUrl} maxAttempts=${AGENT_POLL_MAX_ATTEMPTS}`);
 
   for (let i = 0; i < AGENT_POLL_MAX_ATTEMPTS; i += 1) {
+    // Abort check at the top of every iteration — stops the loop immediately when the
+    // user presses Cancel before the next /logs fetch even starts.
+    if (signal?.aborted) {
+      console.log(`[bridge:poll] jobId=${jobId} aborted by caller`);
+      throw new CancelledError('Job cancelled by user');
+    }
+
     let response: Response;
     try {
-      response = await fetchWithTimeout(logsUrl, { method: 'GET' }, 10000);
+      response = await fetchWithTimeout(logsUrl, {
+        method: 'GET',
+        headers: getBridgeRequestHeaders(getBridgeAuthToken(settings))
+      }, 10000);
     } catch (fetchErr) {
       console.warn(`[bridge:poll] attempt=${i + 1} fetch error for jobId=${jobId}:`, fetchErr instanceof Error ? fetchErr.message : String(fetchErr));
       throw new Error(`Unable to poll agent logs - fetch failed: ${fetchErr instanceof Error ? fetchErr.message : String(fetchErr)}`);
@@ -307,6 +444,11 @@ const pollAsyncJob = async (
 
     if (data.done === true) {
       console.log(`[bridge:poll] jobId=${jobId} finished - success=${data.success} exitCode=${data.exitCode}`);
+      // exitCode 130 = cancelled (SIGINT / user cancel) — surface as CancelledError so the
+      // caller doesn't retry other candidates and doesn't spawn a new process.
+      if (data.exitCode === 130) {
+        throw new CancelledError('Job cancelled by user');
+      }
       return data;
     }
 
@@ -356,7 +498,8 @@ export const generateImplementationFromAgent = async (
   task: TaskItem,
   slot: WorktreeSlot,
   settings?: AppSettings,
-  onProgress?: (progress: AgentProgress) => void
+  onProgress?: (progress: AgentProgress) => void,
+  signal?: AbortSignal
 ): Promise<AgentImplementationResult> => {
   const commandTemplate = settings?.agentCommand?.trim();
   if (!task.issueNumber || !task.branchName) {
@@ -368,53 +511,8 @@ export const generateImplementationFromAgent = async (
     };
   }
 
-  const subdir = settings?.agentSubdir?.trim() || DEFAULT_AGENT_SUBDIR;
-  const agentWorkspace = joinPath(slot.path, subdir);
-  const issueDescriptionFile = joinPath(joinPath(slot.path, subdir), 'issue-description.md');
-  const configuredSkillFile = settings?.agentSkillFile?.trim() || DEFAULT_SKILL_FILE;
-  const sourceSkillFile = resolvePathForWorktree(slot.path, configuredSkillFile);
-  const skillFile = joinPath(agentWorkspace, 'SKILL.md');
-  const issueDescriptionContent = buildIssueDescription(task);
-  const issueDescriptionB64 = encodeBase64(issueDescriptionContent);
-  const fallbackSkillB64 = encodeBase64([
-    '# Flowize Agent Skill Fallback',
-    '',
-    '- Read issue-description.md and implement only requested scope.',
-    '- Keep changes minimal and consistent with existing code style.',
-    '- Return clear implementation output and verification notes.'
-  ].join('\n'));
-
-  const ensureWorkspaceCommand =
-    `node -e "const fs=require('fs');const path=require('path');` +
-    `const dir=process.argv[1];const issueFile=process.argv[2];const issueB64=process.argv[3]||'';` +
-    `const srcSkill=process.argv[4]||'';const dstSkill=process.argv[5]||'';const fallbackB64=process.argv[6]||'';` +
-    `const issueContent=Buffer.from(issueB64,'base64').toString('utf8');` +
-    `const fallbackSkill=Buffer.from(fallbackB64,'base64').toString('utf8');` +
-    `if(!fs.existsSync(dir))fs.mkdirSync(dir,{recursive:true});` +
-    `fs.writeFileSync(issueFile,issueContent,'utf8');` +
-    `let skillContent='';` +
-    `try{if(srcSkill&&fs.existsSync(srcSkill)&&fs.statSync(srcSkill).isFile()){skillContent=fs.readFileSync(srcSkill,'utf8');}}catch{}` +
-    `if(!skillContent.trim())skillContent=fallbackSkill;` +
-    `if(dstSkill){fs.writeFileSync(dstSkill,skillContent,'utf8');}` +
-    `" "${agentWorkspace}" "${issueDescriptionFile}" "${issueDescriptionB64}" "${sourceSkillFile}" "${skillFile}" "${fallbackSkillB64}"`;
-
-  const shellWorktreePath = toShellPath(slot.path);
-  const shellAgentWorkspace = toShellPath(agentWorkspace);
-  const shellIssueDescriptionFile = toShellPath(issueDescriptionFile);
-  const shellSkillFile = toShellPath(skillFile);
-
-  const command = ensureWindowsDriveSwitch(ensurePrintLogsFlag(fillTemplate(commandTemplate || '', {
-    issueNumber: String(task.issueNumber),
-    branch: task.branchName,
-    title: task.title,
-    worktreePath: shellWorktreePath,
-    agentWorkspace: shellAgentWorkspace,
-    agentName: settings?.agentName?.trim() || '',
-    agentFlag: settings?.agentName?.trim() ? `--agent "${settings?.agentName?.trim()}"` : '',
-    issueDescriptionFile: shellIssueDescriptionFile,
-    briefFile: shellIssueDescriptionFile,
-    skillFile: shellSkillFile
-  })), shellWorktreePath);
+  const prepared = buildPreparedAgentRunPayload(task, slot, settings);
+  const command = prepared.command;
 
   if (!commandTemplate) {
     return {
@@ -443,32 +541,28 @@ export const generateImplementationFromAgent = async (
   for (const candidate of candidates) {
     console.log(`[bridge:agent] trying candidate=${candidate}`);
     try {
-      console.log(`[bridge:agent] running ensureWorkspace on ${candidate}`);
-      await runBridgeSyncCommand(candidate, ensureWorkspaceCommand, {
-        worktreePath: slot.path,
-        branch: task.branchName,
-        issueNumber: task.issueNumber,
-        issueDescriptionFile
-      });
-
-      console.log(`[bridge:agent] ensureWorkspace done, posting async agent command to ${candidate}`);
+      console.log(`[bridge:agent] posting typed agent run to ${candidate}`);
       let response: Response;
       try {
         response = await fetchWithTimeout(candidate, {
           method: 'POST',
-          headers: {
+          headers: getBridgeRequestHeaders(getBridgeAuthToken(settings), {
             'Content-Type': 'application/json'
-          },
+          }),
           body: JSON.stringify({
-            command,
-            mode: 'shell',
-            async: true,
+            action: 'flowize-run-agent',
+            sessionId: task.agentSessionId || `${task.id}-${Date.now()}`,
             issueNumber: task.issueNumber,
             branch: task.branchName,
             worktreePath: slot.path,
-            issueDescriptionFile,
-            skillFile,
-            title: task.title
+            title: task.title,
+            command,
+            agentWorkspace: prepared.agentWorkspace,
+            issueDescriptionFile: prepared.issueDescriptionFile,
+            skillFile: prepared.skillFile,
+            issueDescriptionContent: prepared.issueDescriptionContent,
+            fallbackSkillContent: prepared.fallbackSkillContent,
+            sourceSkillFile: prepared.sourceSkillFile
           })
         }, 20000);
       } catch (fetchErr) {
@@ -493,21 +587,29 @@ export const generateImplementationFromAgent = async (
       }
 
       if (data.jobId) {
-        console.log(`[bridge:agent] async job started jobId=${data.jobId} on ${candidate}`);
+        const isResumed = (data as AgentRunResponse & { resumed?: boolean }).resumed === true;
+        console.log(`[bridge:agent] ${isResumed ? 'resuming' : 'started'} jobId=${data.jobId} on ${candidate}`);
         onProgress?.({
-          logs: `Agent job started. jobId=${data.jobId}`,
+          logs: isResumed ? `Resuming session. jobId=${data.jobId}` : `Agent job started. jobId=${data.jobId}`,
           done: false,
           success: false,
-          jobId: data.jobId
+          jobId: data.jobId,
+          sessionId: data.sessionId
         });
-        data = await pollAsyncJob(candidate, command, data.jobId, settings, onProgress);
+        data = await pollAsyncJob(candidate, command, data.jobId, settings, onProgress, signal);
       } else {
         console.warn(`[bridge:agent] no jobId returned from ${candidate} - treating as sync response`);
       }
 
       const logs = formatLogs(candidate, command, data);
       lastLogs = logs;
-      onProgress?.({ logs, done: true, success: data.success === true && (data.exitCode ?? 0) === 0 });
+      onProgress?.({
+        logs,
+        done: true,
+        success: data.success === true && (data.exitCode ?? 0) === 0,
+        jobId: data.jobId,
+        sessionId: data.sessionId
+      });
 
       if (data.success === false || (typeof data.exitCode === 'number' && data.exitCode !== 0)) {
         const errorMessage = data.error || `Agent bridge returned ${response.status} on ${candidate}`;
@@ -531,9 +633,17 @@ export const generateImplementationFromAgent = async (
         success: true,
         implementation,
         logs,
-        command
+        command,
+        jobId: data.jobId,
+        sessionId: data.sessionId
       };
     } catch (error) {
+      // CancelledError must not be retried on another candidate — it means the user
+      // explicitly stopped this job.  Rethrow immediately to exit the candidate loop.
+      if (error instanceof CancelledError) {
+        console.log(`[bridge:agent] jobId cancelled — skipping remaining candidates`);
+        throw error;
+      }
       lastError = error instanceof Error ? error.message : String(error);
       console.warn(`[bridge:agent] candidate=${candidate} failed: ${lastError}`);
     }
@@ -579,34 +689,10 @@ export const openWorktreeCmdWindow = async (
     !!task.branchName;
 
   const worktreeForCommand = toShellPath(slot.path);
-  const agentSubdir = settings?.agentSubdir?.trim() || DEFAULT_AGENT_SUBDIR;
-  const agentWorkspace = joinPath(slot.path, agentSubdir);
-  const issueDescriptionFile = joinPath(agentWorkspace, 'issue-description.md');
-  const configuredSkillFile = settings?.agentSkillFile?.trim() || DEFAULT_SKILL_FILE;
-  const sourceSkillFile = resolvePathForWorktree(slot.path, configuredSkillFile);
-  const skillFile = joinPath(agentWorkspace, 'SKILL.md');
-  const issueDescriptionContent = task ? buildIssueDescription(task) : '';
-  const issueDescriptionB64 = issueDescriptionContent ? encodeBase64(issueDescriptionContent) : '';
-  const fallbackSkillB64 = encodeBase64([
-    '# Flowize Agent Skill Fallback',
-    '',
-    '- Read issue-description.md and implement only requested scope.',
-    '- Keep changes minimal and consistent with existing code style.',
-    '- Return clear implementation output and verification notes.'
-  ].join('\n'));
-  const ensureWorkspaceCommand =
-    `node -e "const fs=require('fs');const path=require('path');` +
-    `const dir=process.argv[1];const issueFile=process.argv[2];const issueB64=process.argv[3]||'';` +
-    `const srcSkill=process.argv[4]||'';const dstSkill=process.argv[5]||'';const fallbackB64=process.argv[6]||'';` +
-    `const issueContent=Buffer.from(issueB64,'base64').toString('utf8');` +
-    `const fallbackSkill=Buffer.from(fallbackB64,'base64').toString('utf8');` +
-    `if(!fs.existsSync(dir))fs.mkdirSync(dir,{recursive:true});` +
-    `if(issueFile)fs.writeFileSync(issueFile,issueContent,'utf8');` +
-    `let skillContent='';` +
-    `try{if(srcSkill&&fs.existsSync(srcSkill)&&fs.statSync(srcSkill).isFile()){skillContent=fs.readFileSync(srcSkill,'utf8');}}catch{}` +
-    `if(!skillContent.trim())skillContent=fallbackSkill;` +
-    `if(dstSkill){fs.writeFileSync(dstSkill,skillContent,'utf8');}` +
-    `" "${agentWorkspace}" "${issueDescriptionFile}" "${issueDescriptionB64}" "${sourceSkillFile}" "${skillFile}" "${fallbackSkillB64}"`;
+  const setupPayload = buildAgentWorkspaceSetupPayload(task, slot, settings);
+  const agentWorkspace = setupPayload.agentWorkspace;
+  const issueDescriptionFile = setupPayload.issueDescriptionFile;
+  const skillFile = setupPayload.skillFile;
 
   const templatedAgentCommand = canBuildTemplatedAgentCommand
     ? stripPrintLogsFlag(ensureWindowsDriveSwitch(fillTemplate(commandTemplate || '', {
@@ -627,17 +713,12 @@ export const openWorktreeCmdWindow = async (
     ? [
       '# Flowize Start Here',
       '',
-      'Paste and run this command in the OpenCode prompt:',
+      'This command was run automatically when the terminal opened:',
       '',
       templatedAgentCommand,
       ''
     ].join('\n')
     : '';
-  const startHereContentB64 = startHereContent ? encodeBase64(startHereContent) : '';
-  const writeStartHereCommand = startHereContent
-    ? `node -e "const fs=require('fs');const path=require('path');const dir=process.argv[1];const body=Buffer.from(process.argv[2],'base64').toString('utf8');fs.writeFileSync(path.join(dir,'START-HERE.md'),body,'utf8');" "${targetPath}" "${startHereContentB64}"`
-    : '';
-
   let startupCommand = options?.startupCommand || templatedAgentCommand || 'git status';
 
   if (options?.copyTemplatedCommandToClipboard === true && templatedAgentCommand) {
@@ -659,51 +740,53 @@ export const openWorktreeCmdWindow = async (
     try {
       // First, check if the base worktree path exists (not the subdirectory)
       if (options?.ensureDirectory === true && targetPath !== slot.path) {
-        // Verify base worktree exists before trying to create subdirectory
-        const checkBaseExists = await runBridgeSyncCommand(
-          candidate,
-          `node -e "const fs=require('fs');process.stdout.write(fs.existsSync(process.argv[1])?'yes':'no')" "${slot.path}"`,
-          { worktreePath: slot.path }
-        );
+        const ensureDirectoryResponse = await fetchWithTimeout(candidate, {
+          method: 'POST',
+          headers: getBridgeRequestHeaders(getBridgeAuthToken(settings), {
+            'Content-Type': 'application/json'
+          }),
+          body: JSON.stringify({
+            action: 'flowize-ensure-directory',
+            targetPath,
+            basePath: slot.path
+          })
+        }, 10000);
 
-        const baseExists = String(checkBaseExists?.stdout ?? '').trim().toLowerCase() === 'yes';
-        if (!baseExists) {
-          throw new Error(
-            `Worktree base path does not exist: ${slot.path}\n\n` +
-            `The worktree directory has not been created or was deleted.\n` +
-            `Please cleanup this slot and re-assign the task to create a fresh worktree.`
-          );
+        const ensureDirectoryRaw = await ensureDirectoryResponse.text();
+        const ensureDirectoryData = ensureDirectoryRaw ? JSON.parse(ensureDirectoryRaw) as AgentRunResponse : {};
+        if (!ensureDirectoryResponse.ok || ensureDirectoryData.success === false) {
+          throw new Error(ensureDirectoryData.error || `Worktree base path does not exist: ${slot.path}`);
         }
-
-        // Now create the subdirectory
-        const escapedTarget = targetPath.replace(/"/g, '');
-        await runBridgeSyncCommand(candidate, `node -e "const fs=require('fs');fs.mkdirSync(process.argv[1],{recursive:true})" "${escapedTarget}"`, {
-          worktreePath: slot.path
-        });
       }
 
       if (canBuildTemplatedAgentCommand) {
-        await runBridgeSyncCommand(candidate, ensureWorkspaceCommand, {
-          worktreePath: slot.path,
-          branch: task?.branchName,
-          issueNumber: task?.issueNumber,
-          issueDescriptionFile
-        });
-      }
+        const ensureWorkspaceResponse = await fetchWithTimeout(candidate, {
+          method: 'POST',
+          headers: getBridgeRequestHeaders(getBridgeAuthToken(settings), {
+            'Content-Type': 'application/json'
+          }),
+          body: JSON.stringify({
+            action: 'flowize-ensure-agent-workspace',
+            ...setupPayload,
+            gitignorePath: '',
+            gitignoreEntry: '',
+            startHereContent,
+            startHerePath: startHereContent ? joinPath(targetPath, 'START-HERE.md') : ''
+          })
+        }, 10000);
 
-      if (writeStartHereCommand) {
-        await runBridgeSyncCommand(candidate, writeStartHereCommand, {
-          worktreePath: slot.path,
-          branch: task?.branchName,
-          issueNumber: task?.issueNumber
-        });
+        const ensureWorkspaceRaw = await ensureWorkspaceResponse.text();
+        const ensureWorkspaceData = ensureWorkspaceRaw ? JSON.parse(ensureWorkspaceRaw) as AgentRunResponse : {};
+        if (!ensureWorkspaceResponse.ok || ensureWorkspaceData.success === false) {
+          throw new Error(ensureWorkspaceData.error || `Bridge returned ${ensureWorkspaceResponse.status} while preparing local agent workspace`);
+        }
       }
 
       const response = await fetchWithTimeout(candidate, {
         method: 'POST',
-        headers: {
+        headers: getBridgeRequestHeaders(getBridgeAuthToken(settings), {
           'Content-Type': 'application/json'
-        },
+        }),
         body: JSON.stringify({
           action: 'open-windows-cmd',
           worktreePath: targetPath,
@@ -748,16 +831,16 @@ export const cancelAgentJob = async (settings: AppSettings | undefined, jobId: s
   let lastError = '';
 
   for (const candidate of candidates) {
-    const base = candidate.endsWith('/run') ? candidate.slice(0, -4) : candidate;
-    const cancelUrl = `${base}/cancel`;
-    try {
-      const response = await fetchWithTimeout(cancelUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ jobId })
-      }, 10000);
+      const base = getBridgeBaseUrl(candidate);
+      const cancelUrl = `${base}/cancel`;
+      try {
+        const response = await fetchWithTimeout(cancelUrl, {
+          method: 'POST',
+          headers: getBridgeRequestHeaders(getBridgeAuthToken(settings), {
+            'Content-Type': 'application/json'
+          }),
+          body: JSON.stringify({ jobId })
+        }, 10000);
 
       if (!response.ok) {
         throw new Error(`cancel failed with status ${response.status}`);
@@ -769,4 +852,42 @@ export const cancelAgentJob = async (settings: AppSettings | undefined, jobId: s
   }
 
   throw new Error(`Unable to cancel agent job ${jobId}. ${lastError}`);
+};
+
+export const fetchAgentSession = async (
+  settings: AppSettings | undefined,
+  sessionId: string
+): Promise<AgentSessionState> => {
+  const endpoint = settings?.agentEndpoint?.trim();
+  if (!endpoint || !sessionId) {
+    throw new Error('Missing bridge endpoint or sessionId.');
+  }
+
+  const candidates = getBridgeCandidates(endpoint);
+  let lastError = '';
+
+  for (const candidate of candidates) {
+    const base = getBridgeBaseUrl(candidate);
+    const sessionUrl = `${base}/agent-session?sessionId=${encodeURIComponent(sessionId)}`;
+
+    try {
+      const response = await fetchWithTimeout(sessionUrl, {
+        method: 'GET',
+        headers: getBridgeRequestHeaders(getBridgeAuthToken(settings))
+      }, 10000);
+
+      const raw = await response.text();
+      const data = raw ? JSON.parse(raw) as AgentSessionState & { success?: boolean; error?: string } : {};
+
+      if (!response.ok || data.success === false) {
+        throw new Error(data.error || `Bridge returned ${response.status} while fetching session ${sessionId}`);
+      }
+
+      return data;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  throw new Error(lastError || `Unable to fetch session ${sessionId}`);
 };

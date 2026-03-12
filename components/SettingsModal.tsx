@@ -4,6 +4,7 @@ import { X, Save, Github, FolderOpen, GitBranch, Terminal, Key, ShieldCheck, Ale
 import { fetchAuthenticatedUser, fetchUserRepositories, fetchRepositoryBranches, GithubAuthenticatedUser, GithubRepository, GithubBranch } from '../services/githubService';
 import { useFocusTrap } from './ui/hooks/useFocusTrap';
 import { ConfirmDialog } from './ui/Dialogs';
+import { getBridgeAuthToken, getBridgeBaseUrl, getBridgeCandidates, getBridgeHealthUrls, getBridgeRequestHeaders } from '../services/bridgeClient';
 
 const SPECFLOW_SKILL_RELATIVE_PATH = '.opencode/skills/specflow-worktree-automation/SKILL.md';
 
@@ -43,6 +44,8 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   const [githubAuthState, setGithubAuthState] = useState<{ status: 'idle' | 'connecting' | 'error'; message: string }>({ status: 'idle', message: '' });
   const [bridgeTest, setBridgeTest] = useState<{ status: 'idle' | 'testing' | 'ok' | 'error'; message: string }>({ status: 'idle', message: '' });
   const [bridgeRecovery, setBridgeRecovery] = useState<{ status: 'idle' | 'ok' | 'error'; message: string }>({ status: 'idle', message: '' });
+  const [bridgeTokenFeedback, setBridgeTokenFeedback] = useState<{ status: 'idle' | 'ok' | 'error'; message: string }>({ status: 'idle', message: '' });
+  const [hostSetupFeedback, setHostSetupFeedback] = useState<{ status: 'idle' | 'ok' | 'error'; message: string }>({ status: 'idle', message: '' });
   const [bridgeHealth, setBridgeHealth] = useState<{ status: 'checking' | 'healthy' | 'unhealthy'; message: string }>({
     status: 'checking',
     message: 'Checking bridge health...'
@@ -63,10 +66,11 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
       formData.repoName !== currentSettings.repoName ||
       formData.defaultBranch !== currentSettings.defaultBranch ||
       formData.agentEndpoint !== currentSettings.agentEndpoint ||
+      formData.bridgeAuthToken !== currentSettings.bridgeAuthToken ||
       formData.worktreeRoot !== currentSettings.worktreeRoot ||
       formData.geminiApiKey !== currentSettings.geminiApiKey ||
       formData.model !== currentSettings.model;
-  }, [formData.githubToken, formData.repoOwner, formData.repoName, formData.defaultBranch, formData.agentEndpoint, formData.worktreeRoot, formData.geminiApiKey, formData.model, currentSettings]);
+  }, [formData.githubToken, formData.repoOwner, formData.repoName, formData.defaultBranch, formData.agentEndpoint, formData.bridgeAuthToken, formData.worktreeRoot, formData.geminiApiKey, formData.model, currentSettings]);
 
   // Handle close with dirty check
   const handleClose = useCallback(() => {
@@ -119,9 +123,64 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
       setGithubAuthState({ status: 'idle', message: '' });
       setBridgeTest({ status: 'idle', message: '' });
       setBridgeRecovery({ status: 'idle', message: '' });
+      setBridgeTokenFeedback({ status: 'idle', message: '' });
+      setHostSetupFeedback({ status: 'idle', message: '' });
       setBridgeHealth({ status: 'checking', message: 'Checking bridge health...' });
     }
   }, [isOpen, currentSettings]);
+
+  const createBridgeToken = (): string => {
+    const cryptoApi = typeof window !== 'undefined' ? window.crypto : globalThis.crypto;
+    if (cryptoApi?.getRandomValues) {
+      const bytes = new Uint8Array(24);
+      cryptoApi.getRandomValues(bytes);
+      return `flowize-${Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('')}`;
+    }
+
+    if (cryptoApi?.randomUUID) {
+      return `flowize-${cryptoApi.randomUUID().replace(/-/g, '')}`;
+    }
+
+    return `flowize-${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
+  };
+
+  const handleGenerateBridgeToken = async () => {
+    const token = createBridgeToken();
+    setFormData((prev) => ({ ...prev, bridgeAuthToken: token }));
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(token);
+        setBridgeTokenFeedback({ status: 'ok', message: 'Generated a new bridge token and copied it to clipboard.' });
+        return;
+      } catch {
+        // ignore clipboard issues and still keep token in the field
+      }
+    }
+
+    setBridgeTokenFeedback({ status: 'ok', message: 'Generated a new bridge token. Copy it into both bridge env vars.' });
+  };
+
+  const handleCopyBridgeToken = async () => {
+    const token = formData.bridgeAuthToken?.trim();
+    if (!token) {
+      setBridgeTokenFeedback({ status: 'error', message: 'Generate or paste a bridge token first.' });
+      return;
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(token);
+        setBridgeTokenFeedback({ status: 'ok', message: 'Bridge token copied to clipboard.' });
+        return;
+      } catch {
+        setBridgeTokenFeedback({ status: 'error', message: 'Clipboard access failed. Copy the token manually.' });
+        return;
+      }
+    }
+
+    setBridgeTokenFeedback({ status: 'error', message: 'Clipboard is unavailable. Copy the token manually.' });
+  };
 
   const getBridgeBaseUrl = (endpoint: string): string => {
     const trimmed = endpoint.trim().replace(/\/+$/, '');
@@ -249,10 +308,11 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
     try {
       let startPayload: { success?: boolean; authorizeUrl?: string; error?: string } | null = null;
       let lastError = '';
+      const headers = getBridgeRequestHeaders(getBridgeAuthToken(formData));
 
       for (const startUrl of oauthStartUrls) {
         try {
-          const startResponse = await fetch(startUrl);
+          const startResponse = await fetch(startUrl, { headers });
           const payload = await startResponse.json() as { success?: boolean; authorizeUrl?: string; error?: string };
           if (startResponse.ok && payload.authorizeUrl) {
             startPayload = payload;
@@ -340,15 +400,16 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
     }
 
     const candidates = getBridgeCandidates(endpoint);
+    const headers = getBridgeRequestHeaders(getBridgeAuthToken(formData), {
+      'Content-Type': 'application/json'
+    });
     let lastError = '';
 
     for (const candidate of candidates) {
       try {
         const response = await fetch(candidate, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers,
           body: JSON.stringify({
             command,
             mode: 'shell'
@@ -569,32 +630,6 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
     }
   };
 
-  const getBridgeCandidates = (endpoint: string): string[] => {
-    const trimmed = endpoint.trim().replace(/\/+$/, '');
-    const withRun = trimmed.endsWith('/run') ? trimmed : `${trimmed}/run`;
-    const withoutRun = trimmed.endsWith('/run') ? trimmed.slice(0, -4) : trimmed;
-    const browserHost = typeof window !== 'undefined' ? window.location.hostname : '';
-
-    const alternates = [withRun, withoutRun]
-      .flatMap((value) => {
-        const hostAlternates = [value];
-        if (value.includes('127.0.0.1')) {
-          hostAlternates.push(value.replace('127.0.0.1', 'localhost'));
-        }
-        if (value.includes('localhost')) {
-          hostAlternates.push(value.replace('localhost', '127.0.0.1'));
-        }
-        if (browserHost && !value.includes(browserHost)) {
-          hostAlternates.push(value.replace('127.0.0.1', browserHost));
-          hostAlternates.push(value.replace('localhost', browserHost));
-        }
-        return hostAlternates;
-      })
-      .filter((value) => value.length > 0);
-
-    return Array.from(new Set(alternates));
-  };
-
   const handleTestBridge = async () => {
     const endpoint = formData.agentEndpoint?.trim();
     if (!endpoint) {
@@ -606,6 +641,9 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
     setBridgeRecovery({ status: 'idle', message: '' });
     setBridgeTest({ status: 'testing', message: 'Testing bridge connectivity...' });
     const candidates = getBridgeCandidates(endpoint);
+    const headers = getBridgeRequestHeaders(getBridgeAuthToken(formData), {
+      'Content-Type': 'application/json'
+    });
     let lastNetworkError = '';
     let reachableButRejected = '';
 
@@ -613,9 +651,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
       try {
         const response = await fetch(candidate, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers,
           body: JSON.stringify({
             command: 'echo flowize-bridge-test',
             mode: 'shell',
@@ -623,12 +659,23 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
           })
         });
 
+        const raw = await response.text();
+        let data: { error?: string; diagnostics?: { requestOrigin?: string; allowedOrigins?: string; authRequired?: boolean } } = {};
+        try {
+          data = raw ? JSON.parse(raw) : {};
+        } catch {
+          data = {};
+        }
+
         if (response.ok) {
           setBridgeTest({ status: 'ok', message: `Bridge reachable at ${candidate}` });
           return;
         }
 
-        reachableButRejected = `Endpoint reachable at ${candidate} but rejected request (${response.status}).`;
+        const diagnostics = data.diagnostics
+          ? ` requestOrigin=${data.diagnostics.requestOrigin || '(none)'} allowed=${data.diagnostics.allowedOrigins || '(unknown)'} authRequired=${String(data.diagnostics.authRequired === true)}`
+          : '';
+        reachableButRejected = `${data.error || `Endpoint reachable at ${candidate} but rejected request (${response.status}).`}${diagnostics}`;
       } catch (error) {
         lastNetworkError = error instanceof Error ? error.message : String(error);
       }
@@ -660,23 +707,41 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
     setBridgeRecovery({ status: 'error', message: `Clipboard unavailable. Run \`${manualCommand}\` in a terminal.` });
   };
 
+  const copyHostCommand = async (command: string, successMessage: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(command);
+        setHostSetupFeedback({ status: 'ok', message: successMessage });
+        return;
+      } catch {
+        // fall through
+      }
+    }
+
+    setHostSetupFeedback({ status: 'error', message: `Clipboard unavailable. Run \`${command}\` manually.` });
+  };
+
+  const handleCopyHostStartCommand = async () => {
+    await copyHostCommand('npm run host:start', 'Copied `npm run host:start` for production remote hosting.');
+  };
+
+  const handleCopyTaskSchedulerCommand = async () => {
+    await copyHostCommand('powershell.exe -ExecutionPolicy Bypass -File Z:\\flowize\\scripts\\start-remote-host.ps1', 'Copied Task Scheduler command for Windows logon startup.');
+  };
+
   const bridgeHealthFailedToFetch = bridgeHealth.status === 'unhealthy'
     && bridgeHealth.message.toLowerCase().includes('failed to fetch');
   const shouldShowBridgeRecovery = bridgeTest.status === 'error' || bridgeHealthFailedToFetch;
 
   const checkBridgeHealth = async (endpoint: string) => {
-    const candidates = getBridgeCandidates(endpoint)
-      .map((candidate) => {
-        const base = candidate.endsWith('/run') ? candidate.slice(0, -4) : candidate;
-        return `${base}/health`;
-      })
-      .filter((value, index, arr) => arr.indexOf(value) === index);
+    const candidates = getBridgeHealthUrls(endpoint);
+    const headers = getBridgeRequestHeaders(getBridgeAuthToken(formData));
 
     let lastError = '';
 
     for (const healthUrl of candidates) {
       try {
-        const response = await fetch(healthUrl, { method: 'GET' });
+        const response = await fetch(healthUrl, { method: 'GET', headers });
         if (!response.ok) {
           lastError = `HTTP ${response.status} at ${healthUrl}`;
           continue;
@@ -1307,9 +1372,9 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Bridge Endpoint</label>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Bridge Endpoint</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -1393,10 +1458,117 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
                       )}
                     </div>
                   )}
-                </div>
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Workspace Folder</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Bridge Auth Token</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        value={formData.bridgeAuthToken || ''}
+                        onChange={e => {
+                          setFormData({ ...formData, bridgeAuthToken: e.target.value });
+                          setBridgeTokenFeedback({ status: 'idle', message: '' });
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 dark:placeholder:text-slate-600"
+                        placeholder="Optional bearer token for remote bridge access"
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleGenerateBridgeToken}
+                        className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap min-h-[44px]"
+                      >
+                        Generate
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCopyBridgeToken}
+                        className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap min-h-[44px]"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      Required when exposing the bridge beyond localhost. Flowize sends this as a bearer token on health, job, and command requests.
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      Put the same value in both `BRIDGE_AUTH_TOKEN` and `VITE_BRIDGE_AUTH_TOKEN` in `Z:\flowize\.env.local`, then restart the app and bridge.
+                    </p>
+                    {bridgeTokenFeedback.status !== 'idle' && (
+                      <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${bridgeTokenFeedback.status === 'ok'
+                        ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                        : 'bg-red-500/5 border-red-500/20 text-red-700 dark:text-red-300'
+                        }`}>
+                        {bridgeTokenFeedback.status === 'ok' ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : <XCircle className="w-4 h-4 mt-0.5" />}
+                        <span>{bridgeTokenFeedback.message}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">24/7 Remote Host</label>
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 p-3 space-y-3">
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        Recommended for phone-first use: run the built app and bridge on this PC, then reach it over Tailscale.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={handleCopyHostStartCommand}
+                          className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap min-h-[44px]"
+                        >
+                          <span className="inline-flex items-center gap-1.5"><Copy className="w-3 h-3" /> Copy Host Start</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCopyTaskSchedulerCommand}
+                          className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap min-h-[44px]"
+                        >
+                          <span className="inline-flex items-center gap-1.5"><Copy className="w-3 h-3" /> Copy Task Scheduler</span>
+                        </button>
+                      </div>
+                      <div className="text-[11px] font-mono text-slate-600 dark:text-slate-400 break-all">
+                        `npm run host:start`<br />
+                        `powershell.exe -ExecutionPolicy Bypass -File Z:\flowize\scripts\start-remote-host.ps1`
+                      </div>
+                      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-950/60 p-3 space-y-2">
+                        <div className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-500 font-semibold">Diagnostics</div>
+                        <div className="text-[11px] text-slate-600 dark:text-slate-400">
+                          If the host stops responding, restart both processes with `npm run host:start`. For bridge-only recovery, use `npm run bridge:start`.
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={handleCopyBridgeStartCommand}
+                            className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap min-h-[44px]"
+                          >
+                            <span className="inline-flex items-center gap-1.5"><Copy className="w-3 h-3" /> Copy Bridge Restart</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleTestBridge}
+                            disabled={bridgeTest.status === 'testing'}
+                            className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed min-h-[44px]"
+                          >
+                            <span className="inline-flex items-center gap-1.5"><RefreshCw className={`w-3 h-3 ${bridgeTest.status === 'testing' ? 'animate-spin' : ''}`} /> Re-test Host</span>
+                          </button>
+                        </div>
+                      </div>
+                      {hostSetupFeedback.status !== 'idle' && (
+                        <div className={`text-xs rounded-lg border px-3 py-2 flex items-start gap-2 ${hostSetupFeedback.status === 'ok'
+                          ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-red-500/5 border-red-500/20 text-red-700 dark:text-red-300'
+                          }`}>
+                          {hostSetupFeedback.status === 'ok' ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : <XCircle className="w-4 h-4 mt-0.5" />}
+                          <span>{hostSetupFeedback.message}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Agent Workspace Folder</label>
                   <input
                     type="text"
                     value={formData.agentSubdir || ''}

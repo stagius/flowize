@@ -18,10 +18,37 @@ import { ThemeToggle } from './components/ui/ThemeToggle';
 import { useTheme } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthGuard } from './components/AuthGuard';
+import { getBridgeAuthToken, getBridgeHealthUrls, getBridgeRequestHeaders } from './services/bridgeClient';
 
 type BridgeHealthState = {
     status: 'checking' | 'healthy' | 'unhealthy';
     endpoint?: string;
+    authRequired?: boolean;
+    persistence?: boolean;
+    dataDir?: string;
+    typedActions?: string[];
+    metrics?: {
+        activeJobs?: number;
+        totalJobs?: number;
+        runningSessions?: number;
+        completedSessions?: number;
+        interruptedSessions?: number;
+        failedSessions?: number;
+        cancelledSessions?: number;
+        totalSessions?: number;
+    };
+    diagnostics?: {
+        startedAt?: number;
+        uptimeMs?: number;
+        host?: string;
+        port?: number;
+        workdir?: string;
+        allowedOrigin?: string;
+        dataDir?: string;
+        logLevel?: string;
+        authRequired?: boolean;
+        oauthEnabled?: boolean;
+    };
 };
 
 const SETTINGS_STORAGE_KEY = 'flowize.settings.v1';
@@ -30,7 +57,7 @@ const SLOTS_STORAGE_KEY = 'flowize.slots.v1';
 const STEP_STORAGE_KEY = 'flowize.current-step.v1';
 const SIDEBAR_COLLAPSED_KEY = 'flowize.sidebar-collapsed.v1';
 
-const createDefaultSettings = (envGithubToken: string, envBridgeEndpoint?: string, envApiKey?: string): AppSettings => ({
+const createDefaultSettings = (envGithubToken: string, envBridgeEndpoint?: string, envApiKey?: string, envBridgeAuthToken?: string): AppSettings => ({
     repoOwner: 'stagius',
     repoName: 'flowize',
     defaultBranch: 'master',
@@ -40,6 +67,7 @@ const createDefaultSettings = (envGithubToken: string, envBridgeEndpoint?: strin
     agentCommand: 'cd "{worktreePath}" && opencode run {agentFlag} "Implement issue #{issueNumber} on branch {branch}. Use {issueDescriptionFile} as requirements and follow {skillFile}. Return code/output for this task." --print-logs',
     agentName: '',
     agentEndpoint: envBridgeEndpoint || 'http://127.0.0.1:4141/run',
+    bridgeAuthToken: envBridgeAuthToken || '',
     agentSubdir: '.agent-workspace',
     agentSkillFile: '.opencode/skills/specflow-worktree-automation/SKILL.md',
     model: 'gemini-3-flash-preview',
@@ -64,7 +92,8 @@ export default function App() {
     const envGithubToken = env?.VITE_GITHUB_TOKEN || env?.GITHUB_TOKEN || '';
     const envApiKey = env?.VITE_API_KEY || env?.API_KEY || '';
     const envBridgeEndpoint = env?.VITE_BRIDGE_ENDPOINT;
-    const defaultSettings = createDefaultSettings(envGithubToken, envBridgeEndpoint, envApiKey);
+    const envBridgeAuthToken = env?.VITE_BRIDGE_AUTH_TOKEN || '';
+    const defaultSettings = createDefaultSettings(envGithubToken, envBridgeEndpoint, envApiKey, envBridgeAuthToken);
 
     const [currentStep, setCurrentStep] = useState<number>(() => {
         if (typeof window === 'undefined') {
@@ -392,48 +421,41 @@ export default function App() {
             return;
         }
 
-        const getCandidates = (value: string): string[] => {
-            const trimmed = value.replace(/\/+$/, '');
-            const withRun = trimmed.endsWith('/run') ? trimmed : `${trimmed}/run`;
-            const withoutRun = trimmed.endsWith('/run') ? trimmed.slice(0, -4) : trimmed;
-            const host = typeof window !== 'undefined' ? window.location.hostname : '';
-
-            const candidates = [withRun, withoutRun]
-                .flatMap((item) => {
-                    const variants = [item];
-                    if (item.includes('127.0.0.1')) variants.push(item.replace('127.0.0.1', 'localhost'));
-                    if (item.includes('localhost')) variants.push(item.replace('localhost', '127.0.0.1'));
-                    if (host && !item.includes(host)) {
-                        variants.push(item.replace('127.0.0.1', host));
-                        variants.push(item.replace('localhost', host));
-                    }
-                    return variants;
-                })
-                .map((item) => {
-                    const base = item.endsWith('/run') ? item.slice(0, -4) : item;
-                    return `${base}/health`;
-                });
-
-            return Array.from(new Set(candidates));
-        };
-
         let active = true;
         setBridgeHealth({ status: 'checking' });
 
         const check = async () => {
-            const candidates = getCandidates(endpoint);
+            const candidates = getBridgeHealthUrls(endpoint);
+            const headers = getBridgeRequestHeaders(getBridgeAuthToken(settings));
             console.log(`[bridge:health] checking ${candidates.length} candidates: [${candidates.join(', ')}]`);
             for (const healthUrl of candidates) {
                 try {
-                    const response = await fetch(healthUrl, { method: 'GET' });
+                    const response = await fetch(healthUrl, { method: 'GET', headers });
                     if (!response.ok) {
                         console.warn(`[bridge:health] ${healthUrl} returned ${response.status}`);
                         continue;
                     }
-                    const payload = await response.json() as { ok?: boolean };
+                    const payload = await response.json() as {
+                        ok?: boolean;
+                        authRequired?: boolean;
+                        persistence?: boolean;
+                        dataDir?: string;
+                        typedActions?: string[];
+                        metrics?: BridgeHealthState['metrics'];
+                        diagnostics?: BridgeHealthState['diagnostics'];
+                    };
                     if (payload.ok && active) {
                         console.log(`[bridge:health] healthy via ${healthUrl}`);
-                        setBridgeHealth({ status: 'healthy', endpoint: healthUrl });
+                        setBridgeHealth({
+                            status: 'healthy',
+                            endpoint: healthUrl,
+                            authRequired: payload.authRequired,
+                            persistence: payload.persistence,
+                            dataDir: payload.dataDir,
+                            typedActions: Array.isArray(payload.typedActions) ? payload.typedActions : [],
+                            metrics: payload.metrics,
+                            diagnostics: payload.diagnostics
+                        });
                         return;
                     } else {
                         console.warn(`[bridge:health] ${healthUrl} ok=${payload.ok} - not marking healthy`);
@@ -922,7 +944,8 @@ export default function App() {
         logs: string,
         command: string,
         success: boolean,
-        runState?: 'succeeded' | 'failed' | 'cancelled'
+        runState?: 'succeeded' | 'failed' | 'cancelled',
+        metadata?: { jobId?: string; sessionId?: string }
     ) => {
         setTasks(prev => prev.map(t =>
             t.id === taskId ? {
@@ -931,8 +954,39 @@ export default function App() {
                 implementationDetails: implementation,
                 agentLogs: logs,
                 agentLastCommand: command,
+                agentJobId: metadata?.jobId || t.agentJobId,
+                agentSessionId: metadata?.sessionId || t.agentSessionId,
                 agentRunState: runState || (success ? 'succeeded' : 'failed'),
                 reviewFeedback: success ? undefined : t.reviewFeedback
+            } : t
+        ));
+    };
+
+    const handleRemoteSessionSync = (
+        taskId: string,
+        payload: {
+            logs: string;
+            command?: string;
+            runState: 'idle' | 'running' | 'succeeded' | 'failed' | 'cancelled';
+            implementation?: string;
+            jobId?: string;
+            sessionId?: string;
+        }
+    ) => {
+        setTasks(prev => prev.map(t =>
+            t.id === taskId ? {
+                ...t,
+                agentLogs: payload.logs,
+                agentLastCommand: payload.command || t.agentLastCommand,
+                agentRunState: payload.runState,
+                agentJobId: payload.jobId || t.agentJobId,
+                agentSessionId: payload.sessionId || t.agentSessionId,
+                implementationDetails: payload.runState === 'succeeded'
+                    ? (payload.implementation || t.implementationDetails)
+                    : t.implementationDetails,
+                status: payload.runState === 'succeeded'
+                    ? TaskStatus.IMPLEMENTED
+                    : t.status
             } : t
         ));
     };
@@ -971,7 +1025,7 @@ export default function App() {
                 t.id === taskId ? { ...t, status: TaskStatus.PUSHED } : t
             ));
             setCurrentStep(4);
-            showToast(`Branch ${task.branchName} pushed. Continue review in Step 4.`, 'success');
+            showToast(`Branch ${task.branchName} pushed remotely. Continue review in Step 4.`, 'success');
         } catch (e: any) {
             console.error("Failed to push to GitHub", e);
             const message = e instanceof Error ? e.message : String(e);
@@ -990,7 +1044,7 @@ export default function App() {
                                 t.id === taskId ? { ...t, status: TaskStatus.PUSHED } : t
                             ));
                             setCurrentStep(4);
-                            showToast(`Force pushed ${task.branchName}. Continue review in Step 4.`, 'warning');
+                            showToast(`Force pushed ${task.branchName} remotely. Continue review in Step 4.`, 'warning');
                         }
                     }
                 );
@@ -1013,9 +1067,9 @@ export default function App() {
 
         if (slot) {
             const confirmed = await askConfirmation({
-                title: 'Ready to Approve?',
-                message: `Please close any IDEs or terminals that have files open in:\n\n${slot.path}\n\nThis ensures the worktree can be cleaned up after PR creation.`,
-                confirmLabel: 'Continue',
+                title: 'Create PR Remotely?',
+                message: `Please close any local IDEs or terminals that have files open in:\n\n${slot.path}\n\nThis helps the remote host clean up the worktree after PR creation.`,
+                confirmLabel: 'Create PR',
                 cancelLabel: 'Cancel',
                 tone: 'info'
             });
@@ -1387,6 +1441,7 @@ export default function App() {
                 settings={settings}
                 bridgeHealth={bridgeHealth}
                 showToast={showToast}
+                onRemoteSessionSync={handleRemoteSessionSync}
             />;
             case 4: return <Step5_Review tasks={tasks} onApprovePR={handleApprovePR} onRequestChanges={handleRequestChanges} onCheckStatus={handleCheckCIStatus} bridgeHealth={bridgeHealth} settings={settings} />;
             case 5: return <Step6_Merge tasks={tasks} onMerge={handleMerge} onResolveConflict={handleResolveMergeConflict} onFetchMerged={handleFetchMerged} settings={settings} />;
@@ -1440,6 +1495,7 @@ export default function App() {
         >
             <AuthGuard
                 bridgeEndpoint={settings.agentEndpoint}
+                bridgeAuthToken={settings.bridgeAuthToken}
                 toasts={<ToastStack toasts={toasts} />}
             >
                 <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 font-sans selection:bg-indigo-500/30">
@@ -1536,7 +1592,7 @@ export default function App() {
                                 </nav>
 
                                 <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-                                    <button
+                                    <div
                                         onClick={() => {
                                             setIsSettingsOpen(true);
                                             setIsMobileMenuOpen(false);
@@ -1588,7 +1644,7 @@ export default function App() {
                                                 <span>Logout</span>
                                             </button>
                                         </div>
-                                    </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1654,7 +1710,7 @@ export default function App() {
 
                         <div className="p-4 border-t border-slate-200 dark:border-slate-800">
                             {isSidebarCollapsed ? (
-                                <button
+                                <div
                                     onClick={() => setIsSettingsOpen(true)}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter' || e.key === ' ') {
@@ -1689,9 +1745,9 @@ export default function App() {
                                     >
                                         <LogOut className="w-3.5 h-3.5" />
                                     </button>
-                                </button>
+                                </div>
                             ) : (
-                                <button
+                                <div
                                     onClick={() => setIsSettingsOpen(true)}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter' || e.key === ' ') {
@@ -1741,7 +1797,7 @@ export default function App() {
                                             <span>Logout</span>
                                         </button>
                                     </div>
-                                </button>
+                                </div>
                             )}
                         </div>
                     </aside>

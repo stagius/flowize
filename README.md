@@ -94,9 +94,72 @@ Recommended GitHub token scopes:
 - `npm run setup` - Create `.env.local` from template
 - `npm run start` - Start dev server + local bridge
 - `npm run dev` - Dev server only
+- `npm run dev:host` - Dev server reachable from your network/Tailnet
+- `npm run serve:dist` - Serve built `dist/` for long-running host mode
 - `npm run bridge:start` - Local bridge only
+- `npm run host:start` - Launch Windows production remote-host mode for app + bridge
+- `npm run host:start:dev` - Launch Windows dev remote-host mode for app + bridge
 - `npm run build` - Production build
 - `npm run preview` - Preview production build
+
+### Remote bridge hardening
+
+- Set `BRIDGE_AUTH_TOKEN` in `.env.local` before exposing the bridge outside localhost/Tailscale-only trusted clients.
+- Set `VITE_BRIDGE_AUTH_TOKEN` for the Flowize UI so browser requests include the bearer token.
+- Keep `BRIDGE_ALLOWED_ORIGIN` restricted to your Flowize origin when possible. You can provide a comma-separated allowlist such as `http://localhost:3000,http://192.168.1.190:3000,http://100.x.y.z:3000`.
+- Bridge jobs and agent sessions persist under `BRIDGE_DATA_DIR` (defaults to `.flowize-bridge` inside the repo/workdir) so remote runs can survive bridge restarts.
+- Typed bridge actions now cover remote agent runs, worktree create/cleanup, and remote branch push, reducing dependence on raw shell execution from the browser.
+- `/health` now reports live bridge metrics like active jobs and running sessions, which Flowize surfaces in the remote host dashboards.
+
+### 24/7 remote host setup
+
+Recommended setup for an always-on Windows PC:
+
+1. Install Tailscale and make sure your phone can reach the PC over the Tailnet.
+2. Set the same secret in `BRIDGE_AUTH_TOKEN` and `VITE_BRIDGE_AUTH_TOKEN` in `Z:\flowize\.env.local`.
+3. Start Flowize in production host mode:
+
+```powershell
+npm run host:start
+```
+
+This launches:
+
+- the built app from `dist/` on `0.0.0.0:3000`
+- the bridge on `0.0.0.0:4141`
+- separate PowerShell windows with logs under `.flowize-host-logs/`
+
+Use dev host mode only if you are actively changing the app:
+
+```powershell
+npm run host:start:dev
+```
+
+Suggested `.env.local` additions for always-on mode:
+
+```env
+BRIDGE_AUTH_TOKEN=your-long-random-secret
+VITE_BRIDGE_AUTH_TOKEN=your-long-random-secret
+BRIDGE_ALLOWED_ORIGIN=http://localhost:3000,http://192.168.1.190:3000,http://100.x.y.z:3000
+BRIDGE_DATA_DIR=.flowize-bridge
+BRIDGE_LOG_LEVEL=info
+```
+
+Replace the example origins with the actual desktop, LAN, and Tailscale URLs you use.
+
+For startup on boot/logon, use Windows Task Scheduler:
+
+- Trigger: `At log on`
+- Action: `powershell.exe -ExecutionPolicy Bypass -File Z:\flowize\scripts\start-remote-host.ps1`
+- Start in: `Z:\flowize`
+- Enable: `Run with highest privileges`
+
+Operational notes:
+
+- keep the PC awake and signed in
+- allow ports `3000` and `4141` locally if Windows Firewall prompts
+- test from phone by loading the Flowize URL first, then verify the bridge shows `Host ready`
+- prefer `npm run host:start` for 24/7 use; it builds once and serves static assets instead of relying on the Vite dev server
 
 ## Project structure
 

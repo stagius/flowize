@@ -3,10 +3,12 @@ import { Github, AlertCircle, Loader2, Key, AlertTriangle, CheckCircle, GitGraph
 import { TYPOGRAPHY, TONE_STYLES, SPACING } from '../designSystem';
 import { validateGithubToken } from '../services/githubService';
 import { useAuth } from '../contexts/AuthContext';
+import { getBridgeBaseUrl, getBridgeCandidates, getBridgeRequestHeaders } from '../services/bridgeClient';
 
 interface LoginPageProps {
   onLoginSuccess: (token: string) => void | Promise<void>;
   bridgeEndpoint: string;
+  bridgeAuthToken?: string;
 }
 
 type AuthState = {
@@ -16,18 +18,7 @@ type AuthState = {
 
 type LoginMode = 'oauth' | 'manual';
 
-const getBridgeBaseUrl = (endpoint: string): string => {
-  const trimmed = endpoint.trim().replace(/\/+$/, '');
-  return trimmed.endsWith('/run') ? trimmed.slice(0, -4) : trimmed;
-};
-
-const getBridgeCandidates = (endpoint: string): string[] => {
-  const trimmed = endpoint.trim().replace(/\/+$/, '');
-  const base = trimmed.endsWith('/run') ? trimmed.slice(0, -4) : trimmed;
-  return [base + '/run', base];
-};
-
-export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, bridgeEndpoint }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, bridgeEndpoint, bridgeAuthToken }) => {
   const { loginMode: savedLoginMode, setLoginMode } = useAuth();
   const [authState, setAuthState] = useState<AuthState>({ status: 'idle', message: '' });
   const [loginMode, setLoginModeState] = useState<LoginMode>(savedLoginMode || 'oauth');
@@ -113,6 +104,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, bridgeEndp
           if (origin.includes('localhost')) {
             return [origin, origin.replace('localhost', '127.0.0.1')];
           }
+          if (origin.includes('192.168.1.190')) {
+            return [origin, origin.replace('192.168.1.190', 'localhost')];
+          }
           return [origin];
         } catch {
           return [];
@@ -134,10 +128,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, bridgeEndp
     try {
       let startPayload: { success?: boolean; authorizeUrl?: string; error?: string } | null = null;
       let lastError = '';
+      const headers = getBridgeRequestHeaders(bridgeAuthToken);
 
       for (const startUrl of oauthStartUrls) {
         try {
-          const startResponse = await fetch(startUrl);
+          const startResponse = await fetch(startUrl, { headers });
           const payload = await startResponse.json() as { success?: boolean; authorizeUrl?: string; error?: string };
           if (startResponse.ok && payload.authorizeUrl) {
             startPayload = payload;
@@ -231,6 +226,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, bridgeEndp
                 <div className="min-w-0 flex-1">
                   <p className={`text-sm ${TONE_STYLES.error.text}`}>
                     {authState.message}
+                  </p>
+                  <p className="mt-2 text-xs text-slate-600 dark:text-slate-400 break-words">
+                    If you are connecting from your phone or another device, use the same PC host in the bridge endpoint, for example `http://192.168.1.190:4141/run` or your Tailscale host, not `127.0.0.1`.
                   </p>
                 </div>
               </div>

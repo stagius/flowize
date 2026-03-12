@@ -7,6 +7,8 @@ export interface ProcessInfo {
   platform: 'win32' | 'darwin' | 'linux';
 }
 
+const isBrowserRuntime = typeof window !== 'undefined';
+
 async function getProcessesUnix(path: string, settings: AppSettings): Promise<ProcessInfo[]> {
   const platform = process.platform as 'darwin' | 'linux';
   
@@ -97,7 +99,15 @@ export async function getProcessesUsingPath(path: string, settings: AppSettings)
   }
   
   const normalizedPath = path.replace(/\\/g, '/');
-  
+
+  if (isBrowserRuntime) {
+    const endpoint = settings.agentEndpoint.toLowerCase();
+    if (endpoint.includes('windows') || endpoint.includes('127.0.0.1') || endpoint.includes('localhost') || /^[a-z]:\//i.test(settings.worktreeRoot)) {
+      return getProcessesWindows(normalizedPath, settings);
+    }
+    return [];
+  }
+
   if (process.platform === 'win32') {
     return getProcessesWindows(normalizedPath, settings);
   }

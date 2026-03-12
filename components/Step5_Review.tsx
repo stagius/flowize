@@ -8,7 +8,36 @@ interface Props {
   onApprovePR: (taskId: string) => Promise<void>;
   onRequestChanges: (taskId: string, feedback: string) => void;
   onCheckStatus: () => Promise<void>;
-  bridgeHealth?: { status: 'checking' | 'healthy' | 'unhealthy'; endpoint?: string };
+  bridgeHealth?: {
+    status: 'checking' | 'healthy' | 'unhealthy';
+    endpoint?: string;
+    authRequired?: boolean;
+    persistence?: boolean;
+    dataDir?: string;
+    typedActions?: string[];
+    metrics?: {
+      activeJobs?: number;
+      totalJobs?: number;
+      runningSessions?: number;
+      completedSessions?: number;
+      interruptedSessions?: number;
+      failedSessions?: number;
+      cancelledSessions?: number;
+      totalSessions?: number;
+    };
+    diagnostics?: {
+      startedAt?: number;
+      uptimeMs?: number;
+      host?: string;
+      port?: number;
+      workdir?: string;
+      allowedOrigin?: string;
+      dataDir?: string;
+      logLevel?: string;
+      authRequired?: boolean;
+      oauthEnabled?: boolean;
+    };
+  };
   settings?: AppSettings;
 }
 
@@ -20,6 +49,8 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [isChecking, setIsChecking] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const hostReady = bridgeHealth?.status === 'healthy';
+  const remoteReady = Boolean(bridgeHealth?.typedActions?.includes('flowize-push-worktree-branch'));
 
   const buildBranchUrl = (branchName: string): string | null => {
     if (!branchName || !settings?.repoOwner || !settings?.repoName) return null;
@@ -82,6 +113,49 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
         </div>
       )}
 
+      <div className="lg:col-span-2 bg-white dark:bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/80 flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="font-bold text-slate-900 dark:text-slate-200 flex items-center gap-2">
+              <Server className={`w-4 h-4 ${hostReady ? 'text-emerald-600 dark:text-emerald-400' : bridgeHealth?.status === 'checking' ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`} />
+              Remote Review Host
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+              Step 4 can push the branch on the always-on PC and open the PR from your phone.
+            </p>
+          </div>
+          <div className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${hostReady
+            ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+            : bridgeHealth?.status === 'checking'
+              ? 'border-yellow-500/20 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300'
+              : 'border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300'
+            }`}>
+            {hostReady ? 'Remote review ready' : bridgeHealth?.status === 'checking' ? 'Checking host...' : 'Remote host unavailable'}
+          </div>
+        </div>
+        <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-3">
+            <div className="uppercase tracking-wider text-slate-500 dark:text-slate-500 font-semibold text-[10px]">Bridge</div>
+            <div className="mt-2 font-semibold text-slate-900 dark:text-slate-100">{bridgeHealth?.endpoint || settings?.agentEndpoint || 'Unavailable'}</div>
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-3">
+            <div className="uppercase tracking-wider text-slate-500 dark:text-slate-500 font-semibold text-[10px]">Persistence</div>
+            <div className="mt-2 font-semibold text-slate-900 dark:text-slate-100">{bridgeHealth?.persistence ? 'Enabled' : 'Unknown'}</div>
+            <div className="mt-1 text-slate-600 dark:text-slate-400 break-all">{bridgeHealth?.dataDir || 'Awaiting host status'}</div>
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-3">
+            <div className="uppercase tracking-wider text-slate-500 dark:text-slate-500 font-semibold text-[10px]">Capabilities</div>
+            <div className="mt-2 font-semibold text-slate-900 dark:text-slate-100">{remoteReady ? 'Remote push + PR handoff ready' : 'Limited remote support'}</div>
+            <div className="mt-1 text-slate-600 dark:text-slate-400">{bridgeHealth?.authRequired ? 'Bearer auth enabled.' : 'Consider enabling bridge auth.'} {typeof bridgeHealth?.metrics?.runningSessions === 'number' ? `Active remote runs: ${bridgeHealth.metrics.runningSessions}.` : ''}</div>
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-3">
+            <div className="uppercase tracking-wider text-slate-500 dark:text-slate-500 font-semibold text-[10px]">Diagnostics</div>
+            <div className="mt-2 font-semibold text-slate-900 dark:text-slate-100 font-mono">{bridgeHealth?.diagnostics?.host || 'unknown'}:{bridgeHealth?.diagnostics?.port || 'unknown'}</div>
+            <div className="mt-1 text-slate-600 dark:text-slate-400">Uptime: {typeof bridgeHealth?.diagnostics?.uptimeMs === 'number' ? `${Math.floor(bridgeHealth.diagnostics.uptimeMs / 1000)}s` : 'unknown'} | Log level: {bridgeHealth?.diagnostics?.logLevel || 'unknown'}</div>
+          </div>
+        </div>
+      </div>
+
       {/* Pending Reviews */}
       <div className="flex flex-col h-full bg-white dark:bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-teal-50 dark:bg-teal-500/5">
@@ -101,15 +175,15 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
                   : 'text-yellow-600 dark:text-yellow-400'
                 }`} />
               {bridgeHealth?.status === 'healthy' && (
-                <span className={`text-[10px] text-emerald-700 dark:text-emerald-300`}>Bridge active</span>
+                <span className={`text-[10px] text-emerald-700 dark:text-emerald-300`}>Host</span>
               )}
 
               {bridgeHealth?.status === 'unhealthy' && (
-                <span className={`text-[10px] text-red-700 dark:text-red-300`}>Bridge required</span>
+                <span className={`text-[10px] text-red-700 dark:text-red-300`}>Host offline</span>
               )}
 
               {bridgeHealth?.status !== 'healthy' && bridgeHealth?.status !== 'unhealthy' && (
-                <span className={`text-[10px] text-yellow-700 dark:text-yellow-300`}>Bridge required</span>
+                <span className={`text-[10px] text-yellow-700 dark:text-yellow-300`}>Host checking</span>
               )}
             </span>
           </h3>
@@ -173,7 +247,7 @@ export const Step5_Review: React.FC<Props> = ({ tasks, onApprovePR, onRequestCha
                       className="h-11 bg-teal-600 hover:bg-teal-500 text-white px-4 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all shadow-[0_0_10px_rgba(20,184,166,0.2)] disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                       {loadingId === task.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <GitPullRequest className="w-3.5 h-3.5" />}
-                      Approve code & Open PR
+                      Create PR Remotely
                     </button>
                   </div>
                 </div>

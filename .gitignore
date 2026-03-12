@@ -31,3 +31,5 @@ src/features/*
 .agent-workspace/
 .opencode/*
 nul
+.flowize-bridge/
+.flowize-host-logs/
