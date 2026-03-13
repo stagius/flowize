@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppSettings, TaskItem, TaskStatus } from '../types';
-import { GitMerge, CheckCircle, ExternalLink, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { GitMerge, CheckCircle, ExternalLink, Loader2, RefreshCw, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { ErrorState, LoadingSkeleton } from './ui/AsyncStates';
+
+const READY_TO_MERGE_COLLAPSED_KEY = 'flowize.step6.ready-to-merge-collapsed.v1';
 
 interface Props {
   tasks: TaskItem[];
@@ -18,6 +20,15 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(false);
   const [mergeError, setMergeError] = useState<string | null>(null);
+  const [isReadyToMergeCollapsed, setIsReadyToMergeCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try { return window.localStorage.getItem(READY_TO_MERGE_COLLAPSED_KEY) === 'true'; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(READY_TO_MERGE_COLLAPSED_KEY, String(isReadyToMergeCollapsed)); }
+    catch { }
+  }, [isReadyToMergeCollapsed]);
 
   const buildPrUrl = (task: TaskItem): string | null => {
     if (task.issueUrl) return task.issueUrl;
@@ -82,10 +93,24 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
              <h3 className="font-bold text-green-600 dark:text-green-400 flex items-center gap-2">
                <GitMerge className="w-5 h-5" /> Ready to Merge
              </h3>
-             <span className="bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-500/20 text-xs font-bold px-2 py-1 rounded-full">
-               {readyToMerge.length} Ready
-             </span>
+             <div className="flex gap-2 items-center">
+               <span className="bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-500/20 text-xs font-bold px-2 py-1 rounded-full">
+                 {readyToMerge.length} Ready
+               </span>
+               <button
+                 type="button"
+                 onClick={() => setIsReadyToMergeCollapsed((prev) => !prev)}
+                 className="ml-1 inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                 aria-label={isReadyToMergeCollapsed ? 'Expand ready to merge' : 'Collapse ready to merge'}
+                 title={isReadyToMergeCollapsed ? 'Expand ready to merge' : 'Collapse ready to merge'}
+               >
+                 {isReadyToMergeCollapsed
+                   ? <ChevronDown className="w-4 h-4" aria-hidden="true" />
+                   : <ChevronUp className="w-4 h-4" aria-hidden="true" />}
+               </button>
+             </div>
          </div>
+         {!isReadyToMergeCollapsed && (
          <div className="flex-1 min-h-0 overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 custom-scrollbar">
             {readyToMerge.length === 0 ? (
                 <div className="col-span-full py-12 text-center text-slate-500 dark:text-slate-600">
@@ -163,6 +188,7 @@ export const Step6_Merge: React.FC<Props> = ({ tasks, onMerge, onResolveConflict
                 ))
             )}
          </div>
+         )}
       </div>
 
       {/* Merged History */}
