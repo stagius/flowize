@@ -154,8 +154,12 @@ const setupAgentWorkspace = async (settings: AppSettings, slotPath: string, task
     '- Read issue-description.md and implement only the requested scope.',
     '- Keep changes minimal and consistent with the existing code style.',
     '',
-    '## 4. Finish — load the smart-commit skill',
-    'Read and follow ./skills/smart-commit.md when implementation is complete.'
+    '## 4. Finish — load the smart-commit skill, then push',
+    'Read and follow ./skills/smart-commit.md when implementation is complete.',
+    'After the commit is done, run `git push` to push the branch to the remote.',
+    '',
+    '## 5. Close — close this terminal when the work is finished',
+    'Once the commit is done and the task is complete, close this terminal window.'
   ].join('\n');
   const gitignorePath = joinPath(slotPath, '.gitignore');
   const gitignoreEntry = `${subdir}/`;
