@@ -20,7 +20,7 @@ Open http://localhost:3000 and log in with GitHub (OAuth or manual token).
 > For OAuth login (optional), update `.env.local` with your GitHub OAuth app credentials.
 
 > For GitHub Personal Access Token, get one from [GitHub Settings](https://github.com/settings/tokens).
-*__Required scopes__: repo (Classic) or Contents:Read/Write, PullRequests:Read/Write (Fine-grained).*
+**Required scopes**: repo (Classic) or Contents: Read/Write, Pull requests: Read/Write (Fine-grained).
 
 ## Quick Demo
 
@@ -52,9 +52,9 @@ https://github.com/user-attachments/assets/69024d86-ab09-4412-bef5-6ea19ed3a05b
 - React 19
 - TypeScript
 - Vite
-- TailwindCSS 4 with PostCSS
-- @dnd-kit for drag-and-drop
-- lucide-react for icons
+- Tailwind CSS 4 with PostCSS
+- `@dnd-kit` for drag-and-drop
+- `lucide-react` for icons
 - `@google/genai` for task/implementation generation
 - GitHub REST API for issues/branches/commits/PRs/merge actions
 
@@ -64,8 +64,8 @@ https://github.com/user-attachments/assets/69024d86-ab09-4412-bef5-6ea19ed3a05b
 - npm
 - Git
 - GitHub Personal Access Token (for repo sync)
-- [Opencode](https://opencode.ai)
-- [Antigravity](https://antigravity.google/download) (we're using the agent not the chat)
+- [OpenCode](https://opencode.ai)
+- [Antigravity](https://antigravity.google/download) (we're using the agent, not the chat)
 
 ## Configuration
 
@@ -88,7 +88,7 @@ Recommended GitHub token scopes:
 
 ## Available scripts
 
-- `npm run init` - Install deps, create `.env.local`, start app (one command)
+- `npm run init` - Install deps, copy `.env.example` to `.env.local`, start app (one command)
 - `npm run setup` - Create `.env.local` from template
 - `npm run start` - Start dev server + local bridge
 - `npm run dev` - Dev server only
@@ -114,7 +114,7 @@ Recommended GitHub token scopes:
 Recommended setup for an always-on Windows PC:
 
 1. Install Tailscale and make sure your phone can reach the PC over the Tailnet.
-2. Set the same secret in `BRIDGE_AUTH_TOKEN` and `VITE_BRIDGE_AUTH_TOKEN` in `Z:\flowize\.env.local`.
+2. Set the same secret in `BRIDGE_AUTH_TOKEN` and `VITE_BRIDGE_AUTH_TOKEN` in your `.env.local` (e.g. `Z:\flowize\.env.local`).
 3. Start Flowize in production host mode:
 
 ```powershell
@@ -148,8 +148,8 @@ Replace the example origins with the actual desktop, LAN, and Tailscale URLs you
 For startup on boot/logon, use Windows Task Scheduler:
 
 - Trigger: `At log on`
-- Action: `powershell.exe -ExecutionPolicy Bypass -File Z:\flowize\scripts\start-remote-host.ps1`
-- Start in: `Z:\flowize`
+- Action: `powershell.exe -ExecutionPolicy Bypass -File <repo-path>\scripts\start-remote-host.ps1`
+- Start in: `<repo-path>`
 - Enable: `Run with highest privileges`
 
 Operational notes:
