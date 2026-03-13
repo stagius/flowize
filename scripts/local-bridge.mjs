@@ -343,13 +343,18 @@ const restorePersistedState = () => {
   }
 
   if (Array.isArray(storedSessions)) {
+    log.info(`restorePersistedState - loading ${storedSessions.length} sessions from ${SESSIONS_STATE_FILE}`);
     for (const item of storedSessions) {
-      if (!item || typeof item.sessionId !== 'string') continue;
+      if (!item || typeof item.sessionId !== 'string') {
+        log.warn(`restorePersistedState - skipping invalid session entry: ${JSON.stringify(item)}`);
+        continue;
+      }
       agentSessions.set(item.sessionId, {
         ...item,
         updatedAt: Number(item.updatedAt) || Date.now(),
         createdAt: Number(item.createdAt) || Date.now()
       });
+      log.info(`restorePersistedState - loaded session id=${item.sessionId} status=${item.status} jobId=${item.jobId}`);
     }
   }
 
@@ -1498,12 +1503,23 @@ server = createServer(async (req, res) => {
   if (req.method === 'GET' && req.url?.startsWith('/agent-session')) {
     const sessionId = getQueryParam(req.url, 'sessionId');
     if (!sessionId) {
-      writeJson(res, 400, { success: false, error: 'Missing sessionId' }, origin);
+      // No sessionId → return all sessions as a list
+      log.info(`[${reqId}] agent-session list - total=${agentSessions.size} sessionsFile=${SESSIONS_STATE_FILE}`);
+      for (const [id, s] of agentSessions.entries()) {
+        log.info(`[${reqId}]   session id=${id} status=${s.status} jobId=${s.jobId} branch=${s.branch || '(none)'}`);
+      }
+      const sessions = Array.from(agentSessions.entries()).map(([id, session]) => {
+        const synced = syncAgentSessionFromJob(id, session.jobId) || session;
+        log.info(`[${reqId}]   synced id=${id} status=${synced.status} done=${synced.done}`);
+        return synced;
+      });
+      writeJson(res, 200, { success: true, sessions }, origin);
       return;
     }
 
     const session = agentSessions.get(sessionId);
     if (!session) {
+      log.warn(`[${reqId}] agent-session get - sessionId=${sessionId} not found, total=${agentSessions.size}`);
       writeJson(res, 404, { success: false, error: 'Session not found' }, origin);
       return;
     }
