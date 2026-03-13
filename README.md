@@ -2,9 +2,9 @@
 
 # Flowize
 [![Vercel Deployment Status](https://therealsujitk-vercel-badge.vercel.app/?app=flowize)](https://flowize-git.vercel.app)
-[![Version](https://img.shields.io/badge/version-v1.0.2-yellow.svg)](https://github.com/stagius/flowize/releases)
-[![GitHub issues](https://img.shields.io/github/issues/stagius/flowize.svg)](https://gitHub.com/stagius/flowize/issues)
-[![GitHub pull-requests](https://img.shields.io/github/issues-pr/stagius/flowize.svg)](https://gitHub.com/stagius/flowize/pulls)
+[![Version](https://img.shields.io/badge/version-v1.0.3-yellow.svg)](https://github.com/stagius/flowize/releases)
+[![GitHub issues](https://img.shields.io/github/issues/stagius/flowize.svg)](https://github.com/stagius/flowize/issues)
+[![GitHub pull-requests](https://img.shields.io/github/issues-pr/stagius/flowize.svg)](https://github.com/stagius/flowize/pulls)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/stagius/flowize/pulls)
 
 Flowize is a React + TypeScript interface for running a parallel GitHub workflow from raw task input to merged pull request. It helps you organize work across issue intake, worktree assignment, implementation, review, and merge tracking in one UI.
@@ -15,12 +15,12 @@ Flowize is a React + TypeScript interface for running a parallel GitHub workflow
 npm run init
 ```
 
-Open http://localhost:3000 and login with GitHub (OAuth or manual token).
+Open http://localhost:3000 and log in with GitHub (OAuth or manual token).
 
->For OAuth login (optional), update `.env.local` with your GitHub OAuth app credentials.
+> For OAuth login (optional), update `.env.local` with your GitHub OAuth app credentials.
 
->For GitHub Personal Access Token, get one from [GitHub Settings](https://github.com/settings/tokens).
-*__Required scopes__: repo (Classic) or Contents:Read/Write, PullRequests:Read/Write (Fine-grained).*
+> For GitHub Personal Access Token, get one from [GitHub Settings](https://github.com/settings/tokens).
+**Required scopes**: repo (Classic) or Contents: Read/Write, Pull requests: Read/Write (Fine-grained).
 
 ## Quick Demo
 
@@ -47,16 +47,14 @@ https://github.com/user-attachments/assets/208da6f8-f412-42a5-a5a2-87afd4543edd
 https://github.com/user-attachments/assets/69024d86-ab09-4412-bef5-6ea19ed3a05b
 
 
-
-
 ## Tech stack
 
 - React 19
 - TypeScript
 - Vite
-- TailwindCSS 4 with PostCSS
-- @dnd-kit for drag-and-drop
-- lucide-react for icons
+- Tailwind CSS 4 with PostCSS
+- `@dnd-kit` for drag-and-drop
+- `lucide-react` for icons
 - `@google/genai` for task/implementation generation
 - GitHub REST API for issues/branches/commits/PRs/merge actions
 
@@ -66,8 +64,8 @@ https://github.com/user-attachments/assets/69024d86-ab09-4412-bef5-6ea19ed3a05b
 - npm
 - Git
 - GitHub Personal Access Token (for repo sync)
-- [Opencode](http://opencode.ai)
-- [Antigravity](https://antigravity.google/download) (we're using the agent not the chat)
+- [OpenCode](https://opencode.ai)
+- [Antigravity](https://antigravity.google/download) (we're using the agent, not the chat)
 
 ## Configuration
 
@@ -90,7 +88,7 @@ Recommended GitHub token scopes:
 
 ## Available scripts
 
-- `npm run init` - Install deps, create .env, start app (one command)
+- `npm run init` - Install deps, copy `.env.example` to `.env.local`, start app (one command)
 - `npm run setup` - Create `.env.local` from template
 - `npm run start` - Start dev server + local bridge
 - `npm run dev` - Dev server only
@@ -108,15 +106,15 @@ Recommended GitHub token scopes:
 - Set `VITE_BRIDGE_AUTH_TOKEN` for the Flowize UI so browser requests include the bearer token.
 - Keep `BRIDGE_ALLOWED_ORIGIN` restricted to your Flowize origin when possible. You can provide a comma-separated allowlist such as `http://localhost:3000,http://192.168.1.190:3000,http://100.x.y.z:3000`.
 - Bridge jobs and agent sessions persist under `BRIDGE_DATA_DIR` (defaults to `.flowize-bridge` inside the repo/workdir) so remote runs can survive bridge restarts.
-- Typed bridge actions now cover remote agent runs, worktree create/cleanup, and remote branch push, reducing dependence on raw shell execution from the browser.
-- `/health` now reports live bridge metrics like active jobs and running sessions, which Flowize surfaces in the remote host dashboards.
+- Bridge actions cover remote agent runs, worktree create/cleanup, and remote branch push, reducing dependence on raw shell execution from the browser.
+- `/health` reports live bridge metrics including active jobs and running sessions, surfaced in the remote host dashboards.
 
 ### 24/7 remote host setup
 
 Recommended setup for an always-on Windows PC:
 
 1. Install Tailscale and make sure your phone can reach the PC over the Tailnet.
-2. Set the same secret in `BRIDGE_AUTH_TOKEN` and `VITE_BRIDGE_AUTH_TOKEN` in `Z:\flowize\.env.local`.
+2. Set the same secret in `BRIDGE_AUTH_TOKEN` and `VITE_BRIDGE_AUTH_TOKEN` in your `.env.local` (e.g. `Z:\flowize\.env.local`).
 3. Start Flowize in production host mode:
 
 ```powershell
@@ -150,8 +148,8 @@ Replace the example origins with the actual desktop, LAN, and Tailscale URLs you
 For startup on boot/logon, use Windows Task Scheduler:
 
 - Trigger: `At log on`
-- Action: `powershell.exe -ExecutionPolicy Bypass -File Z:\flowize\scripts\start-remote-host.ps1`
-- Start in: `Z:\flowize`
+- Action: `powershell.exe -ExecutionPolicy Bypass -File <repo-path>\scripts\start-remote-host.ps1`
+- Start in: `<repo-path>`
 - Enable: `Run with highest privileges`
 
 Operational notes:
