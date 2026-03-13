@@ -862,6 +862,52 @@ export const cancelAgentJob = async (settings: AppSettings | undefined, jobId: s
   throw new Error(`Unable to cancel agent job ${jobId}. ${lastError}`);
 };
 
+export const fetchAllAgentSessions = async (
+  settings: AppSettings | undefined
+): Promise<AgentSessionState[]> => {
+  const endpoint = settings?.agentEndpoint?.trim();
+  if (!endpoint) {
+    throw new Error('Missing bridge endpoint.');
+  }
+
+  const candidates = getBridgeCandidates(endpoint);
+  let lastError = '';
+
+  for (const candidate of candidates) {
+    const base = getBridgeBaseUrl(candidate);
+    const sessionsUrl = `${base}/agent-session`;
+
+    try {
+      const response = await fetchWithTimeout(sessionsUrl, {
+        method: 'GET',
+        headers: getBridgeRequestHeaders(getBridgeAuthToken(settings))
+      }, 10000);
+
+      const raw = await response.text();
+      const data = raw ? JSON.parse(raw) as { success?: boolean; error?: string; sessions?: AgentSessionState[] } | AgentSessionState[] : {};
+
+      if (!response.ok) {
+        const errData = data as { success?: boolean; error?: string };
+        throw new Error(errData.error || `Bridge returned ${response.status} while fetching all sessions`);
+      }
+
+      // Bridge may return { sessions: [...] } or directly an array
+      if (Array.isArray(data)) {
+        return data;
+      }
+      const wrapped = data as { success?: boolean; error?: string; sessions?: AgentSessionState[] };
+      if (wrapped.success === false) {
+        throw new Error(wrapped.error || `Bridge returned failure while fetching all sessions`);
+      }
+      return Array.isArray(wrapped.sessions) ? wrapped.sessions : [];
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  throw new Error(lastError || 'Unable to fetch sessions list from bridge');
+};
+
 export const fetchAgentSession = async (
   settings: AppSettings | undefined,
   sessionId: string

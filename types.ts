@@ -59,4 +59,4 @@ export interface AppSettings {
   ideaHome?: string;
 }
 
-export type StepId = 1 | 2 | 3 | 4 | 5;
+export type StepId = 1 | 2 | 3 | 4 | 5 | 6;

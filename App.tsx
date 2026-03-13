@@ -6,6 +6,7 @@ import { Step2_Issues } from './components/Step2_Issues';
 import { Step3_Worktrees } from './components/Step3_Worktrees';
 import { Step5_Review } from './components/Step5_Review';
 import { Step6_Merge } from './components/Step6_Merge';
+import { RemoteSessionsPage } from './components/RemoteSessionsPage';
 import { SettingsModal } from './components/SettingsModal';
 import { LoginPage } from './components/LoginPage';
 import { AlertDialog, AlertDialogState, ConfirmDialog, ConfirmDialogState, DialogTone } from './components/ui/Dialogs';
@@ -102,7 +103,7 @@ export default function App() {
 
         try {
             const stored = Number(window.localStorage.getItem(STEP_STORAGE_KEY));
-            return [1, 2, 3, 4, 5].includes(stored) ? stored : 1;
+            return [1, 2, 3, 4, 5, 6].includes(stored) ? stored : 1;
         } catch {
             return 1;
         }
@@ -1472,6 +1473,7 @@ export default function App() {
             />;
             case 4: return <Step5_Review tasks={tasks} onApprovePR={handleApprovePR} onRequestChanges={handleRequestChanges} onCheckStatus={handleCheckCIStatus} bridgeHealth={bridgeHealth} settings={settings} />;
             case 5: return <Step6_Merge tasks={tasks} onMerge={handleMerge} onResolveConflict={handleResolveMergeConflict} onFetchMerged={handleFetchMerged} settings={settings} />;
+            case 6: return <RemoteSessionsPage settings={settings} bridgeHealth={bridgeHealth} />;
             default: return <div>Unknown Step</div>;
         }
     };

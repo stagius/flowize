@@ -9,7 +9,8 @@ import {
   Clock,
   Layout,
   Terminal,
-  Play
+  Play,
+  Radio
 } from 'lucide-react';
 import { STEP_ACCENTS } from './designSystem';
 
@@ -19,6 +20,7 @@ export const STEPS = [
   { id: 3, label: 'Worktrees', icon: GitBranch, ...STEP_ACCENTS.worktrees },
   { id: 4, label: 'Review', icon: GitPullRequest, ...STEP_ACCENTS.review },
   { id: 5, label: 'Merged', icon: CheckCircle2, ...STEP_ACCENTS.merged },
+  { id: 6, label: 'Sessions', icon: Radio, ...STEP_ACCENTS.sessions },
 ] as const;
 
 export const ICONS = {

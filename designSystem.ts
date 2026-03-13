@@ -269,6 +269,11 @@ export const STEP_ACCENTS = {
     color: 'text-emerald-600 dark:text-emerald-400', 
     bg: 'bg-emerald-100 dark:bg-emerald-400/10', 
     border: 'border-emerald-300 dark:border-emerald-400/20' 
+  },
+  sessions: {
+    color: 'text-purple-600 dark:text-purple-400',
+    bg: 'bg-purple-100 dark:bg-purple-400/10',
+    border: 'border-purple-300 dark:border-purple-400/20'
   }
 } as const;
 
