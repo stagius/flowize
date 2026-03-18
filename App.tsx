@@ -1583,11 +1583,11 @@ export default function App() {
                             aria-label="Navigation menu"
                         >
                             <div
-                                className="absolute inset-0 bg-slate-950/30 dark:bg-slate-950/40 backdrop-blur-sm"
+                                className="absolute inset-0 bg-slate-950/50 dark:bg-slate-950/60 backdrop-blur-sm"
                                 onClick={() => setIsMobileMenuOpen(false)}
                                 aria-hidden="true"
                             />
-                            <div className="absolute inset-y-0 left-0 w-[20.5rem] max-w-[90vw] bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-r border-slate-200 dark:border-slate-700/80 shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
+                            <div className="absolute inset-y-0 left-0 w-[20.5rem] max-w-[90vw] bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-r border-slate-200 dark:border-slate-700/80 shadow-2xl flex flex-col animate-in slide-in-from-left duration-200 ease-out">
                                 <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800/80">
                                     <div className="flex items-center gap-3">
                                         <div className="bg-indigo-500/10 p-2 rounded-lg text-indigo-600 dark:text-indigo-400">
@@ -1600,10 +1600,10 @@ export default function App() {
                                     </div>
                                     <button
                                         onClick={() => setIsMobileMenuOpen(false)}
-                                        className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg p-1 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                        className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center active:scale-95"
                                         aria-label="Close navigation menu"
                                     >
-                                        <X className="w-5 h-5" aria-hidden="true" />
+                                        <X className="w-6 h-6" aria-hidden="true" />
                                     </button>
                                 </div>
 
@@ -1620,9 +1620,9 @@ export default function App() {
                                                 }}
                                                 aria-current={isActive ? 'step' : undefined}
                                                 aria-label={`${step.label}${isActive ? ', current step' : ''}`}
-                                                className={`relative w-full flex items-center min-h-[56px] px-4 py-3 rounded-xl border transition-all ${isActive
-                                                    ? `${step.bg} ${step.color} ${step.border}`
-                                                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-slate-200 dark:hover:border-slate-700/70 hover:text-slate-900 dark:hover:text-slate-300'
+                                                className={`relative w-full flex items-center min-h-[56px] px-4 py-3 rounded-xl border transition-all duration-150 ${isActive
+                                                    ? `${step.bg} ${step.color} ${step.border} shadow-sm`
+                                                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-slate-200 dark:hover:border-slate-700/70 hover:text-slate-900 dark:hover:text-slate-300 active:scale-[0.98]'
                                                     }`}
                                             >
                                                 <Icon className={`w-5 h-5 ${isActive ? step.color : 'text-slate-600 dark:text-slate-400'}`} aria-hidden="true" />
@@ -1646,10 +1646,6 @@ export default function App() {
                                                 setIsMobileMenuOpen(false);
                                             }
                                         }}
-                                        className="w-full bg-slate-100 dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-700/80 p-3 text-xs space-y-2 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 text-left"
-                                        role="button"
-                                        tabIndex={0}
-                                        aria-label="Open Settings"
                                     >
                                         <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                                             <span>System Status</span>
@@ -1676,13 +1672,14 @@ export default function App() {
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleLogout();
+                                                    setIsMobileMenuOpen(false);
                                                 }}
                                                 onKeyDown={(e) => {
                                                     e.stopPropagation();
                                                 }}
-                                                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20"
+                                                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20 active:scale-[0.98]"
                                             >
-                                                <LogOut className="w-3 h-3" />
+                                                <LogOut className="w-3.5 h-3.5" />
                                                 <span>Logout</span>
                                             </button>
                                         </div>
@@ -1847,16 +1844,16 @@ export default function App() {
                     {/* Main Content */}
                     <div className="flex-1 flex flex-col min-w-0">
                         {/* Top Bar */}
-                        <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/30 dark:bg-slate-900/30 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between px-4 md:px-6">
+                        <header className="h-14 sm:h-16 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between px-3 sm:px-4 md:px-6 gap-2">
                             <button
                                 onClick={() => setIsMobileMenuOpen(true)}
-                                className="flex items-center gap-3 lg:hidden p-1 -ml-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white min-w-[44px] min-h-[44px]"
+                                className="flex items-center gap-2 md:hidden p-1.5 -ml-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white min-w-[48px] min-h-[48px] rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors active:scale-95"
                                 aria-label="Open navigation menu"
                                 aria-expanded={isMobileMenuOpen}
                                 aria-controls="mobile-navigation"
                             >
-                                <Menu className="w-6 h-6" aria-hidden="true" />
-                                <span className="hidden xl:flex font-bold text-slate-900 dark:text-slate-100">Flowize</span>
+                                <Menu className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" />
+                                <span className="font-bold text-sm sm:text-base text-slate-900 dark:text-slate-100">Flowize</span>
                             </button>
 
                             {/* Workfolder */}
@@ -1889,14 +1886,14 @@ export default function App() {
                                         <button
                                             type="button"
                                             onClick={() => setIsSettingsOpen(true)}
-                                            className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors min-h-[44px]"
+                                            className="flex items-center gap-2 rounded-lg px-2 py-1.5 sm:px-2 sm:py-1 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors min-h-[44px] sm:min-h-[48px]"
                                             title="Open Settings"
                                         >
                                             <div className="flex flex-col items-end">
-                                                <span className="text-xs font-medium text-slate-900 dark:text-slate-200">
+                                                <span className="text-[10px] sm:text-xs font-medium text-slate-900 dark:text-slate-200 hidden xs:block">
                                                     {githubLogin ? `@${githubLogin}` : 'GitHub Connected'}
                                                 </span>
-                                                <span className="text-[10px] text-slate-500 dark:text-slate-400">{settings.repoOwner}/{settings.repoName}</span>
+                                                <span className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block">{settings.repoOwner}/{settings.repoName}</span>
                                             </div>
                                             <img
                                                 height="16"
@@ -1925,7 +1922,7 @@ export default function App() {
                                     <ThemeToggle />
                                     <button
                                         onClick={() => setIsSettingsOpen(true)}
-                                        className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                        className="p-2 sm:p-2.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
                                         aria-label="Open settings"
                                     >
                                         <Settings className="w-5 h-5" aria-hidden="true" />
