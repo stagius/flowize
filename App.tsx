@@ -1646,6 +1646,10 @@ export default function App() {
                                                 setIsMobileMenuOpen(false);
                                             }
                                         }}
+                                        className="w-full bg-slate-100 dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-700/80 p-3 text-xs space-y-2 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 active:scale-[0.98]"
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label="Open Settings"
                                     >
                                         <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                                             <span>System Status</span>
