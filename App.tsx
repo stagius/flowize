@@ -1573,7 +1573,28 @@ export default function App() {
                     />
                     <ToastStack toasts={toasts} />
 
-                    {/* Mobile Menu Overlay */}
+                    {/* Mobile Top Bar - visible only on small screens */}
+                    <header className="md:hidden fixed top-0 left-0 right-0 z-[70] h-14 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-3">
+                        <button
+                            onClick={() => setIsMobileMenuOpen(true)}
+                            className="flex items-center gap-2 p-2 -ml-2 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white min-w-[44px] min-h-[44px] rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors active:scale-95"
+                            aria-label="Open navigation menu"
+                            aria-expanded={isMobileMenuOpen}
+                            aria-controls="mobile-navigation"
+                        >
+                            <Menu className="w-5 h-5" aria-hidden="true" />
+                            <span className="font-bold text-sm text-slate-900 dark:text-slate-100">Flowize</span>
+                        </button>
+
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800/50">
+                                <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">{progressPercent}%</span>
+                            </div>
+                            <ThemeToggle />
+                        </div>
+                    </header>
+
+                    {/* Desktop Sidebar Backdrop for Mobile Menu */}
                     {isMobileMenuOpen && (
                         <div
                             id="mobile-navigation"
@@ -1587,27 +1608,27 @@ export default function App() {
                                 onClick={() => setIsMobileMenuOpen(false)}
                                 aria-hidden="true"
                             />
-                            <div className="absolute inset-y-0 left-0 w-[20.5rem] max-w-[90vw] bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-r border-slate-200 dark:border-slate-700/80 shadow-2xl flex flex-col animate-in slide-in-from-left duration-200 ease-out">
-                                <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800/80">
+                            <div className="absolute inset-y-0 left-0 w-[20rem] max-w-[85vw] bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-r border-slate-200 dark:border-slate-700/80 shadow-2xl flex flex-col animate-in slide-in-from-left duration-200 ease-out">
+                                <div className="h-16 flex items-center justify-between px-5 border-b border-slate-200 dark:border-slate-800/80">
                                     <div className="flex items-center gap-3">
                                         <div className="bg-indigo-500/10 p-2 rounded-lg text-indigo-600 dark:text-indigo-400">
-                                            <GitGraph className="w-6 h-6" aria-hidden="true" />
+                                            <GitGraph className="w-5 h-5" aria-hidden="true" />
                                         </div>
                                         <div>
-                                            <p className="font-bold text-lg text-slate-900 dark:text-slate-100 leading-tight">Flowize</p>
-                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Workflow Navigator</p>
+                                            <p className="font-bold text-base text-slate-900 dark:text-slate-100 leading-tight">Flowize</p>
+                                            <p className="text-[10px] text-slate-500 dark:text-slate-400">{activeWorktrees}/{settings.maxWorktrees} worktrees</p>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => setIsMobileMenuOpen(false)}
-                                        className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center active:scale-95"
+                                        className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-95"
                                         aria-label="Close navigation menu"
                                     >
-                                        <X className="w-6 h-6" aria-hidden="true" />
+                                        <X className="w-5 h-5" aria-hidden="true" />
                                     </button>
                                 </div>
 
-                                <nav className="p-4 space-y-2 flex-1 overflow-y-auto" aria-label="Workflow steps">
+                                <nav className="flex-1 p-3 space-y-1 overflow-y-auto" aria-label="Workflow steps">
                                     {STEPS.map((step) => {
                                         const isActive = currentStep === step.id;
                                         const Icon = step.icon;
@@ -1619,75 +1640,62 @@ export default function App() {
                                                     setIsMobileMenuOpen(false);
                                                 }}
                                                 aria-current={isActive ? 'step' : undefined}
-                                                aria-label={`${step.label}${isActive ? ', current step' : ''}`}
-                                                className={`relative w-full flex items-center min-h-[56px] px-4 py-3 rounded-xl border transition-all duration-150 ${isActive
+                                                className={`w-full flex items-center min-h-[48px] px-4 py-2.5 rounded-xl border transition-all duration-150 ${isActive
                                                     ? `${step.bg} ${step.color} ${step.border} shadow-sm`
                                                     : 'border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-slate-200 dark:hover:border-slate-700/70 hover:text-slate-900 dark:hover:text-slate-300 active:scale-[0.98]'
                                                     }`}
                                             >
-                                                <Icon className={`w-5 h-5 ${isActive ? step.color : 'text-slate-600 dark:text-slate-400'}`} aria-hidden="true" />
-                                                <span className="ml-3 text-sm font-semibold tracking-wide">{step.label}</span>
-                                                {isActive && <span className="ml-auto text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300/80" aria-hidden="true">Current</span>}
+                                                <Icon className={`w-5 h-5 ${isActive ? step.color : ''}`} aria-hidden="true" />
+                                                <span className="ml-3 text-sm font-medium">{step.label}</span>
+                                                {isActive && <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Current</span>}
                                             </button>
                                         );
                                     })}
                                 </nav>
 
-                                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-                                    <div
-                                        onClick={() => {
-                                            setIsSettingsOpen(true);
-                                            setIsMobileMenuOpen(false);
-                                        }}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                setIsSettingsOpen(true);
-                                                setIsMobileMenuOpen(false);
-                                            }
-                                        }}
-                                        className="w-full bg-slate-100 dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-700/80 p-3 text-xs space-y-2 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 active:scale-[0.98]"
-                                        role="button"
-                                        tabIndex={0}
-                                        aria-label="Open Settings"
-                                    >
-                                        <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                                    <div className="bg-slate-100 dark:bg-slate-900/80 rounded-xl p-3 space-y-2">
+                                        <div className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400">
                                             <span>System Status</span>
                                             <Activity className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                            <span className="text-emerald-500 font-medium">Online</span>
+                                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Online</span>
                                         </div>
-                                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-xs text-slate-600 dark:text-slate-400">
                                             <span className="flex items-center gap-1.5"><Key className="w-3 h-3" /> API Key</span>
                                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                                                {hasApiKey ? 'CONFIGURED' : 'MISSING'}
+                                                {hasApiKey ? 'OK' : 'Missing'}
                                             </span>
                                         </div>
-                                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-xs text-slate-600 dark:text-slate-400">
                                             <span className="flex items-center gap-1.5"><Server className="w-3 h-3" /> Bridge</span>
-                                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${bridgeBadgeClass}`} title={bridgeHealth.endpoint || settings.agentEndpoint}>
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${bridgeBadgeClass}`}>
                                                 {bridgeLabel}
                                             </span>
                                         </div>
-                                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleLogout();
-                                                    setIsMobileMenuOpen(false);
-                                                }}
-                                                onKeyDown={(e) => {
-                                                    e.stopPropagation();
-                                                }}
-                                                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20 active:scale-[0.98]"
-                                            >
-                                                <LogOut className="w-3.5 h-3.5" />
-                                                <span>Logout</span>
-                                            </button>
-                                        </div>
                                     </div>
+                                    <button
+                                        onClick={() => {
+                                            setIsSettingsOpen(true);
+                                            setIsMobileMenuOpen(false);
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-200/70 dark:bg-slate-800/50 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-700"
+                                    >
+                                        <Settings className="w-4 h-4" />
+                                        Settings
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            handleLogout();
+                                            setIsMobileMenuOpen(false);
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20"
+                                    >
+                                        <LogOut className="w-3.5 h-3.5" />
+                                        Logout
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1845,102 +1853,89 @@ export default function App() {
                         </div>
                     </aside>
 
+                    {/* Desktop Top Bar */}
+                    <header className="hidden md:flex h-14 sm:h-16 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-50 items-center justify-between px-4 lg:px-6 gap-2">
+                        <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
+                            <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 text-xs">
+                                <Terminal className="w-3.5 h-3.5" />
+                                <span className="text-slate-600 dark:text-slate-400">{settings.worktreeRoot}</span>
+                                <span className="font-mono text-slate-900 dark:text-slate-300">/{settings.repoName}</span>
+                            </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
+                            <div className="flex flex-col items-end">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 hidden sm:inline">Pipeline</span>
+                                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{progressPercent}%</span>
+                                </div>
+                                <div className="hidden xl:flex w-24 md:w-32 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-700"
+                                        style={{ width: `${progressPercent}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+
+                            <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-1 md:mx-2"></div>
+
+                            <div className="flex items-center gap-3">
+                                {settings.githubToken && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsSettingsOpen(true)}
+                                        className="flex items-center gap-2 rounded-lg px-2 py-1.5 sm:px-2 sm:py-1 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors min-h-[44px] sm:min-h-[48px]"
+                                        title="Open Settings"
+                                    >
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[10px] sm:text-xs font-medium text-slate-900 dark:text-slate-200 hidden xs:block">
+                                                {githubLogin ? `@${githubLogin}` : 'GitHub Connected'}
+                                            </span>
+                                            <span className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block">{settings.repoOwner}/{settings.repoName}</span>
+                                        </div>
+                                        <img
+                                            height="16"
+                                            width="16"
+                                            src={githubAvatarUrl
+                                                ? `${githubAvatarUrl}&s=16`
+                                                : theme === 'light'
+                                                    ? "https://cdn.simpleicons.org/github"
+                                                    : "https://cdn.simpleicons.org/github/fff"
+                                            }
+                                            srcSet={githubAvatarUrl
+                                                ? `${githubAvatarUrl}&s=16 1x, ${githubAvatarUrl}&s=32 2x`
+                                                : undefined
+                                            }
+                                            alt={githubAvatarUrl ? `${githubLogin} avatar` : "GitHub"}
+                                            loading="lazy"
+                                            decoding="async"
+                                            className={githubAvatarUrl ? "rounded-full" : undefined}
+                                        />
+                                    </button>
+                                )}
+                                <div className="hidden md:flex flex-col items-end">
+                                    <span className="text-xs font-medium text-slate-900 dark:text-slate-200">Worktrees</span>
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400">{activeWorktrees}/{settings.maxWorktrees} Active</span>
+                                </div>
+                                <ThemeToggle />
+                                <button
+                                    onClick={() => setIsSettingsOpen(true)}
+                                    className="p-2 sm:p-2.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
+                                    aria-label="Open settings"
+                                >
+                                    <Settings className="w-5 h-5" aria-hidden="true" />
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
                     {/* Main Content */}
                     <div className="flex-1 flex flex-col min-w-0">
-                        {/* Top Bar */}
-                        <header className="h-14 sm:h-16 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between px-3 sm:px-4 md:px-6 gap-2">
-                            <button
-                                onClick={() => setIsMobileMenuOpen(true)}
-                                className="flex items-center gap-2 md:hidden p-1.5 -ml-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white min-w-[48px] min-h-[48px] rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors active:scale-95"
-                                aria-label="Open navigation menu"
-                                aria-expanded={isMobileMenuOpen}
-                                aria-controls="mobile-navigation"
-                            >
-                                <Menu className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" />
-                                <span className="font-bold text-sm sm:text-base text-slate-900 dark:text-slate-100">Flowize</span>
-                            </button>
-
-                            {/* Workfolder */}
-                            <div className="hidden md:flex items-center text-sm text-slate-600 dark:text-slate-400">
-                                <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 text-xs">
-                                    <Terminal className="w-3.5 h-3.5" />
-                                    <span className="text-slate-600 dark:text-slate-400">{settings.worktreeRoot}</span>
-                                    <span className="font-mono text-slate-900 dark:text-slate-300">/{settings.repoName}</span>
-                                </span>
-                            </div>
-
-                            <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
-                                <div className="flex flex-col items-end">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 hidden sm:inline">Pipeline</span>
-                                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{progressPercent}%</span>
-                                    </div>
-                                    <div className="hidden xl:flex w-24 md:w-32 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-700"
-                                            style={{ width: `${progressPercent}%` }}
-                                        ></div>
-                                    </div>
-                                </div>
-
-                                <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-1 md:mx-2"></div>
-
-                                <div className="flex items-center gap-3">
-                                    {settings.githubToken && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsSettingsOpen(true)}
-                                            className="flex items-center gap-2 rounded-lg px-2 py-1.5 sm:px-2 sm:py-1 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors min-h-[44px] sm:min-h-[48px]"
-                                            title="Open Settings"
-                                        >
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-[10px] sm:text-xs font-medium text-slate-900 dark:text-slate-200 hidden xs:block">
-                                                    {githubLogin ? `@${githubLogin}` : 'GitHub Connected'}
-                                                </span>
-                                                <span className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block">{settings.repoOwner}/{settings.repoName}</span>
-                                            </div>
-                                            <img
-                                                height="16"
-                                                width="16"
-                                                src={githubAvatarUrl
-                                                    ? `${githubAvatarUrl}&s=16`
-                                                    : theme === 'light'
-                                                        ? "https://cdn.simpleicons.org/github"
-                                                        : "https://cdn.simpleicons.org/github/fff"
-                                                }
-                                                srcSet={githubAvatarUrl
-                                                    ? `${githubAvatarUrl}&s=16 1x, ${githubAvatarUrl}&s=32 2x`
-                                                    : undefined
-                                                }
-                                                alt={githubAvatarUrl ? `${githubLogin} avatar` : "GitHub"}
-                                                loading="lazy"
-                                                decoding="async"
-                                                className={githubAvatarUrl ? "rounded-full" : undefined}
-                                            />
-                                        </button>
-                                    )}
-                                    <div className="hidden md:flex flex-col items-end">
-                                        <span className="text-xs font-medium text-slate-900 dark:text-slate-200">Worktrees</span>
-                                        <span className="text-[10px] text-slate-500 dark:text-slate-400">{activeWorktrees}/{settings.maxWorktrees} Active</span>
-                                    </div>
-                                    <ThemeToggle />
-                                    <button
-                                        onClick={() => setIsSettingsOpen(true)}
-                                        className="p-2 sm:p-2.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
-                                        aria-label="Open settings"
-                                    >
-                                        <Settings className="w-5 h-5" aria-hidden="true" />
-                                    </button>
-                                </div>
-                            </div>
-                        </header>
-
                         <main
                             id="main-content"
-                            className={`flex-1 min-h-0 p-4 md:p-8 md:pt-4 overflow-x-hidden ${isMergeStep ? 'overflow-hidden' : 'overflow-y-auto'}`}
+                            className={`flex-1 min-h-0 p-4 md:p-8 md:pt-4 overflow-x-hidden pt-16 md:pt-0 ${isMergeStep ? 'overflow-hidden' : 'overflow-y-auto'}`}
                         >
                             <div className="mx-auto h-full min-h-0 flex flex-col">
-                                {/* Page Header */}
                                 <div className="mb-6 flex items-center justify-between">
                                     <div>
                                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
@@ -1950,14 +1945,12 @@ export default function App() {
                                     </div>
                                 </div>
 
-                                {/* Step Content */}
                                 <div className="flex-1 min-h-0 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
                                     {renderContent()}
                                 </div>
                             </div>
                         </main>
                     </div>
-
                 </div>
             </AuthGuard>
         </AuthProvider>
