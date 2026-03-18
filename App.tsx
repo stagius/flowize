@@ -325,6 +325,19 @@ export default function App() {
         window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(isSidebarCollapsed));
     }, [isSidebarCollapsed]);
 
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (!isMobileMenuOpen) return;
+
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setIsMobileMenuOpen(false);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
+    }, [isMobileMenuOpen]);
+
     // Initialize slots
     const [slots, setSlots] = useState<WorktreeSlot[]>(() => {
         if (typeof window === 'undefined') {
