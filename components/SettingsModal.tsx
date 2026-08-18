@@ -5,6 +5,7 @@ import { fetchAuthenticatedUser, fetchUserRepositories, fetchRepositoryBranches,
 import { useFocusTrap } from './ui/hooks/useFocusTrap';
 import { ConfirmDialog } from './ui/Dialogs';
 import { getBridgeAuthToken, getBridgeBaseUrl, getBridgeCandidates, getBridgeHealthUrls, getBridgeRequestHeaders } from '../services/bridgeClient';
+import { isDemoMode } from '../utils/demoMode';
 
 const SPECFLOW_SKILL_RELATIVE_PATH = '.opencode/skills/specflow-worktree-automation/SKILL.md';
 
@@ -258,6 +259,14 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   };
 
   const handleConnectGithub = async () => {
+    if (isDemoMode()) {
+      setGithubAuthState({
+        status: 'error',
+        message: 'GitHub sign-in is disabled in demo mode. The demo runs on sample data only.'
+      });
+      return;
+    }
+
     const endpoint = formData.agentEndpoint?.trim();
     if (!endpoint) {
       setGithubAuthState({ status: 'error', message: 'Set Agent Bridge Endpoint before starting GitHub OAuth.' });
@@ -394,6 +403,10 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   };
 
   const runBridgeShellCommand = async (command: string): Promise<void> => {
+    if (isDemoMode()) {
+      throw new Error('Running bridge commands is disabled in demo mode.');
+    }
+
     const endpoint = formData.agentEndpoint?.trim();
     if (!endpoint) {
       throw new Error('Agent Bridge Endpoint is not configured.');
@@ -631,6 +644,12 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   };
 
   const handleTestBridge = async () => {
+    if (isDemoMode()) {
+      setBridgeRecovery({ status: 'idle', message: '' });
+      setBridgeTest({ status: 'success', message: 'Simulated bridge is reachable (demo mode).' });
+      return;
+    }
+
     const endpoint = formData.agentEndpoint?.trim();
     if (!endpoint) {
       setBridgeTest({ status: 'error', message: 'Set Agent Bridge Endpoint first.' });
@@ -734,6 +753,11 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentSetting
   const shouldShowBridgeRecovery = bridgeTest.status === 'error' || bridgeHealthFailedToFetch;
 
   const checkBridgeHealth = async (endpoint: string) => {
+    if (isDemoMode()) {
+      setBridgeHealth({ status: 'healthy', message: 'Simulated bridge is healthy (demo mode).' });
+      return;
+    }
+
     const candidates = getBridgeHealthUrls(endpoint);
     const headers = getBridgeRequestHeaders(getBridgeAuthToken(formData));
 

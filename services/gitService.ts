@@ -2,6 +2,8 @@ import { AppSettings, TaskItem, WorktreeSlot } from '../types';
 import { getProcessesUsingPath, formatProcessList } from './processDetection';
 import { openWorktreeCmdWindow } from './agentService';
 import { getBridgeAuthToken, getBridgeCandidates, getBridgeRequestHeaders } from './bridgeClient';
+import { isDemoMode } from '../utils/demoMode';
+import * as demo from './demoBackend';
 
 /**
  * Executes git operations through the configured local bridge endpoint.
@@ -180,6 +182,8 @@ const setupAgentWorkspace = async (settings: AppSettings, slotPath: string, task
 };
 
 export const runBridgeCommand = async (settings: AppSettings, command: string, context: Record<string, unknown> = {}) => {
+  if (isDemoMode()) return demo.demoRunBridgeCommand(command);
+
   const endpoint = settings.agentEndpoint?.trim();
   if (!endpoint) {
     return null;
@@ -294,6 +298,8 @@ const isNotWorktreeError = (message: string): boolean => {
 
 
 export const createWorktree = async (settings: AppSettings, task: TaskItem, slot: WorktreeSlot): Promise<void> => {
+  if (isDemoMode()) return demo.demoCreateWorktree(task, slot);
+
   console.log(`[GitService] Initializing worktree for ${task.branchName}`);
 
   // 1. Fetch latest refs
@@ -331,6 +337,8 @@ export const createWorktree = async (settings: AppSettings, task: TaskItem, slot
 };
 
 export const pruneWorktree = async (slot: WorktreeSlot, branchName?: string, settings?: AppSettings): Promise<void> => {
+  if (isDemoMode()) return demo.demoPruneWorktree(slot);
+
   console.log(`[GitService] Cleaning up worktree at ${slot.path}`);
 
   if (branchName) {
@@ -373,6 +381,8 @@ export const pruneWorktree = async (slot: WorktreeSlot, branchName?: string, set
 };
 
 export const pushWorktreeBranch = async (slot: WorktreeSlot, branchName: string, settings?: AppSettings): Promise<void> => {
+  if (isDemoMode()) return demo.demoPushBranch(branchName);
+
   if (!branchName) {
     throw new Error('Branch name is required to push worktree changes.');
   }
@@ -389,6 +399,8 @@ export const pushWorktreeBranch = async (slot: WorktreeSlot, branchName: string,
 };
 
 export const forcePushWorktreeBranchWithLease = async (slot: WorktreeSlot, branchName: string, settings?: AppSettings): Promise<void> => {
+  if (isDemoMode()) return demo.demoPushBranch(branchName);
+
   if (!branchName) {
     throw new Error('Branch name is required to push worktree changes.');
   }

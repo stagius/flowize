@@ -4,6 +4,7 @@ import { analyzeAndFormatTasks } from '../services/geminiService';
 import { Loader2, Plus, Sparkles, Trash2, AlignLeft, Sparkle } from 'lucide-react';
 import { ErrorState, LoadingSkeleton } from './ui/AsyncStates';
 import { PRIORITY_BADGES, SPACING, TYPOGRAPHY } from '../designSystem';
+import { scopedStorageKey } from '../utils/demoMode';
 
 interface Props {
   onTasksGenerated: (tasks: TaskItem[]) => void;
@@ -12,7 +13,7 @@ interface Props {
   geminiApiKey?: string;
 }
 
-const INPUT_STORAGE_KEY = 'flowize.input.v1';
+const INPUT_STORAGE_KEY = scopedStorageKey('flowize.input.v1');
 
 const getStoredInput = (): string => {
   if (typeof window === 'undefined') return '';

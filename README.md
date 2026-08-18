@@ -22,6 +22,19 @@ Open http://localhost:3000 and log in with GitHub (OAuth or manual token).
 > For GitHub Personal Access Token, get one from [GitHub Settings](https://github.com/settings/tokens).
 **Required scopes**: repo (Classic) or Contents: Read/Write, Pull requests: Read/Write (Fine-grained).
 
+## Try it without signing in
+
+[**flowize-git.vercel.app/demo**](https://flowize-git.vercel.app/demo) opens the app in demo mode - no GitHub login, no local bridge, no API key.
+
+Demo mode:
+
+- skips the login page entirely and boots with a seeded workflow, so every step already has issues, worktrees, PRs and agent sessions to look at
+- answers every GitHub, bridge and Gemini call from an in-memory simulation, so nothing leaves the browser and no real repository is touched
+- keeps its data under `flowize.demo.*` storage keys, so it can never overwrite a real session in the same browser
+- offers **Reset demo data** and **Exit demo** in the banner at the top of the page
+
+Locally, run `npm run dev` and open http://localhost:3000/demo (`?demo=1` works too). The **Explore the demo** button on the login page goes to the same place.
+
 ## Quick Demo
 
 https://github.com/user-attachments/assets/68ec9e44-896d-46ad-bb64-a8d44939b6c4
@@ -167,6 +180,8 @@ Operational notes:
 - `services/geminiService.ts` - Gemini integration for task analysis
 - `services/githubService.ts` - GitHub API integration
 - `services/gitService.ts` - Real worktree operations through the local bridge endpoint
+- `services/demoData.ts` / `services/demoBackend.ts` - Seeded sample data and the in-memory simulation used by demo mode
+- `utils/demoMode.ts` - Demo detection (`/demo` or `?demo=1`) and demo-scoped storage keys
 - `types.ts` - Shared workflow types/status enums
 
 ## Troubleshooting

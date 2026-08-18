@@ -1,5 +1,6 @@
 import { AppSettings } from '../types';
 import { runBridgeCommand } from './gitService';
+import { isDemoMode } from '../utils/demoMode';
 
 export interface ProcessInfo {
   name: string;
@@ -94,6 +95,10 @@ async function getProcessesWindows(path: string, settings: AppSettings): Promise
 }
 
 export async function getProcessesUsingPath(path: string, settings: AppSettings): Promise<ProcessInfo[]> {
+  if (isDemoMode()) {
+    return [];
+  }
+
   if (!settings?.agentEndpoint) {
     return [];
   }

@@ -7,6 +7,8 @@ interface AuthGuardProps {
     bridgeEndpoint: string;
     bridgeAuthToken?: string;
     toasts?: ReactNode;
+    /** Skips the login page entirely (demo mode). */
+    bypass?: boolean;
 }
 
 /**
@@ -20,17 +22,21 @@ interface AuthGuardProps {
  * <AuthGuard bridgeEndpoint={endpoint}>
  *   <ProtectedContent />
  * </AuthGuard>
+ *
+ * Demo mode passes `bypass` so visitors land straight in the app: it runs on
+ * seeded sample data and never touches GitHub, so there is nothing to protect.
  */
 export const AuthGuard: React.FC<AuthGuardProps> = ({ 
     children, 
     bridgeEndpoint,
     bridgeAuthToken,
-    toasts 
+    toasts,
+    bypass = false
 }) => {
     const { isAuthenticated, login } = useAuth();
 
     // Redirect to login page if user is not authenticated
-    if (!isAuthenticated) {
+    if (!bypass && !isAuthenticated) {
         return (
             <>
                 <LoginPage 
