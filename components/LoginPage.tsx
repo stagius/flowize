@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Github, AlertCircle, Loader2, Key, AlertTriangle, CheckCircle, GitGraph } from 'lucide-react';
+import { Github, AlertCircle, Loader2, Key, AlertTriangle, CheckCircle, GitGraph, FlaskConical } from 'lucide-react';
 import { TYPOGRAPHY, TONE_STYLES, SPACING } from '../designSystem';
 import { validateGithubToken } from '../services/githubService';
 import { useAuth } from '../contexts/AuthContext';
 import { getBridgeBaseUrl, getBridgeCandidates, getBridgeRequestHeaders } from '../services/bridgeClient';
+import { DEMO_PATH, enterDemoMode } from '../utils/demoMode';
 
 interface LoginPageProps {
   onLoginSuccess: (token: string) => void | Promise<void>;
@@ -424,8 +425,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, bridgeEndp
             </>
           )}
 
+          {/* Demo entry point - no account or bridge required */}
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+            <a
+              href={DEMO_PATH}
+              onClick={(event) => {
+                event.preventDefault();
+                enterDemoMode();
+              }}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <FlaskConical className="w-4 h-4" aria-hidden="true" />
+              <span>Explore the demo</span>
+            </a>
+            <p className="mt-2 text-center text-xs text-slate-500 dark:text-slate-500">
+              Sample data, no sign-in, no bridge required.
+            </p>
+          </div>
+
           {/* Footer */}
-          <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
             <p className="text-center text-xs text-slate-500 dark:text-slate-500">
               {loginMode === 'oauth'
                 ? 'By signing in, you agree to authenticate with GitHub OAuth'

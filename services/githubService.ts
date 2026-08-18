@@ -1,4 +1,6 @@
 import { AppSettings, TaskItem } from '../types';
+import { isDemoMode } from '../utils/demoMode';
+import * as demo from './demoBackend';
 
 export interface GithubAuthenticatedUser {
     id: number;
@@ -126,6 +128,8 @@ const REQUIRED_SCOPES = {
  * Validate a GitHub token and check its scopes
  */
 export const validateGithubToken = async (token: string): Promise<TokenValidationResult> => {
+    if (isDemoMode()) return demo.demoValidateToken();
+
     if (!token || !token.trim()) {
         return {
             valid: false,
@@ -193,6 +197,8 @@ export const validateGithubToken = async (token: string): Promise<TokenValidatio
 
 
 export const createGithubIssue = async (settings: AppSettings, task: TaskItem) => {
+    if (isDemoMode()) return demo.demoCreateIssue(task);
+
     const token = getGithubToken(settings);
     if (!token) throw new Error("GitHub Token not configured");
 
@@ -214,6 +220,8 @@ export const createGithubIssue = async (settings: AppSettings, task: TaskItem) =
 };
 
 export const fetchGithubIssues = async (settings: AppSettings): Promise<any[]> => {
+    if (isDemoMode()) return demo.demoFetchIssues();
+
     const token = getGithubToken(settings);
     if (!token) throw new Error("GitHub Token not configured");
 
@@ -232,6 +240,8 @@ export const fetchGithubIssues = async (settings: AppSettings): Promise<any[]> =
 // --- New Methods for PR Workflow ---
 
 export const getBSHA = async (settings: AppSettings, branch: string = 'main') => {
+    if (isDemoMode()) return demo.demoGetBaseSha(branch);
+
     const token = getGithubToken(settings);
     if (!token) throw new Error("GitHub Token not configured");
     
@@ -283,6 +293,8 @@ export const getBSHA = async (settings: AppSettings, branch: string = 'main') =>
 };
 
 export const createBranch = async (settings: AppSettings, newBranch: string, baseSha: string) => {
+    if (isDemoMode()) return demo.demoCreateBranch(newBranch);
+
     const token = getGithubToken(settings);
     if (!token) throw new Error("GitHub Token not configured");
 
@@ -307,6 +319,8 @@ export const createBranch = async (settings: AppSettings, newBranch: string, bas
 };
 
 export const commitFile = async (settings: AppSettings, branch: string, path: string, content: string, message: string) => {
+    if (isDemoMode()) return demo.demoCommitFile(path, branch);
+
     const token = getGithubToken(settings);
     if (!token) throw new Error("GitHub Token not configured");
 
@@ -344,6 +358,8 @@ export const commitFile = async (settings: AppSettings, branch: string, path: st
 };
 
 export const createPullRequest = async (settings: AppSettings, head: string, base: string, title: string, body: string) => {
+    if (isDemoMode()) return demo.demoCreatePullRequest(head, base, title, body);
+
     const token = getGithubToken(settings);
     if (!token) throw new Error("GitHub Token not configured");
 
@@ -441,6 +457,8 @@ export const createPullRequest = async (settings: AppSettings, head: string, bas
 };
 
 export const mergePullRequest = async (settings: AppSettings, prNumber: number, title?: string) => {
+    if (isDemoMode()) return demo.demoMergePullRequest(prNumber);
+
     const token = getGithubToken(settings);
     if (!token) throw new Error("GitHub Token not configured");
 
@@ -488,6 +506,8 @@ export const mergePullRequest = async (settings: AppSettings, prNumber: number, 
 };
 
 export const fetchMergedPRs = async (settings: AppSettings): Promise<any[]> => {
+    if (isDemoMode()) return demo.demoFetchMergedPRs();
+
     const token = getGithubToken(settings);
     if (!token) throw new Error("GitHub Token not configured");
 
@@ -505,6 +525,8 @@ export const fetchMergedPRs = async (settings: AppSettings): Promise<any[]> => {
 };
 
 export const fetchOpenPRs = async (settings: AppSettings): Promise<any[]> => {
+    if (isDemoMode()) return demo.demoFetchOpenPRs();
+
     const token = getGithubToken(settings);
     if (!token) throw new Error("GitHub Token not configured");
 
@@ -521,6 +543,8 @@ export const fetchOpenPRs = async (settings: AppSettings): Promise<any[]> => {
 };
 
 export const fetchPullRequestDetails = async (settings: AppSettings, prNumber: number): Promise<GithubPullRequestDetails> => {
+    if (isDemoMode()) return demo.demoFetchPullRequestDetails(prNumber);
+
     const token = getGithubToken(settings);
     if (!token) throw new Error('GitHub Token not configured');
 
@@ -537,6 +561,8 @@ export const fetchPullRequestDetails = async (settings: AppSettings, prNumber: n
 };
 
 export const closePullRequest = async (settings: AppSettings, prNumber: number): Promise<void> => {
+    if (isDemoMode()) return demo.demoClosePullRequest(prNumber);
+
     const token = getGithubToken(settings);
     if (!token) throw new Error("GitHub Token not configured");
 
@@ -552,6 +578,8 @@ export const closePullRequest = async (settings: AppSettings, prNumber: number):
 };
 
 export const fetchCommitStatus = async (settings: AppSettings, ref: string) => {
+    if (isDemoMode()) return demo.demoFetchCommitStatus(ref);
+
     const token = getGithubToken(settings);
     if (!token) throw new Error("GitHub Token not configured");
 
@@ -569,6 +597,8 @@ export const fetchCommitStatus = async (settings: AppSettings, ref: string) => {
 };
 
 export const fetchAuthenticatedUser = async (token: string): Promise<GithubAuthenticatedUser> => {
+    if (isDemoMode()) return demo.demoFetchAuthenticatedUser();
+
     const safeToken = token.trim();
     if (!safeToken) throw new Error('GitHub Token not configured');
 
@@ -585,6 +615,8 @@ export const fetchAuthenticatedUser = async (token: string): Promise<GithubAuthe
 };
 
 export const fetchUserRepositories = async (token: string): Promise<GithubRepository[]> => {
+    if (isDemoMode()) return demo.demoFetchRepositories();
+
     const safeToken = token.trim();
     if (!safeToken) throw new Error('GitHub Token not configured');
 
@@ -601,6 +633,8 @@ export const fetchUserRepositories = async (token: string): Promise<GithubReposi
 };
 
 export const fetchRepositoryBranches = async (token: string, owner: string, repo: string): Promise<GithubBranch[]> => {
+    if (isDemoMode()) return demo.demoFetchBranches();
+
     const safeToken = token.trim();
     if (!safeToken) throw new Error('GitHub Token not configured');
     if (!owner.trim() || !repo.trim()) throw new Error('Repository owner/name missing');
@@ -618,6 +652,8 @@ export const fetchRepositoryBranches = async (token: string, owner: string, repo
 };
 
 export const closeIssue = async (settings: AppSettings, issueNumber: number): Promise<void> => {
+    if (isDemoMode()) return demo.demoCloseIssue(issueNumber);
+
     const token = getGithubToken(settings);
     if (!token) throw new Error("GitHub Token not configured");
 

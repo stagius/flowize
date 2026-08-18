@@ -14,12 +14,15 @@ import { ToastItem, ToastStack, ToastTone } from './components/ui/ToastStack';
 import { createGithubIssue, fetchGithubIssues, createBranch, getBSHA, commitFile, createPullRequest, mergePullRequest, fetchMergedPRs, fetchOpenPRs, fetchCommitStatus, fetchAuthenticatedUser, fetchPullRequestDetails, closePullRequest, closeIssue } from './services/githubService';
 import { createWorktree, pruneWorktree, pushWorktreeBranch, forcePushWorktreeBranchWithLease } from './services/gitService';
 import { getProcessesUsingPath, formatProcessList } from './services/processDetection';
-import { GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { GitGraph, Settings, LayoutDashboard, Terminal, Activity, Key, Menu, X, Server, Github, LogOut, ChevronLeft, ChevronRight, FlaskConical, RotateCcw } from 'lucide-react';
 import { ThemeToggle } from './components/ui/ThemeToggle';
 import { useTheme } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthGuard } from './components/AuthGuard';
 import { getBridgeAuthToken, getBridgeHealthUrls, getBridgeRequestHeaders } from './services/bridgeClient';
+import { exitDemoMode, isDemoMode, resetDemoMode, scopedStorageKey } from './utils/demoMode';
+import { createDemoSettings, createDemoSlots, createDemoTasks } from './services/demoData';
+import { demoBridgeHealth } from './services/demoBackend';
 
 type BridgeHealthState = {
     status: 'checking' | 'healthy' | 'unhealthy';
@@ -52,11 +55,16 @@ type BridgeHealthState = {
     };
 };
 
-const SETTINGS_STORAGE_KEY = 'flowize.settings.v1';
-const TASKS_STORAGE_KEY = 'flowize.tasks.v1';
-const SLOTS_STORAGE_KEY = 'flowize.slots.v1';
-const STEP_STORAGE_KEY = 'flowize.current-step.v1';
-const SIDEBAR_COLLAPSED_KEY = 'flowize.sidebar-collapsed.v1';
+// Demo mode is decided by the URL once per page load, so it is safe to read here.
+const IS_DEMO = isDemoMode();
+
+// In demo mode every key is namespaced, so seeded sample data can never
+// overwrite a real session stored in the same browser.
+const SETTINGS_STORAGE_KEY = scopedStorageKey('flowize.settings.v1');
+const TASKS_STORAGE_KEY = scopedStorageKey('flowize.tasks.v1');
+const SLOTS_STORAGE_KEY = scopedStorageKey('flowize.slots.v1');
+const STEP_STORAGE_KEY = scopedStorageKey('flowize.current-step.v1');
+const SIDEBAR_COLLAPSED_KEY = scopedStorageKey('flowize.sidebar-collapsed.v1');
 
 const createDefaultSettings = (envGithubToken: string, envBridgeEndpoint?: string, envApiKey?: string, envBridgeAuthToken?: string): AppSettings => ({
     repoOwner: 'stagius',
@@ -109,19 +117,22 @@ export default function App() {
         }
     });
     const [tasks, setTasks] = useState<TaskItem[]>(() => {
+        // Demo mode boots with a seeded workflow so every step has something to show.
+        const emptyTasks = (): TaskItem[] => (IS_DEMO ? createDemoTasks() : []);
+
         if (typeof window === 'undefined') {
-            return [];
+            return emptyTasks();
         }
 
         try {
             const stored = window.localStorage.getItem(TASKS_STORAGE_KEY);
             if (!stored) {
-                return [];
+                return emptyTasks();
             }
 
             const parsed = JSON.parse(stored);
             if (!Array.isArray(parsed)) {
-                return [];
+                return emptyTasks();
             }
 
             const validStatuses = new Set(Object.values(TaskStatus));
@@ -149,7 +160,7 @@ export default function App() {
                 })
                 .filter((item): item is TaskItem => Boolean(item));
         } catch {
-            return [];
+            return emptyTasks();
         }
     });
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -280,6 +291,10 @@ export default function App() {
     };
 
     const buildDefaultSlots = (root: string, count: number): WorktreeSlot[] => {
+        if (IS_DEMO) {
+            return createDemoSlots(root, count);
+        }
+
         return Array.from({ length: count }, (_, i) => ({
             id: i + 1,
             taskId: null,
@@ -288,17 +303,26 @@ export default function App() {
     };
 
     const [settings, setSettings] = useState<AppSettings>(() => {
+        // Demo mode points at a fake repo and carries a placeholder token so the
+        // token-gated actions stay clickable without a real GitHub connection.
+        const baseSettings = IS_DEMO ? createDemoSettings(defaultSettings) : defaultSettings;
+
         if (typeof window === 'undefined') {
-            return defaultSettings;
+            return baseSettings;
         }
 
         try {
             const stored = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
             if (!stored) {
-                return defaultSettings;
+                return baseSettings;
             }
             const parsed = JSON.parse(stored) as Partial<AppSettings>;
-            const normalized = normalizeSettings(parsed, defaultSettings);
+            const normalized = normalizeSettings(parsed, baseSettings);
+
+            if (IS_DEMO) {
+                // No login to force: keep the placeholder token across reloads.
+                return { ...normalized, githubToken: normalized.githubToken || baseSettings.githubToken };
+            }
 
             // Check if this is a new session (browser/tab just opened)
             const hasActiveSession = window.sessionStorage.getItem('flowize.session.active');
@@ -311,7 +335,7 @@ export default function App() {
             // Existing session - keep token (user already logged in this session)
             return normalized;
         } catch {
-            return defaultSettings;
+            return baseSettings;
         }
     });
 
@@ -434,6 +458,22 @@ export default function App() {
 
     useEffect(() => {
         const endpoint = settings.agentEndpoint?.trim();
+
+        if (IS_DEMO) {
+            const payload = demoBridgeHealth();
+            setBridgeHealth({
+                status: 'healthy',
+                endpoint: endpoint || 'demo',
+                authRequired: payload.authRequired,
+                persistence: payload.persistence,
+                dataDir: payload.dataDir,
+                typedActions: payload.typedActions,
+                metrics: payload.metrics,
+                diagnostics: payload.diagnostics
+            });
+            return;
+        }
+
         if (!endpoint) {
             setBridgeHealth({ status: 'unhealthy' });
             return;
@@ -542,6 +582,12 @@ export default function App() {
     };
 
     const handleLogout = () => {
+        if (IS_DEMO) {
+            // Nothing was signed in: drop the seeded data and return to the real app.
+            exitDemoMode();
+            return;
+        }
+
         setSettings(prev => ({ ...prev, githubToken: '' }));
         setGithubLogin('');
         // Clear session storage to ensure fresh login on next session
@@ -1526,6 +1572,7 @@ export default function App() {
                 bridgeEndpoint={settings.agentEndpoint}
                 bridgeAuthToken={settings.bridgeAuthToken}
                 toasts={<ToastStack toasts={toasts} />}
+                bypass={IS_DEMO}
             >
                 <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 font-sans selection:bg-indigo-500/30">
                     {/* Skip to main content link for keyboard users */}
@@ -1670,7 +1717,7 @@ export default function App() {
                                                 className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20"
                                             >
                                                 <LogOut className="w-3 h-3" />
-                                                <span>Logout</span>
+                                                <span>{IS_DEMO ? 'Exit demo' : 'Logout'}</span>
                                             </button>
                                         </div>
                                     </div>
@@ -1770,7 +1817,7 @@ export default function App() {
                                             e.stopPropagation();
                                         }}
                                         className="w-11 h-11 flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20 mt-1"
-                                        title="Logout"
+                                        title={IS_DEMO ? 'Exit demo' : 'Logout'}
                                     >
                                         <LogOut className="w-3.5 h-3.5" />
                                     </button>
@@ -1823,7 +1870,7 @@ export default function App() {
                                             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-red-200 dark:border-red-500/20"
                                         >
                                             <LogOut className="w-3 h-3" />
-                                            <span>Logout</span>
+                                            <span>{IS_DEMO ? 'Exit demo' : 'Logout'}</span>
                                         </button>
                                     </div>
                                 </div>
@@ -1833,6 +1880,36 @@ export default function App() {
 
                     {/* Main Content */}
                     <div className="flex-1 flex flex-col min-w-0">
+                        {IS_DEMO && (
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 md:px-6 py-2 border-b border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200">
+                                <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
+                                    <FlaskConical className="w-4 h-4" aria-hidden="true" />
+                                    Demo mode
+                                </span>
+                                <p className="text-xs flex-1 min-w-[12rem]">
+                                    You are exploring Flowize with sample data. No GitHub account is used and nothing leaves this browser.
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={resetDemoMode}
+                                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-amber-500/30 hover:bg-amber-500/20 transition-colors"
+                                    >
+                                        <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+                                        <span>Reset demo data</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={exitDemoMode}
+                                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 text-slate-950 hover:bg-amber-400 transition-colors"
+                                    >
+                                        <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+                                        <span>Exit demo</span>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Top Bar */}
                         <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/30 dark:bg-slate-900/30 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between px-4 md:px-6">
                             <button

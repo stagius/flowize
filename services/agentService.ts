@@ -1,5 +1,7 @@
 import { AppSettings, TaskItem, WorktreeSlot } from '../types';
 import { getBridgeAuthToken, getBridgeBaseUrl, getBridgeCandidates, getBridgeRequestHeaders } from './bridgeClient';
+import { isDemoMode } from '../utils/demoMode';
+import * as demo from './demoBackend';
 
 /** Thrown when a job is explicitly cancelled so callers can distinguish it from real failures. */
 class CancelledError extends Error {
@@ -509,6 +511,10 @@ export const generateImplementationFromAgent = async (
   onProgress?: (progress: AgentProgress) => void,
   signal?: AbortSignal
 ): Promise<AgentImplementationResult> => {
+  if (isDemoMode()) {
+    return demo.demoRunAgent(task, slot, settings, onProgress, signal);
+  }
+
   const commandTemplate = settings?.agentCommand?.trim();
   if (!task.issueNumber || !task.branchName) {
     return {
@@ -678,6 +684,10 @@ export const openWorktreeCmdWindow = async (
   slot: WorktreeSlot,
   options?: OpenWorktreeCmdOptions
 ): Promise<void> => {
+  if (isDemoMode()) {
+    throw new Error('Opening a local terminal is not available in demo mode - it needs the bridge running on your own machine.');
+  }
+
   const endpoint = settings?.agentEndpoint?.trim();
   if (!endpoint) {
     throw new Error('No local bridge endpoint configured.');
@@ -830,6 +840,8 @@ export const openWorktreeCmdWindow = async (
 };
 
 export const cancelAgentJob = async (settings: AppSettings | undefined, jobId: string): Promise<void> => {
+  if (isDemoMode()) return demo.demoCancelAgentJob(jobId);
+
   const endpoint = settings?.agentEndpoint?.trim();
   if (!endpoint || !jobId) {
     return;
@@ -865,6 +877,8 @@ export const cancelAgentJob = async (settings: AppSettings | undefined, jobId: s
 export const fetchAllAgentSessions = async (
   settings: AppSettings | undefined
 ): Promise<AgentSessionState[]> => {
+  if (isDemoMode()) return demo.demoFetchAllSessions();
+
   const endpoint = settings?.agentEndpoint?.trim();
   if (!endpoint) {
     throw new Error('Missing bridge endpoint.');
@@ -912,6 +926,8 @@ export const fetchAgentSession = async (
   settings: AppSettings | undefined,
   sessionId: string
 ): Promise<AgentSessionState> => {
+  if (isDemoMode()) return demo.demoFetchSession(sessionId);
+
   const endpoint = settings?.agentEndpoint?.trim();
   if (!endpoint || !sessionId) {
     throw new Error('Missing bridge endpoint or sessionId.');

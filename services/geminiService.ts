@@ -1,5 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { TaskItem, TaskStatus } from "../types";
+import { isDemoMode } from "../utils/demoMode";
+import { demoAnalyzeTasks } from "./demoBackend";
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -10,6 +12,11 @@ const FALLBACK_MODELS = [
 ];
 
 export const analyzeAndFormatTasks = async (rawInput: string, model: string = 'gemini-3-flash-preview', apiKey?: string): Promise<TaskItem[]> => {
+  // Demo mode has no API key: derive tasks locally instead of calling Gemini.
+  if (isDemoMode()) {
+    return demoAnalyzeTasks(rawInput);
+  }
+
   const key = apiKey || process.env.API_KEY || '';
   
   if (!key) {
